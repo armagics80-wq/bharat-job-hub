@@ -1,22 +1,34 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, browserPopupRedirectResolver } from 'firebase/auth';
+import { 
+  getAuth, 
+  GoogleAuthProvider, 
+  signInWithPopup, 
+  signOut,
+  setPersistence,
+  browserLocalPersistence
+} from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
+
+// Set persistence to local as it's most reliable for web apps
+setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
+
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export const signInWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+    // Default popup behavior is often more compatible than adding custom resolvers in general cases
+    const result = await signInWithPopup(auth, googleProvider);
     return result.user;
   } catch (error: any) {
     const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
     if (!ignoredErrors.includes(error.code)) {
-      console.error("Error signing in with Google", error);
+      console.error("Error signing in with Google:", error.code, error.message);
     }
     throw error;
   }

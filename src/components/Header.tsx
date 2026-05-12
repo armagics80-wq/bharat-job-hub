@@ -23,11 +23,14 @@ export default function Header({ notificationCount = 0 }: HeaderProps) {
     try {
       await signInWithGoogle();
     } catch (error: any) {
-      // Ignore errors where the user simply closed the popup
       const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
       if (!ignoredErrors.includes(error.code)) {
         console.error("Sign in failed:", error);
-        setAuthError(error.message?.split(' (')[0] || "Authentication failed. Please check if popups are allowed.");
+        setAuthError(error.message?.split(' (')[0] || "Authentication failed.");
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        setAuthError("Popup blocked or closed. Please allow popups for this site.");
+        // Auto-dismiss after 5 seconds for user-closed popups
+        setTimeout(() => setAuthError(null), 5000);
       }
     } finally {
       setIsLoggingIn(false);
