@@ -1,0 +1,57 @@
+{
+  "entities": {
+    "Job": {
+      "title": "Government Job Notification",
+      "description": "Details about a government job vacancy",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "department": { "type": "string" },
+        "region": { "type": "string", "enum": ["Central", "Telangana", "Andhra Pradesh"] },
+        "qualification": { "type": "string" },
+        "minAge": { "type": "number" },
+        "maxAge": { "type": "number" },
+        "salary": { "type": "string" },
+        "lastDate": { "type": "string", "format": "date-time" },
+        "notificationDate": { "type": "string", "format": "date-time" },
+        "applyLink": { "type": "string" },
+        "officialWebsite": { "type": "string" },
+        "description": { "type": "string" },
+        "documentRequired": { "type": "array", "items": { "type": "string" } },
+        "status": { "type": "string", "enum": ["Active", "Expired", "Upcoming", "Exam Scheduled"] },
+        "examNote": { "type": "string" }
+      },
+      "required": ["title", "department", "region", "qualification", "lastDate", "status"]
+    },
+    "UserProfile": {
+      "title": "User Eligibility Profile",
+      "description": "User's details for job matching",
+      "type": "object",
+      "properties": {
+        "fullName": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "age": { "type": "number" },
+        "qualification": { "type": "string" },
+        "state": { "type": "string" },
+        "district": { "type": "string" },
+        "gender": { "type": "string", "enum": ["Male", "Female", "Other"] },
+        "isPWD": { "type": "boolean" },
+        "skills": { "type": "array", "items": { "type": "string" } },
+        "documents": { "type": "array", "items": { "type": "string" } },
+        "otherCertificates": { "type": "string" },
+        "preferredRegion": { "type": "string" }
+      },
+      "required": ["fullName", "age", "qualification", "state", "district"]
+    }
+  },
+  "firestore": {
+    "jobs": {
+      "schema": "Job",
+      "description": "Store all government job notifications"
+    },
+    "userProfiles": {
+      "schema": "UserProfile",
+      "description": "Store user profiles for matching"
+    }
+  }
+}

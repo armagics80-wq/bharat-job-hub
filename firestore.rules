@@ -1,0 +1,66 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Jobs Collection ---
+    match /jobs/{jobId} {
+      function isValidJob(data) {
+        return data.title is string && data.title.size() <= 200 &&
+               data.department is string && data.department.size() <= 200 &&
+               data.region in ['Central', 'Telangana', 'Andhra Pradesh'] &&
+               data.qualification is string &&
+               data.status in ['Active', 'Expired', 'Upcoming', 'Exam Scheduled'] &&
+               data.lastDate is string;
+      }
+
+      // Public read for all users
+      allow read: if true;
+
+      // Admin only write
+      allow create: if isSignedIn() && isValidJob(incoming());
+      allow update: if isSignedIn() && isValidJob(incoming());
+    }
+
+    // --- User Profiles Collection ---
+    match /userProfiles/{userId} {
+      function isValidProfile(data) {
+        return data.fullName is string && data.fullName.size() <= 100 &&
+               data.age is number && data.age >= 18 && data.age <= 100 &&
+               data.qualification is string &&
+               data.state is string &&
+               data.district is string &&
+               data.gender in ['Male', 'Female', 'Other'] &&
+               data.isPWD is bool;
+      }
+
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId) && isValidProfile(incoming());
+      allow delete: if isOwner(userId);
+    }
+  }
+}
