@@ -13,8 +13,11 @@ export const signInWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
     return result.user;
-  } catch (error) {
-    console.error("Error signing in with Google", error);
+  } catch (error: any) {
+    const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
+    if (!ignoredErrors.includes(error.code)) {
+      console.error("Error signing in with Google", error);
+    }
     throw error;
   }
 };
