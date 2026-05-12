@@ -12,6 +12,7 @@ interface JobCardProps {
 
 export default function JobCard({ job, guidance, isMatch }: JobCardProps) {
   const [showHowToApply, setShowHowToApply] = useState(false);
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
 
   const getRegionColor = (region: string) => {
     switch (region) {
@@ -84,7 +85,29 @@ export default function JobCard({ job, guidance, isMatch }: JobCardProps) {
           <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
             {job.title}
           </h3>
-          <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
+
+          <div className="mt-1.5 text-[10px] text-slate-600 leading-relaxed max-w-2xl">
+            <motion.div
+              animate={{ height: 'auto' }}
+              className="inline"
+            >
+              {isDescExpanded ? job.description : (job.description.length > 150 ? `${job.description.slice(0, 150)}...` : job.description)}
+            </motion.div>
+            {job.description.length > 150 && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); setIsDescExpanded(!isDescExpanded); }}
+                className="ml-1 text-indigo-600 hover:text-indigo-800 font-bold cursor-pointer inline-flex items-center gap-0.5"
+              >
+                {isDescExpanded ? (
+                  <>Read Less <ChevronUp className="w-2.5 h-2.5" /></>
+                ) : (
+                  <>Read More <ChevronDown className="w-2.5 h-2.5" /></>
+                )}
+              </button>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 mt-2 text-[10px] text-slate-500">
             <div className="flex items-center gap-1">
               <Calendar className="w-3 h-3" />
               <span className={new Date(job.lastDate) < new Date() ? 'text-rose-500 font-bold' : ''}>

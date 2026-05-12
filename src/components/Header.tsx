@@ -10,6 +10,7 @@ interface HeaderProps {
 export default function Header({ notificationCount = 0 }: HeaderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     return auth.onAuthStateChanged((u) => setUser(u));
@@ -18,6 +19,7 @@ export default function Header({ notificationCount = 0 }: HeaderProps) {
   const handleSignIn = async () => {
     if (isLoggingIn) return;
     setIsLoggingIn(true);
+    setAuthError(null);
     try {
       await signInWithGoogle();
     } catch (error: any) {
@@ -25,6 +27,7 @@ export default function Header({ notificationCount = 0 }: HeaderProps) {
       const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
       if (!ignoredErrors.includes(error.code)) {
         console.error("Sign in failed:", error);
+        setAuthError(error.message?.split(' (')[0] || "Authentication failed. Please check if popups are allowed.");
       }
     } finally {
       setIsLoggingIn(false);
@@ -33,6 +36,12 @@ export default function Header({ notificationCount = 0 }: HeaderProps) {
 
   return (
     <header id="app-header" className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-50">
+      {authError && !user && (
+        <div className="absolute top-18 right-6 bg-rose-600 text-white text-[10px] px-3 py-1.5 rounded-full shadow-lg z-50 flex items-center gap-2 animate-in fade-in slide-in-from-top-2">
+          <span>{authError}</span>
+          <button onClick={() => setAuthError(null)} className="font-bold hover:text-rose-200 uppercase">Dismiss</button>
+        </div>
+      )}
       <div className="flex items-center gap-4 flex-1 font-bold italic">
         <div className="flex items-center gap-2 lg:hidden">
           <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center font-bold text-indigo-950">B</div>
