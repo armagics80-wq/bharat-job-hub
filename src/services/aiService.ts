@@ -56,8 +56,6 @@ export const aiService = {
       const text = response.text || '{"matches": []}';
       return JSON.parse(text);
     } catch (error: any) {
-      console.error("Error in AI job matching:", error);
-      
       // Check if it's a quota error (429)
       const errorStr = JSON.stringify(error).toLowerCase();
       const isQuotaError = errorStr.includes('429') || errorStr.includes('resource_exhausted') || errorStr.includes('quota');
@@ -83,6 +81,7 @@ export const aiService = {
         return { matches: fallbackMatches.slice(0, 5) };
       }
 
+      console.error("Error in AI job matching:", error);
       return { matches: [] };
     }
   }

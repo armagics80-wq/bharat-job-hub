@@ -21,7 +21,9 @@ export default function Header({ notificationCount = 0 }: HeaderProps) {
     try {
       await signInWithGoogle();
     } catch (error: any) {
-      if (error.code !== 'auth/cancelled-popup-request') {
+      // Ignore errors where the user simply closed the popup
+      const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
+      if (!ignoredErrors.includes(error.code)) {
         console.error("Sign in failed:", error);
       }
     } finally {
