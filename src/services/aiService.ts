@@ -45,44 +45,48 @@ export const aiService = {
     `;
 
     try {
-      const response = await ai.models.generateContent({
+      // Set a race between AI matching and a 4s timeout fallback
+      const aiPromise = ai.models.generateContent({
         model,
         contents: prompt,
         config: {
           responseMimeType: "application/json"
         }
       });
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("AI Matching Timeout")), 4000)
+      );
+
+      const response: any = await Promise.race([aiPromise, timeoutPromise]);
       
       const text = response.text || '{"matches": []}';
       return JSON.parse(text);
     } catch (error: any) {
-      // Check if it's a quota error (429)
-      const errorStr = JSON.stringify(error).toLowerCase();
-      const isQuotaError = errorStr.includes('429') || errorStr.includes('resource_exhausted') || errorStr.includes('quota');
+      console.warn("AI matching failed or timed out. Using fast local fallback.", error.message);
+      
+      // Fast Local Matching Fallback
+      const matches = availableJobs
+        .filter(job => {
+          // 1. Basic Region/State Match
+          const isStateMatch = job.region === userProfile.state || job.region === 'Central';
+          
+          // 2. Basic Qualification Check (Case-insensitive substring match)
+          const userQual = userProfile.qualification.toLowerCase();
+          const jobQual = job.qualification.toLowerCase();
+          const isQualMatch = jobQual.includes(userQual) || userQual.includes(jobQual) || jobQual === 'any degree';
+          
+          // 3. Simple Age Check
+          const isAgeMatch = userProfile.age <= job.maxAge;
 
-      if (isQuotaError) {
-        console.warn("Gemini Quota exceeded. Using basic matching fallback.");
-        
-        // Simple fallback logic: filter jobs by region/state
-        const fallbackMatches = availableJobs
-          .filter(job => {
-            const isStateMatch = job.region === userProfile.state || job.region === 'Central';
-            const isLogicalResidency = !(
-              (job.region === 'Telangana' && userProfile.state === 'Andhra Pradesh') ||
-              (job.region === 'Andhra Pradesh' && userProfile.state === 'Telangana')
-            );
-            return isStateMatch && isLogicalResidency;
-          })
-          .map(job => ({
-            id: job.id,
-            guidance: "Matched based on qualification and residency. Detailed AI tips are temporarily restricted due to system limits."
-          }));
+          return isStateMatch && isQualMatch && isAgeMatch;
+        })
+        .map(job => ({
+          id: job.id,
+          guidance: `Eligible based on ${job.qualification} requirement and ${job.region} residency. Age requirement (${job.maxAge}) met.`
+        }));
 
-        return { matches: fallbackMatches.slice(0, 5) };
-      }
-
-      console.error("Error in AI job matching:", error);
-      return { matches: [] };
+      return { matches: matches.slice(0, 10) };
     }
   }
 };

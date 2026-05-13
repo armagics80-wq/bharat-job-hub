@@ -30,6 +30,7 @@ export default function App() {
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [minutesSinceLastSync, setMinutesSinceLastSync] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
 
   useEffect(() => {
     // 1. Real-time job listener
@@ -73,11 +74,18 @@ export default function App() {
 
   const handleMatch = async (p: UserProfile, currentJobs: Job[] = jobs) => {
     if (currentJobs.length > 0) {
-      const matchResult = await aiService.matchJobs(p, currentJobs);
-      setAiMatches(matchResult.matches || []);
-      setNotificationsCount(0);
-      if (matchResult.matches && matchResult.matches.length > 0) {
-        setActiveTab('eligible');
+      setIsMatching(true);
+      try {
+        const matchResult = await aiService.matchJobs(p, currentJobs);
+        setAiMatches(matchResult.matches || []);
+        setNotificationsCount(0);
+        if (matchResult.matches && matchResult.matches.length > 0) {
+          setActiveTab('eligible');
+        }
+      } catch (error) {
+        console.error("Matching error:", error);
+      } finally {
+        setIsMatching(false);
       }
     }
   };
@@ -91,23 +99,30 @@ export default function App() {
 
   const saveProfile = async (data: UserProfile) => {
     setIsSaving(true);
-    if (user) {
-      await profileService.saveProfile(user.uid, data);
-    } else {
-      // Create a guest session automatically if not logged in
-      const guestId = 'guest-' + Math.random().toString(36).substring(7);
-      setUser({
-        uid: guestId,
-        displayName: 'Guest User',
-        photoURL: null
-      });
-      localStorage.setItem('temp_profile', JSON.stringify(data));
-      setIsGuest(true);
+    try {
+      if (user) {
+        await profileService.saveProfile(user.uid, data);
+      } else {
+        // Create a guest session automatically if not logged in
+        const guestId = 'guest-' + Math.random().toString(36).substring(7);
+        setUser({
+          uid: guestId,
+          displayName: 'Guest User',
+          photoURL: null
+        });
+        localStorage.setItem('temp_profile', JSON.stringify(data));
+        setIsGuest(true);
+      }
+      setProfile(data);
+      setIsSaving(false);
+      setActiveTab('eligible');
+      
+      // Trigger matching immediately after save indicator clears
+      handleMatch(data);
+    } catch (error) {
+      console.error("Save error:", error);
+      setIsSaving(false);
     }
-    setProfile(data);
-    await handleMatch(data);
-    setIsSaving(false);
-    setActiveTab('eligible');
   };
 
   const filteredJobs = useMemo(() => {
@@ -372,15 +387,22 @@ export default function App() {
                     ) : (
                       <div className="py-16 text-center bg-white/5 rounded-lg border border-white/10">
                         {profile ? (
-                          <>
-                            <RefreshCw className="w-10 h-10 text-indigo-400 mx-auto mb-3 animate-spin duration-[3000ms]" />
-                            <p className="text-sm text-indigo-200">Processing live data streams for matches...</p>
-                            <p className="text-[10px] text-indigo-400 mt-2 uppercase tracking-widest font-mono">Status: Checking Central/State Records</p>
-                          </>
+                          isMatching ? (
+                            <>
+                              <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto mb-3 animate-spin" />
+                              <p className="text-sm text-indigo-200">Finding your matches...</p>
+                            </>
+                          ) : (
+                            <>
+                              <Info className="w-10 h-10 text-rose-400 mx-auto mb-3" />
+                              <h3 className="text-lg font-bold text-white mb-2">No matching jobs found</h3>
+                              <p className="text-xs text-indigo-200 px-10">We couldn't find any government jobs that perfectly match your current eligibility criteria.</p>
+                            </>
+                          )
                         ) : (
                           <>
                             <Info className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-                            <p className="text-sm text-indigo-200">Enter your details above to get tailored recommendations.</p>
+                            <p className="text-sm text-indigo-200 px-10">Enter your official details above to get precise eligibility recommendations.</p>
                           </>
                         )}
                       </div>
