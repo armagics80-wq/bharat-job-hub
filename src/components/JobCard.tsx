@@ -65,7 +65,8 @@ export default function JobCard({ job, guidance, isMatch }: JobCardProps) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className={`relative group bg-white border-b last:border-b-0 border-slate-100 p-3 transition-colors hover:bg-slate-50 ${isMatch ? 'bg-indigo-50/10' : ''}`}
+      onClick={() => setShowHowToApply(!showHowToApply)}
+      className={`relative group bg-white border-b last:border-b-0 border-slate-100 p-3 transition-colors hover:bg-slate-50 cursor-pointer ${isMatch ? 'bg-indigo-50/10' : ''} ${showHowToApply ? 'bg-slate-50' : ''}`}
     >
       <div className="flex items-start gap-4">
         <div className="flex-1 min-w-0">
@@ -132,6 +133,7 @@ export default function JobCard({ job, guidance, isMatch }: JobCardProps) {
                 href={job.applyLink} 
                 target="_blank" 
                 rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
                 className="px-3 py-1.5 bg-indigo-600 text-white text-[10px] font-bold rounded hover:bg-indigo-700 transition-colors uppercase tracking-widest text-center"
               >
                 Apply

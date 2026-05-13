@@ -82,8 +82,11 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               required
               min="18"
               max="100"
-              value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
+              value={isNaN(formData.age) ? '' : formData.age}
+              onChange={(e) => {
+                const val = e.target.value;
+                setFormData({ ...formData, age: val === '' ? NaN : parseInt(val) });
+              }}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
             />
           </div>

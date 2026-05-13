@@ -11,7 +11,7 @@ import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
 import { auth, db } from './lib/firebase';
 import { Job, UserProfile } from './types';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2 } from 'lucide-react';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
 
@@ -27,12 +27,17 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'browse' | 'eligible'>('browse');
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [lastProcessedJobsCount, setLastProcessedJobsCount] = useState(0);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
+  const [minutesSinceLastSync, setMinutesSinceLastSync] = useState(0);
+  const [isGuest, setIsGuest] = useState(false);
 
   useEffect(() => {
     // 1. Real-time job listener
     const unsubJobs = jobService.subscribeToLatestJobs((updatedJobs) => {
       setJobs(updatedJobs);
       setIsLoading(false);
+      setLastSyncTime(new Date());
+      setMinutesSinceLastSync(0);
       
       setLastProcessedJobsCount(prev => {
         if (prev > 0 && updatedJobs.length > prev) {
@@ -54,17 +59,26 @@ export default function App() {
       }
     });
 
+    // Update "minutes ago" counter every minute
+    const syncInterval = setInterval(() => {
+      setMinutesSinceLastSync(Math.floor((new Date().getTime() - lastSyncTime.getTime()) / 60000));
+    }, 60000);
+
     return () => {
       unsubJobs();
       unsubAuth();
+      clearInterval(syncInterval);
     };
-  }, []); // Only run on mount
+  }, [lastSyncTime]); // Re-run when lastSyncTime updates to reset interval
 
   const handleMatch = async (p: UserProfile, currentJobs: Job[] = jobs) => {
     if (currentJobs.length > 0) {
       const matchResult = await aiService.matchJobs(p, currentJobs);
       setAiMatches(matchResult.matches || []);
       setNotificationsCount(0);
+      if (matchResult.matches && matchResult.matches.length > 0) {
+        setActiveTab('eligible');
+      }
     }
   };
 
@@ -76,19 +90,24 @@ export default function App() {
   }, [profile, jobs.length, aiMatches.length]);
 
   const saveProfile = async (data: UserProfile) => {
-    if (!user) {
-      alert("Please sign in to save your profile and get AI matching.");
-      return;
-    }
     setIsSaving(true);
-    await profileService.saveProfile(user.uid, data);
+    if (user) {
+      await profileService.saveProfile(user.uid, data);
+    } else {
+      // Create a guest session automatically if not logged in
+      const guestId = 'guest-' + Math.random().toString(36).substring(7);
+      setUser({
+        uid: guestId,
+        displayName: 'Guest User',
+        photoURL: null
+      });
+      localStorage.setItem('temp_profile', JSON.stringify(data));
+      setIsGuest(true);
+    }
     setProfile(data);
     await handleMatch(data);
     setIsSaving(false);
     setActiveTab('eligible');
-    setTimeout(() => {
-      document.getElementById('matches-section')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
   };
 
   const filteredJobs = useMemo(() => {
@@ -96,19 +115,11 @@ export default function App() {
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            job.department.toLowerCase().includes(searchTerm.toLowerCase());
       
-      // Regions: Central, Telangana, Andhra Pradesh
-      // All region shows everything
       const matchesRegion = filterRegion === 'All' || job.region === filterRegion;
-
-      // Smart State Filter: 
-      // If profile exists and user is viewing 'All' regions
-      // We still show Central jobs. 
-      // But we might want to prioritize jobs from their state.
-      // For now, the explicit region filter handles the state-specific views.
 
       return matchesSearch && matchesRegion;
     });
-  }, [jobs, searchTerm, filterRegion, profile]);
+  }, [jobs, searchTerm, filterRegion]);
 
   const matchedJobItems = useMemo(() => {
     if (aiMatches.length === 0) return [];
@@ -127,18 +138,50 @@ export default function App() {
       <aside className="w-64 bg-indigo-900 text-white flex flex-col shrink-0 hidden lg:flex">
         <div className="p-6 flex items-center gap-3 border-b border-indigo-800">
           <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center font-bold text-indigo-950">B</div>
-          <span className="font-bold tracking-tight text-xl">Bharat Govt</span>
+          <span className="font-bold tracking-tight text-xl">BharatHub</span>
         </div>
 
         <div className="p-4 flex-1 space-y-6 overflow-y-auto custom-scrollbar">
+          <nav className="space-y-1">
+            <div className="text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-2 px-2">Navigation</div>
+            <button
+                onClick={() => setActiveTab('browse')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === 'browse' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                }`}
+              >
+                <Globe className="w-4 h-4" />
+                Browse All Jobs
+              </button>
+              <button
+                onClick={() => setActiveTab('eligible')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                  activeTab === 'eligible' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  Your Matches
+                </div>
+                {notificationsCount > 0 && (
+                  <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                    {notificationsCount}
+                  </span>
+                )}
+              </button>
+          </nav>
+
           <nav className="space-y-1">
             <div className="text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-2 px-2">Regions</div>
             {['All', 'Central', 'Telangana', 'Andhra Pradesh'].map((region) => (
               <button
                 key={region}
-                onClick={() => setFilterRegion(region)}
+                onClick={() => {
+                  setFilterRegion(region);
+                  setActiveTab('browse');
+                }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  filterRegion === region ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                  filterRegion === region && activeTab === 'browse' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
                 }`}
               >
                 <span>{region === 'All' ? '🇮🇳' : region === 'Central' ? '🏛️' : region === 'Telangana' ? '⚖️' : '🌴'}</span>
@@ -152,7 +195,7 @@ export default function App() {
             <div className="bg-indigo-950/50 p-3 rounded-lg border border-indigo-700/50 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span>Status:</span>
-                <span className={user ? 'text-emerald-400' : 'text-amber-400'}>{user ? 'Signed In' : 'Guest'}</span>
+                <span className={(user || isGuest) ? 'text-emerald-400' : 'text-amber-400'}>{(user || isGuest) ? 'Signed In' : 'Guest'}</span>
               </div>
               {profile && (
                 <>
@@ -162,141 +205,196 @@ export default function App() {
                   </div>
                   <div className="flex justify-between">
                     <span>Qual:</span>
-                    <span className="font-mono truncate ml-2">{profile.qualification}</span>
+                    <span className="font-mono truncate ml-2 text-indigo-200">{profile.qualification}</span>
                   </div>
                 </>
               )}
               <button 
-                onClick={() => setActiveTab('browse')} // Simplified navigation
+                onClick={() => setActiveTab(profile ? 'eligible' : 'browse')}
                 className="w-full mt-2 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-center transition-colors font-bold uppercase tracking-tighter text-[10px]"
               >
-                {profile ? 'Check Notifications' : 'Complete Profile'}
+                {profile ? 'Check Matches' : 'Complete Profile'}
               </button>
             </div>
-          </div>
-          
-          <div className="bg-slate-900 rounded-lg p-3 text-white flex flex-col gap-2">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] uppercase font-bold text-slate-400">Security Check</span>
-              <span className="text-[10px] text-emerald-400">Active</span>
-            </div>
-            <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
-              <div className="h-full bg-emerald-500 w-full"></div>
-            </div>
-            <div className="text-[10px] text-slate-400">Authorized government data stream enabled.</div>
           </div>
         </div>
 
         <div className="p-4 bg-indigo-950 text-[10px] text-indigo-400 text-center font-mono">
-          v1.0.4-stable • BharatHub
+          v1.0.5-stable • Bharat Govt Notifications
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
-        <Header notificationCount={notificationsCount} />
+        <Header 
+          notificationCount={notificationsCount} 
+          onNotificationClick={() => setActiveTab('eligible')} 
+        />
 
         <div className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto custom-scrollbar">
           
-          {/* Section 1: Latest Notifications & News */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 flex items-center gap-2">
-                <BellRing className="w-4 h-4 text-rose-500" /> Latest Jobs & News
-              </h2>
-              <div className="flex gap-2">
-                <div className="relative w-48 sm:w-64">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Search by dept/title..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-indigo-500 shadow-sm"
-                  />
-                </div>
-                <select 
-                  value={filterRegion}
-                  onChange={(e) => setFilterRegion(e.target.value)}
-                  className="px-3 py-1.5 bg-white border border-slate-200 rounded text-[11px] outline-none shadow-sm font-bold"
-                >
-                  <option value="All">All Regions</option>
-                  <option value="Central">Central Govt</option>
-                  <option value="Telangana">Telangana State</option>
-                  <option value="Andhra Pradesh">Andhra Pradesh State</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-2 space-y-1">
-                {filteredJobs.slice(0, 5).map(job => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
-              {filteredJobs.length > 5 && (
-                <button 
-                  onClick={() => document.getElementById('full-job-list')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="w-full py-2 bg-slate-50 text-[10px] font-bold text-slate-500 border-t border-slate-100 hover:text-indigo-600"
-                >
-                  View All Notifications
-                </button>
-              )}
-            </div>
+          {/* Main Tabs */}
+          <div className="flex items-center gap-6 border-b border-slate-200 mb-6 sticky top-0 bg-slate-50 z-20 pt-2 lg:hidden">
+             <button 
+              onClick={() => setActiveTab('browse')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'browse' ? 'text-indigo-600' : 'text-slate-400'}`}
+            >
+              Browse
+              {activeTab === 'browse' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+            </button>
+            <button 
+              onClick={() => setActiveTab('eligible')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'eligible' ? 'text-indigo-600' : 'text-slate-400'}`}
+            >
+              Matches {notificationsCount > 0 && <span className="ml-1 text-rose-500 text-[8px]">•</span>}
+              {activeTab === 'eligible' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+            </button>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Step 2: Eligibility Profile moved here */}
-            <div className="lg:col-span-12 space-y-4">
-               <ProfileForm 
+          <AnimatePresence mode="wait">
+            {activeTab === 'browse' ? (
+              <motion.div 
+                key="browse"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="space-y-6"
+              >
+                {/* Search & Filter Bar */}
+                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
+                      <Briefcase className="w-4 h-4 text-indigo-600" /> Latest Openings
+                    </h2>
+                    {(searchTerm || filterRegion !== 'All') && (
+                      <button 
+                        onClick={() => { setSearchTerm(''); setFilterRegion('All'); }}
+                        className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 uppercase flex items-center gap-1 border border-indigo-100 px-2 py-0.5 rounded-full bg-indigo-50"
+                      >
+                         Clear Filter <RefreshCw className="w-2.5 h-2.5" />
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="relative w-48 sm:w-64">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input 
+                        type="text" 
+                        placeholder="Search by dept/title..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="w-full pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none focus:ring-1 focus:ring-indigo-500 transition-all"
+                      />
+                    </div>
+                    <select 
+                      value={filterRegion}
+                      onChange={(e) => setFilterRegion(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none font-bold text-slate-600"
+                    >
+                      <option value="All">All Regions</option>
+                      <option value="Central">Central Govt</option>
+                      <option value="Telangana">Telangana State</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh State</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Latest Jobs section */}
+                <div className="space-y-4">
+                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="p-2 space-y-1">
+                      {filteredJobs.length > 0 ? (
+                        <>
+                          {filteredJobs.slice(0, 10).map(job => (
+                            <JobCard key={job.id} job={job} />
+                          ))}
+                          {filteredJobs.length > 10 && (
+                            <div className="p-4 bg-slate-50 text-center">
+                              <p className="text-xs text-slate-500">Showing top 10 results. Use search/filter to narrow down.</p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="py-20 text-center">
+                          <Search className="w-10 h-10 text-slate-300 mx-auto mb-4" />
+                          <h3 className="text-sm font-bold text-slate-700">No jobs found</h3>
+                          <p className="text-xs text-slate-500 mt-1">Try adjusting your filters or search terms</p>
+                          <button 
+                            onClick={() => { setSearchTerm(''); setFilterRegion('All'); }}
+                            className="mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-800"
+                          >
+                            Reset all filters
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="eligible"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-6"
+              >
+                <ProfileForm 
                   initialData={profile} 
                   onSave={saveProfile} 
                   isLoading={isSaving} 
                 />
-            </div>
 
-            {/* Step 3: Matches (Visible after processing) */}
-            <div className="lg:col-span-12 space-y-4" id="matches-section">
-              {activeTab === 'eligible' && (
-                <div className="bg-indigo-900 border border-indigo-700 rounded-lg p-5 text-white shadow-xl">
-                  <div className="flex items-center justify-between mb-6">
+                <div className="bg-indigo-900 border border-indigo-700 rounded-xl p-5 text-white shadow-xl relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <ShieldCheck className="w-32 h-32" />
+                  </div>
+                  
+                  <div className="flex items-center justify-between mb-6 relative">
                     <div>
                       <h2 className="text-xl font-bold flex items-center gap-3">
                         <Sparkles className="w-6 h-6 text-amber-400" /> 
-                        Recommended Government Jobs for You
+                        Recommended for Your Profile
                       </h2>
-                      <p className="text-indigo-200 text-sm mt-1">Based on your {profile?.qualification} and residency in {profile?.state}</p>
+                      <p className="text-indigo-200 text-sm mt-1">
+                        {profile 
+                          ? `Matching jobs for your ${profile.qualification} degree in ${profile.state}`
+                          : 'Complete your profile to unlock AI matching'}
+                      </p>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-3 relative">
                     {matchedJobItems.length > 0 ? (
                       matchedJobItems.map(({ job, guidance }) => (
                         <JobCard key={job.id} job={job} guidance={guidance} isMatch={true} />
                       ))
                     ) : (
-                      <div className="py-12 text-center bg-white/5 rounded-lg border border-white/10">
-                        <Info className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-                        <p className="text-sm text-indigo-200">No matching jobs found for your criteria yet.</p>
+                      <div className="py-16 text-center bg-white/5 rounded-lg border border-white/10">
+                        {profile ? (
+                          <>
+                            <RefreshCw className="w-10 h-10 text-indigo-400 mx-auto mb-3 animate-spin duration-[3000ms]" />
+                            <p className="text-sm text-indigo-200">Processing live data streams for matches...</p>
+                            <p className="text-[10px] text-indigo-400 mt-2 uppercase tracking-widest font-mono">Status: Checking Central/State Records</p>
+                          </>
+                        ) : (
+                          <>
+                            <Info className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
+                            <p className="text-sm text-indigo-200">Enter your details above to get tailored recommendations.</p>
+                          </>
+                        )}
                       </div>
                     )}
                   </div>
                 </div>
-              )}
-            </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-            {/* Full List at bottom */}
-            <div className="lg:col-span-12 space-y-4" id="full-job-list">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500">All Active Government Jobs</h3>
-                <span className="text-[10px] text-slate-400">{filteredJobs.length} Positions Available</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredJobs.slice(5).map(job => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
-            </div>
+          {/* Verification Badge */}
+          <div className="flex items-center justify-center gap-2 py-4 border-t border-slate-200">
+            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Authorized Government Notification Service</span>
           </div>
         </div>
       </main>

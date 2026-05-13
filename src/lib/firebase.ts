@@ -5,7 +5,8 @@ import {
   signInWithPopup, 
   signOut,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  browserPopupRedirectResolver
 } from 'firebase/auth';
 import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import firebaseConfig from '../../firebase-applet-config.json';
@@ -22,13 +23,17 @@ googleProvider.setCustomParameters({ prompt: 'select_account' });
 
 export const signInWithGoogle = async () => {
   try {
-    // Default popup behavior is often more compatible than adding custom resolvers in general cases
-    const result = await signInWithPopup(auth, googleProvider);
+    // browserPopupRedirectResolver is often required for cross-origin iframes like AI Studio preview
+    const result = await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
     return result.user;
   } catch (error: any) {
     const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
     if (!ignoredErrors.includes(error.code)) {
-      console.error("Error signing in with Google:", error.code, error.message);
+      console.error("Firebase Sign-in Error Details:", {
+        code: error.code,
+        message: error.message,
+        domain: window.location.hostname
+      });
     }
     throw error;
   }
