@@ -11,9 +11,11 @@ import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
 import { auth, db } from './lib/firebase';
 import { Job, UserProfile } from './types';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase } from 'lucide-react';
+import { isUserEligible } from './lib/utils';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
+import { format } from 'date-fns';
 
 export default function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -97,10 +99,27 @@ export default function App() {
     if (currentJobs.length > 0) {
       setIsMatching(true);
       try {
-        const matchResult = await aiService.matchJobs(p, currentJobs);
-        setAiMatches(matchResult.matches || []);
+        // 1. DETERMINISTIC LOCAL FILTERING (STRICT ACCURACY)
+        const eligibleJobs = currentJobs.filter(job => isUserEligible(p, job));
+        
+        // Initial matches based on code logic
+        const localMatches = eligibleJobs.map(job => ({
+          id: job.id,
+          guidance: `Verified Eligibility: Your ${p.qualification} meets the official requirements for this ${job.region} position.`
+        }));
+
+        setAiMatches(localMatches);
+        
+        // 2. OPTIONAL AI GUIDANCE (ONLY FOR TEXT ENHANCEMENT)
+        if (process.env.GEMINI_API_KEY && eligibleJobs.length > 0) {
+          const aiResult = await aiService.matchJobs(p, eligibleJobs);
+          if (aiResult.matches && aiResult.matches.length > 0) {
+             setAiMatches(aiResult.matches);
+          }
+        }
+
         setNotificationsCount(0);
-        if (matchResult.matches && matchResult.matches.length > 0) {
+        if (eligibleJobs.length > 0) {
           setActiveTab('eligible');
         }
       } catch (error) {
@@ -146,8 +165,8 @@ export default function App() {
     }
   };
 
-  const filteredJobs = useMemo(() => {
-    return jobs.filter(job => {
+  const { activeJobs, upcomingJobs } = useMemo(() => {
+    const filtered = jobs.filter(job => {
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            job.department.toLowerCase().includes(searchTerm.toLowerCase());
       
@@ -155,6 +174,11 @@ export default function App() {
 
       return matchesSearch && matchesRegion;
     });
+
+    return {
+      activeJobs: filtered.filter(j => j.status === 'Active' && new Date(j.lastDate) >= new Date()),
+      upcomingJobs: filtered.filter(j => j.status === 'Upcoming' || new Date(j.notificationDate) > new Date())
+    };
   }, [jobs, searchTerm, filterRegion]);
 
   const matchedJobItems = useMemo(() => {
@@ -162,11 +186,21 @@ export default function App() {
     return aiMatches
       .map(m => {
         const job = jobs.find(j => j.id === m.id);
+        if (job && profile && !isUserEligible(profile, job)) {
+          return null; // Strict filter failsafe
+        }
         if (job) return { job, guidance: m.guidance };
         return null;
       })
       .filter(Boolean) as { job: Job, guidance: string }[];
-  }, [aiMatches, jobs]);
+  }, [aiMatches, jobs, profile]);
+
+  const { matchedActive, matchedFuture } = useMemo(() => {
+    return {
+      matchedActive: matchedJobItems.filter(m => m.job.status === 'Active'),
+      matchedFuture: matchedJobItems.filter(m => m.job.status === 'Upcoming')
+    };
+  }, [matchedJobItems]);
 
   return (
     <div id="app-root" className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
@@ -350,34 +384,84 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* Latest Jobs section */}
-                <div className="space-y-4">
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-2 space-y-1">
-                      {filteredJobs.length > 0 ? (
-                        <>
-                          {filteredJobs.slice(0, 10).map(job => (
+                {/* Content Grid */}
+                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                  {/* Section 1: Available Now (Left Column) */}
+                  <div className="xl:col-span-2 space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-emerald-600" /> Available Jobs Now
+                      </h2>
+                      <span className="text-[10px] text-slate-500 font-medium">{activeJobs.length} Positions</span>
+                    </div>
+
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                      <div className="p-2 space-y-1">
+                        {activeJobs.length > 0 ? (
+                          activeJobs.map(job => (
                             <JobCard key={job.id} job={job} />
-                          ))}
-                          {filteredJobs.length > 10 && (
-                            <div className="p-4 bg-slate-50 text-center">
-                              <p className="text-xs text-slate-500">Showing top 10 results. Use search/filter to narrow down.</p>
+                          ))
+                        ) : (
+                          <div className="py-20 text-center">
+                            <Search className="w-10 h-10 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-sm font-bold text-slate-700">No matching jobs found currently.</h3>
+                            <p className="text-xs text-slate-500 mt-1">Try adjusting your filters or search terms</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Section 2: Future Opportunities (Right Column) */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between px-1">
+                      <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-indigo-600" /> Notifications Feed
+                      </h2>
+                    </div>
+
+                    <div className="bg-white/50 rounded-xl border border-dashed border-indigo-200 p-4 space-y-4">
+                      {upcomingJobs.length > 0 ? (
+                        upcomingJobs.map(job => (
+                          <div key={job.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-1 flex gap-1">
+                              {job.verified && (
+                                <span title="Official Verified" className="text-emerald-600 bg-emerald-50 p-0.5 rounded border border-emerald-100">
+                                  <ShieldCheck className="w-2.5 h-2.5" />
+                                </span>
+                              )}
+                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter border ${
+                                job.status === 'Upcoming' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                              }`}>
+                                {job.status === 'Upcoming' ? 'Notification Awaited' : job.status}
+                              </span>
                             </div>
-                          )}
-                        </>
+                            <h4 className="text-xs font-bold text-slate-900 pr-12 leading-tight">{job.title}</h4>
+                            <p className="text-[10px] text-slate-500 mt-1">{job.department}</p>
+                            
+                            <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-2">
+                              <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                job.status === 'Upcoming' ? 'text-indigo-600 bg-indigo-50' : 'text-rose-600 bg-rose-50'
+                              }`}>
+                                {job.status === 'Upcoming' ? `Starts: ${format(new Date(job.notificationDate), 'MMM d, yyyy')}` : `Closed: ${format(new Date(job.lastDate), 'MMM d, yyyy')}`}
+                              </div>
+                            </div>
+                          </div>
+                        ))
                       ) : (
-                        <div className="py-20 text-center">
-                          <Search className="w-10 h-10 text-slate-300 mx-auto mb-4" />
-                          <h3 className="text-sm font-bold text-slate-700">No jobs found</h3>
-                          <p className="text-xs text-slate-500 mt-1">Try adjusting your filters or search terms</p>
-                          <button 
-                            onClick={() => { setSearchTerm(''); setFilterRegion('All'); }}
-                            className="mt-4 text-xs font-bold text-indigo-600 hover:text-indigo-800"
-                          >
-                            Reset all filters
-                          </button>
+                        <div className="py-10 text-center text-slate-400">
+                          <Info className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-[10px] uppercase font-bold tracking-widest">No upcoming notifications</p>
                         </div>
                       )}
+                      
+                      <div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                         <div className="flex items-center gap-2 mb-1">
+                            <BellRing className="w-3.5 h-3.5 text-indigo-600" />
+                            <span className="text-[10px] font-bold text-indigo-900 uppercase tracking-tighter">Stay Notified</span>
+                         </div>
+                         <p className="text-[9px] text-indigo-700/70 leading-relaxed">We track yearly recruitment patterns and departmental announcements to help you prepare early.</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -415,32 +499,93 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="space-y-3 relative">
-                    {matchedJobItems.length > 0 ? (
-                      matchedJobItems.map(({ job, guidance }) => (
-                        <JobCard key={job.id} job={job} guidance={guidance} isMatch={true} />
-                      ))
+                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative">
+                    {profile ? (
+                      isMatching ? (
+                        <div className="xl:col-span-3 py-16 text-center bg-white/5 rounded-lg border border-white/10">
+                          <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto mb-3 animate-spin" />
+                          <p className="text-sm text-indigo-200">Analyzing official recruitment calendars...</p>
+                        </div>
+                      ) : (
+                        <>
+                          {/* Matched Active Jobs */}
+                          <div className="xl:col-span-2 space-y-4">
+                            <div className="flex items-center justify-between px-1">
+                              <h2 className="text-sm font-bold uppercase tracking-tight text-white flex items-center gap-2">
+                                <ShieldCheck className="w-4 h-4 text-emerald-400" /> Available Jobs Now
+                              </h2>
+                            </div>
+                            <div className="space-y-4">
+                              {matchedActive.length > 0 ? (
+                                matchedActive.map(({ job, guidance }) => (
+                                  <JobCard key={job.id} job={job} guidance={guidance} isMatch={true} />
+                                ))
+                              ) : (
+                                <div className="py-12 text-center bg-white/5 rounded-xl border border-dashed border-white/20 text-indigo-200">
+                                  <Info className="w-8 h-8 text-indigo-400 mx-auto mb-2 opacity-50" />
+                                  <p className="text-sm font-medium">No matching jobs found currently.</p>
+                                  <p className="text-[10px] mt-1 opacity-60">We only show jobs where you meet 100% of the eligibility criteria.</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Future Opportunities */}
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between px-1">
+                              <h2 className="text-sm font-bold uppercase tracking-tight text-white flex items-center gap-2">
+                                <BellRing className="w-4 h-4 text-amber-400" /> Future Opportunities
+                              </h2>
+                            </div>
+                            <div className="space-y-3">
+                              {matchedFuture.length > 0 ? (
+                                matchedFuture.map(({ job, guidance }) => (
+                                  <div key={job.id} className="bg-indigo-800/40 p-4 rounded-xl border border-indigo-700/50 relative group shadow-lg">
+                                    <div className="absolute top-2 right-2">
+                                      <span className="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase bg-indigo-900/80 text-amber-200 border border-amber-600/50">
+                                        Notification Awaited
+                                      </span>
+                                    </div>
+                                    <h4 className="text-xs font-bold text-white pr-10">{job.title}</h4>
+                                    <p className="text-[10px] text-indigo-300 mt-1 line-clamp-1 italic">
+                                      {job.department}
+                                    </p>
+                                    
+                                    <div className="mt-3 p-2 bg-indigo-950/50 rounded border border-indigo-700/30">
+                                      <p className="text-[10px] text-indigo-200 leading-tight">
+                                        <Sparkles className="w-2.5 h-2.5 inline mr-1 text-amber-400" />
+                                        {guidance}
+                                      </p>
+                                    </div>
+                                    
+                                    <div className="mt-3 flex items-center justify-between text-[9px] font-bold">
+                                      <span className="text-amber-400/90 flex items-center gap-1">
+                                        <Calendar className="w-2.5 h-2.5" />
+                                        Expected: {format(new Date(job.notificationDate), 'MMMM yyyy')}
+                                      </span>
+                                      <span className="text-indigo-400 uppercase tracking-tighter">Deterministic Match</span>
+                                    </div>
+                                  </div>
+                                ))
+                              ) : (
+                                <div className="py-10 text-center bg-white/5 rounded-lg border border-white/10 text-indigo-400">
+                                  <p className="text-[10px] uppercase font-bold tracking-widest text-indigo-500 italic px-4">No future predicted alerts for your qualification</p>
+                                </div>
+                              )}
+                            </div>
+                            <div className="p-3 bg-indigo-950/40 rounded-lg border border-indigo-700/30">
+                               <p className="text-[10px] text-indigo-300/80 leading-relaxed italic">
+                                 <Info className="w-3 h-3 inline mr-1 text-indigo-400" />
+                                 Note: Future opportunities are based on recurring recruitment patterns. Notification awaited.
+                               </p>
+                            </div>
+                          </div>
+                        </>
+                      )
                     ) : (
-                      <div className="py-16 text-center bg-white/5 rounded-lg border border-white/10">
-                        {profile ? (
-                          isMatching ? (
-                            <>
-                              <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto mb-3 animate-spin" />
-                              <p className="text-sm text-indigo-200">Finding your matches...</p>
-                            </>
-                          ) : (
-                            <>
-                              <Info className="w-10 h-10 text-rose-400 mx-auto mb-3" />
-                              <h3 className="text-lg font-bold text-white mb-2">No matching jobs found</h3>
-                              <p className="text-xs text-indigo-200 px-10">We couldn't find any government jobs that perfectly match your current eligibility criteria.</p>
-                            </>
-                          )
-                        ) : (
-                          <>
-                            <Info className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-                            <p className="text-sm text-indigo-200 px-10">Enter your official details above to get precise eligibility recommendations.</p>
-                          </>
-                        )}
+                      <div className="xl:col-span-3 py-16 text-center bg-white/5 rounded-lg border border-white/10">
+                        <Info className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
+                        <p className="text-sm text-indigo-200 px-10">Enter your official details above to get precise eligibility recommendations.</p>
                       </div>
                     )}
                   </div>
@@ -452,7 +597,9 @@ export default function App() {
           {/* Verification Badge */}
           <div className="flex items-center justify-center gap-2 py-4 border-t border-slate-200">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Authorized Government Notification Service</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center px-4">
+              Verified Data derived from Official Recruitment Gazettes & Portals
+            </span>
           </div>
         </div>
       </main>

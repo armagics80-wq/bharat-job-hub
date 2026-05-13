@@ -11,10 +11,16 @@ export interface Job {
   notificationDate: string;
   applyLink: string;
   officialWebsite: string;
+  officialSource: string;
   description: string;
+  jobType: string;
+  selectionProcess: string;
+  location: string;
+  howToApplySteps: string[];
+  applicationFee?: string;
   documentRequired: string[];
-  status: 'Active' | 'Expired' | 'Upcoming' | 'Exam Scheduled';
-  examNote?: string;
+  status: 'Active' | 'Upcoming' | 'Expired';
+  verified?: boolean;
 }
 
 export interface UserProfile {
