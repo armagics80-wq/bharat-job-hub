@@ -26,7 +26,7 @@ export default function App() {
   const [aiMatches, setAiMatches] = useState<{id: string, guidance: string}[]>([]);
   const [activeTab, setActiveTab] = useState<'browse' | 'eligible'>('browse');
   const [notificationsCount, setNotificationsCount] = useState(0);
-  const [lastProcessedJobsCount, setLastProcessedJobsCount] = useState(0);
+  const [knownJobIds, setKnownJobIds] = useState<Set<string>>(new Set());
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [minutesSinceLastSync, setMinutesSinceLastSync] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
@@ -40,12 +40,30 @@ export default function App() {
       setLastSyncTime(new Date());
       setMinutesSinceLastSync(0);
       
-      setLastProcessedJobsCount(prev => {
-        if (prev > 0 && updatedJobs.length > prev) {
-          const newCount = updatedJobs.length - prev;
-          setNotificationsCount(n => n + newCount);
+      setKnownJobIds(prevIds => {
+        if (prevIds.size > 0) {
+          const newJobs = updatedJobs.filter(job => !prevIds.has(job.id));
+          
+          if (newJobs.length > 0) {
+            // Smart notifications based on subscriptions
+            const subs = profile?.subscriptions;
+            const filtered = subs && (subs.regions.length > 0 || subs.categories.length > 0)
+              ? newJobs.filter(job => {
+                  const regionMatch = subs.regions.length === 0 || subs.regions.includes(job.region);
+                  const categoryMatch = subs.categories.length === 0 || subs.categories.some(cat => 
+                    job.title.toLowerCase().includes(cat.toLowerCase()) || 
+                    job.department.toLowerCase().includes(cat.toLowerCase())
+                  );
+                  return regionMatch && categoryMatch;
+                })
+              : newJobs;
+
+            if (filtered.length > 0) {
+              setNotificationsCount(n => n + filtered.length);
+            }
+          }
         }
-        return updatedJobs.length;
+        return new Set(updatedJobs.map(j => j.id));
       });
     }, 50);
 
@@ -60,17 +78,20 @@ export default function App() {
       }
     });
 
-    // Update "minutes ago" counter every minute
+    return () => {
+      unsubJobs();
+      unsubAuth();
+    };
+  }, [profile]);
+
+  // Update "minutes ago" counter every minute
+  useEffect(() => {
     const syncInterval = setInterval(() => {
       setMinutesSinceLastSync(Math.floor((new Date().getTime() - lastSyncTime.getTime()) / 60000));
     }, 60000);
 
-    return () => {
-      unsubJobs();
-      unsubAuth();
-      clearInterval(syncInterval);
-    };
-  }, [lastSyncTime]); // Re-run when lastSyncTime updates to reset interval
+    return () => clearInterval(syncInterval);
+  }, [lastSyncTime]);
 
   const handleMatch = async (p: UserProfile, currentJobs: Job[] = jobs) => {
     if (currentJobs.length > 0) {
@@ -222,6 +243,21 @@ export default function App() {
                     <span>Qual:</span>
                     <span className="font-mono truncate ml-2 text-indigo-200">{profile.qualification}</span>
                   </div>
+                  {profile.subscriptions && (profile.subscriptions.regions.length > 0 || profile.subscriptions.categories.length > 0) && (
+                    <div className="pt-2 mt-2 border-t border-indigo-800/50">
+                      <div className="text-[9px] text-indigo-400 uppercase tracking-widest mb-1 flex items-center gap-1">
+                        <Bell className="w-2 h-2" /> Subscriptions
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {profile.subscriptions.regions.map(r => (
+                          <span key={r} className="bg-indigo-800 px-1 rounded text-[8px]">{r}</span>
+                        ))}
+                        {profile.subscriptions.categories.map(c => (
+                          <span key={c} className="bg-indigo-800 px-1 rounded text-[8px]">{c}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
               <button 

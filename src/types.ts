@@ -30,6 +30,10 @@ export interface UserProfile {
   documents: string[];
   otherCertificates?: string;
   preferredRegion?: string;
+  subscriptions?: {
+    regions: string[];
+    categories: string[];
+  };
 }
 
 export enum OperationType {

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { UserProfile } from '../types';
-import { Save, GraduationCap, Calendar, User, FileText, Sparkles } from 'lucide-react';
+import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing } from 'lucide-react';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -9,19 +9,33 @@ interface ProfileFormProps {
 }
 
 export default function ProfileForm({ initialData, onSave, isLoading }: ProfileFormProps) {
-  const [formData, setFormData] = useState<UserProfile>(initialData || {
-    fullName: '',
-    phoneNumber: '',
-    age: 18,
-    qualification: '',
-    state: '',
-    district: '',
-    gender: 'Male',
-    isPWD: false,
-    skills: [],
-    documents: [],
-    otherCertificates: '',
-    preferredRegion: 'All'
+  const [formData, setFormData] = useState<UserProfile>(() => {
+    const defaultData: UserProfile = {
+      fullName: '',
+      phoneNumber: '',
+      age: 18,
+      qualification: '',
+      state: '',
+      district: '',
+      gender: 'Male',
+      isPWD: false,
+      skills: [],
+      documents: [],
+      otherCertificates: '',
+      preferredRegion: 'All',
+      subscriptions: {
+        regions: [],
+        categories: []
+      }
+    };
+
+    if (!initialData) return defaultData;
+
+    return {
+      ...defaultData,
+      ...initialData,
+      subscriptions: initialData.subscriptions || defaultData.subscriptions
+    };
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -221,6 +235,88 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all min-h-[60px]"
             placeholder="Type your extra certificates here (e.g. NCC, Sports, Typing, Computer Basic...)"
           />
+        </div>
+
+        <div className="pt-4 border-t border-slate-100 flex items-center gap-2 mb-2">
+          <BellRing className="w-3.5 h-3.5 text-indigo-600" />
+          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-700">Real-time Job Alerts</h3>
+        </div>
+
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Subscribe to Regions
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {['Central', 'Telangana', 'Andhra Pradesh'].map((region) => {
+                const isSelected = formData.subscriptions?.regions.includes(region);
+                return (
+                  <button
+                    key={region}
+                    type="button"
+                    onClick={() => {
+                      const currentRegions = formData.subscriptions?.regions || [];
+                      const newRegions = isSelected 
+                        ? currentRegions.filter(r => r !== region) 
+                        : [...currentRegions, region];
+                      setFormData({ 
+                        ...formData, 
+                        subscriptions: { 
+                          ...(formData.subscriptions || { categories: [] }), 
+                          regions: newRegions 
+                        } 
+                      });
+                    }}
+                    className={`px-3 py-1 rounded-full border text-[9px] font-bold transition-all ${
+                      isSelected 
+                      ? 'bg-indigo-600 border-indigo-600 text-white' 
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
+                    }`}
+                  >
+                    {region}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Job Categories (Based on Qualification)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {['Police', 'Teaching', 'Banking', 'Railway', 'Group-I/II', 'Technical'].map((cat) => {
+                const isSelected = formData.subscriptions?.categories.includes(cat);
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => {
+                      const currentCats = formData.subscriptions?.categories || [];
+                      const newCats = isSelected 
+                        ? currentCats.filter(c => c !== cat) 
+                        : [...currentCats, cat];
+                      setFormData({ 
+                        ...formData, 
+                        subscriptions: { 
+                          ...(formData.subscriptions || { regions: [] }), 
+                          categories: newCats 
+                        } 
+                      });
+                    }}
+                    className={`px-3 py-1 rounded-full border text-[9px] font-bold transition-all ${
+                      isSelected 
+                      ? 'bg-indigo-600 border-indigo-600 text-white' 
+                      : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[9px] text-slate-400 mt-1 italic">You will receive notifications immediately when new jobs match these criteria.</p>
+          </div>
         </div>
       </div>
 

@@ -39,7 +39,14 @@
         "skills": { "type": "array", "items": { "type": "string" } },
         "documents": { "type": "array", "items": { "type": "string" } },
         "otherCertificates": { "type": "string" },
-        "preferredRegion": { "type": "string" }
+        "preferredRegion": { "type": "string" },
+        "subscriptions": {
+          "type": "object",
+          "properties": {
+            "regions": { "type": "array", "items": { "type": "string" } },
+            "categories": { "type": "array", "items": { "type": "string" } }
+          }
+        }
       },
       "required": ["fullName", "age", "qualification", "state", "district"]
     }
