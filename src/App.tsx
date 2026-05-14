@@ -15,7 +15,8 @@ import { auth, db } from './lib/firebase';
 import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
 import { getDepartmentById } from './data/departments';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2 } from 'lucide-react';
+import { QUAL_RANKS_MAP } from './data/qualifications';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
 import { format, differenceInDays } from 'date-fns';
@@ -37,6 +38,7 @@ export default function App() {
   const [minutesSinceLastSync, setMinutesSinceLastSync] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
+  const [matchError, setMatchError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Clear success message after 3s
@@ -118,11 +120,21 @@ export default function App() {
 
   const handleMatch = async (p: UserProfile, currentJobs: Job[] = jobs) => {
     if (currentJobs.length > 0) {
-      setAiMatches([]); // Clear old results instantly (Requirement 2)
+      setMatchError(null);
       setIsMatching(true);
       try {
         // 1. DETERMINISTIC LOCAL FILTERING (STRICT ACCURACY)
-        const eligibleJobs = currentJobs.filter(job => isUserEligible(p, job).isEligible);
+        // Ensure p and currentJobs are valid
+        if (!p || !currentJobs) throw new Error("Invalid profile or jobs data");
+
+        const eligibleJobs = currentJobs.filter(job => {
+          try {
+            return isUserEligible(p, job).isEligible;
+          } catch (e) {
+            console.error("Eligibility check failed for job:", job.id, e);
+            return false;
+          }
+        });
         
         // Initial matches based on code logic
         const localMatches = eligibleJobs.map(job => {
@@ -136,13 +148,18 @@ export default function App() {
           };
         });
 
+        // Use a functional update to avoid unnecessary re-triggers if possible
         setAiMatches(localMatches);
         
         // 2. OPTIONAL AI GUIDANCE (ONLY FOR TEXT ENHANCEMENT)
         if (process.env.GEMINI_API_KEY && eligibleJobs.length > 0) {
-          const aiResult = await aiService.matchJobs(p, eligibleJobs);
-          if (aiResult.matches && aiResult.matches.length > 0) {
-             setAiMatches(aiResult.matches);
+          try {
+            const aiResult = await aiService.matchJobs(p, eligibleJobs);
+            if (aiResult && aiResult.matches && aiResult.matches.length > 0) {
+              setAiMatches(aiResult.matches);
+            }
+          } catch (aiErr) {
+            console.error("AI Matching failed, falling back to local results", aiErr);
           }
         }
 
@@ -152,6 +169,7 @@ export default function App() {
         }
       } catch (error) {
         console.error("Matching error:", error);
+        setMatchError("Unable to load matching jobs. Please check your profile details and try again.");
       } finally {
         setIsMatching(false);
       }
@@ -159,11 +177,19 @@ export default function App() {
   };
 
   // Trigger match when both profile and jobs are available for the first time
+  // Use a ref to prevent infinite loops if aiMatches remains empty
+  const hasAttemptedFirstMatch = useState(false)[0]; // Minimal toggle or just dependency check
+  const [lastMatchedProfileId, setLastMatchedProfileId] = useState<string>('');
+
   useEffect(() => {
-    if (profile && jobs.length > 0 && aiMatches.length === 0) {
+    // Generate a simple hash of profile to detect changes
+    const profileKey = profile ? `${profile.fullName}-${profile.age}-${profile.qualifications.join(',')}` : '';
+    
+    if (profile && jobs.length > 0 && profileKey !== lastMatchedProfileId && !isMatching) {
+      setLastMatchedProfileId(profileKey);
       handleMatch(profile, jobs);
     }
-  }, [profile, jobs.length, aiMatches.length]);
+  }, [profile, jobs.length, isMatching, lastMatchedProfileId]);
 
   const saveProfile = async (data: UserProfile) => {
     setIsSaving(true);
@@ -212,9 +238,14 @@ export default function App() {
       activeJobs: processed.filter(j => {
         // Strict Eligibility Filter for Browse (Requirement 5)
         if (profile) {
-          const elig = isUserEligible(profile, j);
-          // If totally ineligible due to qualification rank (error type), hide it
-          if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
+          try {
+            const elig = isUserEligible(profile, j);
+            // If totally ineligible due to qualification rank (error type), hide it
+            if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
+          } catch (e) {
+            console.error("In-list eligibility crash prevented:", e);
+            return true; // Show it if we can't determine eligibility to avoid blank screens
+          }
         }
 
         if (j.status === 'Active') return true;
@@ -229,8 +260,12 @@ export default function App() {
       upcomingJobs: processed.filter(j => {
          // Strict Eligibility Filter for Browse (Requirement 5)
          if (profile) {
-          const elig = isUserEligible(profile, j);
-          if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
+          try {
+            const elig = isUserEligible(profile, j);
+            if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
+          } catch (e) {
+            return true;
+          }
         }
         return j.status === 'Upcoming';
       })
@@ -243,14 +278,19 @@ export default function App() {
   }, [jobs, searchTerm, filterRegion, filterCategory]);
 
   const matchedJobItems = useMemo(() => {
-    if (aiMatches.length === 0) return [];
+    if (!aiMatches || aiMatches.length === 0) return [];
     return aiMatches
       .map(m => {
-        const job = jobs.find(j => j.id === m.id);
-        if (job && profile && !isUserEligible(profile, job).isEligible) {
-          return null; // Strict filter failsafe
+        try {
+          const job = jobs.find(j => j.id === m.id);
+          if (job && profile) {
+            const elig = isUserEligible(profile, job);
+            if (!elig.isEligible) return null; // Strict filter failsafe
+          }
+          if (job) return { job, guidance: m.guidance };
+        } catch (e) {
+          console.error("Match processing error:", e);
         }
-        if (job) return { job, guidance: m.guidance };
         return null;
       })
       .filter(Boolean) as { job: Job, guidance: string }[];
@@ -508,8 +548,19 @@ export default function App() {
                         </div>
                       )}
                       
-                      <div className="p-2 space-y-1">
-                        {activeJobs.length > 0 ? (
+                        <div className="p-2 space-y-1">
+                        {matchError ? (
+                          <div className="py-12 text-center px-6">
+                            <AlertCircle className="w-10 h-10 text-rose-300 mx-auto mb-4" />
+                            <h3 className="text-sm font-bold text-slate-700">{matchError}</h3>
+                            <button 
+                              onClick={() => handleMatch(profile!, jobs)}
+                              className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded text-[10px] font-bold uppercase tracking-widest"
+                            >
+                              Retry Matching
+                            </button>
+                          </div>
+                        ) : activeJobs.length > 0 ? (
                           activeJobs.map(job => (
                             <JobCard key={job.id} job={job} userProfile={profile} />
                           ))

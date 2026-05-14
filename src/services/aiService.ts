@@ -2,16 +2,19 @@ import { GoogleGenAI } from "@google/genai";
 import { Job, UserProfile } from "../types";
 import { isUserEligible } from "../lib/utils";
 import { getDepartmentById } from "../data/departments";
+import { QUAL_RANKS_MAP } from "../data/qualifications";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export const aiService = {
   async matchJobs(userProfile: UserProfile, eligibleJobs: Job[]): Promise<{ matches: { id: string; guidance: string }[] }> {
+    const qualLabels = userProfile.qualifications.map(id => QUAL_RANKS_MAP[id]?.label || id).join(", ");
+    
     if (eligibleJobs.length === 0 || !process.env.GEMINI_API_KEY) {
       return { 
         matches: eligibleJobs.map(job => ({
           id: job.id,
-          guidance: `Verified Eligibility: Your ${userProfile.qualification} satisfies the ${job.qualification} requirement for this ${job.region} position.`
+          guidance: `Verified Eligibility: Your ${qualLabels} satisfy the official requirement for this ${job.region} position.`
         }))
       };
     }
@@ -19,10 +22,10 @@ export const aiService = {
     const model = "gemini-3-flash-preview";
     const prompt = `
       You are a career counselor for Indian government jobs. The following jobs have been VERIFIED as eligible for the user.
-      Provide a highly encouraging one-sentence guidance for each job explaining why their specific profile (${userProfile.qualification}, ${userProfile.state}) is a perfect fit.
+      Provide a highly encouraging one-sentence guidance for each job explaining why their specific profile (${qualLabels}, ${userProfile.state}) is a perfect fit.
       
       User Profile:
-      - Qualification: ${userProfile.qualification}
+      - Qualifications: ${qualLabels}
       - State: ${userProfile.state}
       - Age: ${userProfile.age}
 
@@ -59,7 +62,7 @@ export const aiService = {
       return {
         matches: eligibleJobs.map(job => ({
           id: job.id,
-          guidance: `Strict match: Your ${userProfile.qualification} satisfies the ${job.qualification} requirement for this ${job.region} position.`
+          guidance: `Strict match: Your ${qualLabels} satisfy the official requirement for this ${job.region} position.`
         }))
       };
     }

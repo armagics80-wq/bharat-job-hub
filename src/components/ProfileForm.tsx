@@ -35,7 +35,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         return {
           ...defaultData,
           ...initialData,
-          qualifications: initialData.qualifications || (initialData.qualification ? [initialData.qualification as any] : []),
+          qualifications: initialData.qualifications || ((initialData as any).qualification ? [(initialData as any).qualification as any] : []),
           subscriptions: initialData.subscriptions || defaultData.subscriptions
         };
       });
@@ -112,10 +112,10 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               required
               min="18"
               max="100"
-              value={isNaN(formData.age) ? '' : formData.age}
+              value={formData.age || ''}
               onChange={(e) => {
                 const val = e.target.value;
-                setFormData({ ...formData, age: val === '' ? NaN : parseInt(val) });
+                setFormData({ ...formData, age: val === '' ? 0 : parseInt(val) || 0 });
               }}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
             />
