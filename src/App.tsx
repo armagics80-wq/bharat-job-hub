@@ -5,6 +5,8 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Header from './components/Header';
+import Footer from './components/Footer';
+import MinimalActivityFeed from './components/MinimalActivityFeed';
 import JobCard from './components/JobCard';
 import ProfileForm from './components/ProfileForm';
 import { jobService, profileService } from './services/jobService';
@@ -12,10 +14,11 @@ import { aiService } from './services/aiService';
 import { auth, db } from './lib/firebase';
 import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar } from 'lucide-react';
+import { getDepartmentById } from './data/departments';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
-import { format } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 
 export default function App() {
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -25,6 +28,7 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegion, setFilterRegion] = useState('All');
+  const [filterCategory, setFilterCategory] = useState('All');
   const [aiMatches, setAiMatches] = useState<{id: string, guidance: string}[]>([]);
   const [activeTab, setActiveTab] = useState<'browse' | 'eligible'>('browse');
   const [notificationsCount, setNotificationsCount] = useState(0);
@@ -33,11 +37,26 @@ export default function App() {
   const [minutesSinceLastSync, setMinutesSinceLastSync] = useState(0);
   const [isGuest, setIsGuest] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Clear success message after 3s
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
 
   useEffect(() => {
     // 1. Real-time job listener
     const unsubJobs = jobService.subscribeToLatestJobs((updatedJobs) => {
-      setJobs(updatedJobs);
+      // Sort jobs by latest verified update by default
+      const sorted = [...updatedJobs].sort((a, b) => {
+        const dateA = a.lastUpdatedAt ? new Date(a.lastUpdatedAt).getTime() : 0;
+        const dateB = b.lastUpdatedAt ? new Date(b.lastUpdatedAt).getTime() : 0;
+        return dateB - dateA;
+      });
+      setJobs(sorted);
       setIsLoading(false);
       setLastSyncTime(new Date());
       setMinutesSinceLastSync(0);
@@ -52,9 +71,11 @@ export default function App() {
             const filtered = subs && (subs.regions.length > 0 || subs.categories.length > 0)
               ? newJobs.filter(job => {
                   const regionMatch = subs.regions.length === 0 || subs.regions.includes(job.region);
+                  const dept = getDepartmentById(job.departmentId);
                   const categoryMatch = subs.categories.length === 0 || subs.categories.some(cat => 
                     job.title.toLowerCase().includes(cat.toLowerCase()) || 
-                    job.department.toLowerCase().includes(cat.toLowerCase())
+                    dept?.name.toLowerCase().includes(cat.toLowerCase()) ||
+                    dept?.category.toLowerCase().includes(cat.toLowerCase())
                   );
                   return regionMatch && categoryMatch;
                 })
@@ -97,16 +118,23 @@ export default function App() {
 
   const handleMatch = async (p: UserProfile, currentJobs: Job[] = jobs) => {
     if (currentJobs.length > 0) {
+      setAiMatches([]); // Clear old results instantly (Requirement 2)
       setIsMatching(true);
       try {
         // 1. DETERMINISTIC LOCAL FILTERING (STRICT ACCURACY)
-        const eligibleJobs = currentJobs.filter(job => isUserEligible(p, job));
+        const eligibleJobs = currentJobs.filter(job => isUserEligible(p, job).isEligible);
         
         // Initial matches based on code logic
-        const localMatches = eligibleJobs.map(job => ({
-          id: job.id,
-          guidance: `Verified Eligibility: Your ${p.qualification} meets the official requirements for this ${job.region} position.`
-        }));
+        const localMatches = eligibleJobs.map(job => {
+          const qualLabel = p.qualifications && p.qualifications.length > 0 
+            ? QUAL_RANKS_MAP[p.qualifications[0]]?.label || p.qualifications[0]
+            : 'background';
+
+          return {
+            id: job.id,
+            guidance: `Verified Eligibility: Your ${qualLabel}${p.qualifications.length > 1 ? ' and other credentials' : ''} meet the official requirements for this ${job.region} position.`
+          };
+        });
 
         setAiMatches(localMatches);
         
@@ -139,6 +167,7 @@ export default function App() {
 
   const saveProfile = async (data: UserProfile) => {
     setIsSaving(true);
+    setAiMatches([]); // Aggressively clear results to prevent stale data
     try {
       if (user) {
         await profileService.saveProfile(user.uid, data);
@@ -154,39 +183,71 @@ export default function App() {
         setIsGuest(true);
       }
       setProfile(data);
+      setSuccessMessage('Eligibility profile updated successfully!');
       setIsSaving(false);
       setActiveTab('eligible');
       
-      // Trigger matching immediately after save indicator clears
-      handleMatch(data);
+      // Trigger matching immediately after save
+      await handleMatch(data);
     } catch (error) {
       console.error("Save error:", error);
       setIsSaving(false);
     }
   };
 
-  const { activeJobs, upcomingJobs } = useMemo(() => {
-    const filtered = jobs.filter(job => {
+  const { activeJobs, upcomingJobs, totalMonitored } = useMemo(() => {
+    const processed = jobs.filter(job => {
+      const dept = getDepartmentById(job.departmentId);
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                           job.department.toLowerCase().includes(searchTerm.toLowerCase());
+                           dept?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           dept?.oldNames?.some(old => old.toLowerCase().includes(searchTerm.toLowerCase()));
       
       const matchesRegion = filterRegion === 'All' || job.region === filterRegion;
+      const matchesCategory = filterCategory === 'All' || dept?.category === filterCategory;
 
-      return matchesSearch && matchesRegion;
+      return matchesSearch && matchesRegion && matchesCategory;
     });
 
-    return {
-      activeJobs: filtered.filter(j => j.status === 'Active' && new Date(j.lastDate) >= new Date()),
-      upcomingJobs: filtered.filter(j => j.status === 'Upcoming' || new Date(j.notificationDate) > new Date())
+    const results = {
+      activeJobs: processed.filter(j => {
+        // Strict Eligibility Filter for Browse (Requirement 5)
+        if (profile) {
+          const elig = isUserEligible(profile, j);
+          // If totally ineligible due to qualification rank (error type), hide it
+          if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
+        }
+
+        if (j.status === 'Active') return true;
+        if (j.status === 'Expired') {
+          const lastDate = new Date(j.lastDate);
+          lastDate.setHours(23, 59, 59, 999);
+          const diff = differenceInDays(new Date(), lastDate);
+          return diff <= 2; // Show for 2 days after expiry
+        }
+        return false;
+      }),
+      upcomingJobs: processed.filter(j => {
+         // Strict Eligibility Filter for Browse (Requirement 5)
+         if (profile) {
+          const elig = isUserEligible(profile, j);
+          if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
+        }
+        return j.status === 'Upcoming';
+      })
     };
-  }, [jobs, searchTerm, filterRegion]);
+
+    return {
+      ...results,
+      totalMonitored: results.activeJobs.length + results.upcomingJobs.length
+    };
+  }, [jobs, searchTerm, filterRegion, filterCategory]);
 
   const matchedJobItems = useMemo(() => {
     if (aiMatches.length === 0) return [];
     return aiMatches
       .map(m => {
         const job = jobs.find(j => j.id === m.id);
-        if (job && profile && !isUserEligible(profile, job)) {
+        if (job && profile && !isUserEligible(profile, job).isEligible) {
           return null; // Strict filter failsafe
         }
         if (job) return { job, guidance: m.guidance };
@@ -275,7 +336,11 @@ export default function App() {
                   </div>
                   <div className="flex justify-between">
                     <span>Qual:</span>
-                    <span className="font-mono truncate ml-2 text-indigo-200">{profile.qualification}</span>
+                    <span className="font-mono truncate ml-2 text-indigo-200">
+                      {profile.qualifications && profile.qualifications.length > 0 
+                        ? `${QUAL_RANKS_MAP[profile.qualifications[0]]?.label.split(' ')[0]}${profile.qualifications.length > 1 ? '+' : ''}` 
+                        : 'None'}
+                    </span>
                   </div>
                   {profile.subscriptions && (profile.subscriptions.regions.length > 0 || profile.subscriptions.categories.length > 0) && (
                     <div className="pt-2 mt-2 border-t border-indigo-800/50">
@@ -318,6 +383,21 @@ export default function App() {
 
         <div className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto custom-scrollbar">
           
+          {/* Success Notification */}
+          <AnimatePresence>
+            {successMessage && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed top-20 right-4 lg:right-10 z-[100] bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-xl flex items-center gap-3 border border-emerald-500"
+              >
+                <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm font-bold">{successMessage}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Main Tabs */}
           <div className="flex items-center gap-6 border-b border-slate-200 mb-6 sticky top-0 bg-slate-50 z-20 pt-2 lg:hidden">
              <button 
@@ -347,18 +427,20 @@ export default function App() {
               >
                 {/* Search & Filter Bar */}
                 <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm flex flex-wrap gap-4 items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
-                      <Briefcase className="w-4 h-4 text-indigo-600" /> Latest Openings
-                    </h2>
-                    {(searchTerm || filterRegion !== 'All') && (
-                      <button 
-                        onClick={() => { setSearchTerm(''); setFilterRegion('All'); }}
-                        className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 uppercase flex items-center gap-1 border border-indigo-100 px-2 py-0.5 rounded-full bg-indigo-50"
-                      >
-                         Clear Filter <RefreshCw className="w-2.5 h-2.5" />
-                      </button>
-                    )}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
+                        <Briefcase className="w-4 h-4 text-indigo-600" /> Aggregated Notifications
+                      </h2>
+                      {(searchTerm || filterRegion !== 'All' || filterCategory !== 'All') && (
+                        <button 
+                          onClick={() => { setSearchTerm(''); setFilterRegion('All'); setFilterCategory('All'); }}
+                          className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 uppercase flex items-center gap-1 border border-indigo-100 px-2 py-0.5 rounded-full bg-indigo-50"
+                        >
+                           Clear Filter <RefreshCw className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <div className="relative w-48 sm:w-64">
@@ -381,8 +463,26 @@ export default function App() {
                       <option value="Telangana">Telangana State</option>
                       <option value="Andhra Pradesh">Andhra Pradesh State</option>
                     </select>
+                    <select 
+                      value={filterCategory}
+                      onChange={(e) => setFilterCategory(e.target.value)}
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none font-bold text-slate-600"
+                    >
+                      <option value="All">All Categories</option>
+                      <option value="Teaching">Teaching Jobs</option>
+                      <option value="Police">Police Jobs</option>
+                      <option value="Banking">Banking Jobs</option>
+                      <option value="Railway">Railway Jobs</option>
+                      <option value="SSC">SSC Jobs</option>
+                      <option value="UPSC">UPSC Jobs</option>
+                      <option value="PSC">PSC Jobs</option>
+                      <option value="Defence">Defence Jobs</option>
+                    </select>
                   </div>
                 </div>
+
+                {/* Dashboard Section */}
+                <MinimalActivityFeed />
 
                 {/* Content Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -390,16 +490,28 @@ export default function App() {
                   <div className="xl:col-span-2 space-y-4">
                     <div className="flex items-center justify-between px-1">
                       <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
-                        <Briefcase className="w-4 h-4 text-emerald-600" /> Available Jobs Now
+                        <Activity className="w-4 h-4 text-emerald-600" /> Live Verification Stream
                       </h2>
-                      <span className="text-[10px] text-slate-500 font-medium">{activeJobs.length} Positions</span>
+                      <div className="flex items-center gap-4">
+                        <span className="text-[10px] text-slate-500 font-medium">Auto-Synced {minutesSinceLastSync === 0 ? 'just now' : `${minutesSinceLastSync}m ago`}</span>
+                        <span className="text-[10px] text-slate-500 font-medium font-mono">{activeJobs.length} Verified Ads</span>
+                      </div>
                     </div>
 
-                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden relative">
+                      {isMatching && (
+                        <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                          <div className="flex flex-col items-center gap-2">
+                             <RefreshCw className="w-6 h-6 text-indigo-600 animate-spin" />
+                             <p className="text-xs font-bold text-slate-600 uppercase tracking-tighter">Refreshing eligible jobs...</p>
+                          </div>
+                        </div>
+                      )}
+                      
                       <div className="p-2 space-y-1">
                         {activeJobs.length > 0 ? (
                           activeJobs.map(job => (
-                            <JobCard key={job.id} job={job} />
+                            <JobCard key={job.id} job={job} userProfile={profile} />
                           ))
                         ) : (
                           <div className="py-20 text-center">
@@ -420,34 +532,53 @@ export default function App() {
                       </h2>
                     </div>
 
-                    <div className="bg-white/50 rounded-xl border border-dashed border-indigo-200 p-4 space-y-4">
+                    <div className="bg-white/50 rounded-xl border border-dashed border-indigo-200 p-4 space-y-4 relative overflow-hidden">
+                      {isMatching && (
+                        <div className="absolute inset-0 bg-white/40 backdrop-blur-[1px] z-10 flex items-center justify-center">
+                           <RefreshCw className="w-5 h-5 text-indigo-400 animate-spin" />
+                        </div>
+                      )}
                       {upcomingJobs.length > 0 ? (
-                        upcomingJobs.map(job => (
-                          <div key={job.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-1 flex gap-1">
-                              {job.verified && (
-                                <span title="Official Verified" className="text-emerald-600 bg-emerald-50 p-0.5 rounded border border-emerald-100">
-                                  <ShieldCheck className="w-2.5 h-2.5" />
+                        upcomingJobs.map(job => {
+                          const elig = profile ? isUserEligible(profile, job) : null;
+                          return (
+                            <div key={job.id} className="bg-white p-3 rounded-lg border border-slate-200 shadow-sm relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 p-1 flex gap-1">
+                                {job.verified && (
+                                  <span title="Official Verified" className="text-emerald-600 bg-emerald-50 p-0.5 rounded border border-emerald-100">
+                                    <ShieldCheck className="w-2.5 h-2.5" />
+                                  </span>
+                                )}
+                                {elig && (
+                                  <span className={`p-0.5 rounded border ${elig.isEligible ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                    {elig.isEligible ? <CheckCircle2 className="w-2.5 h-2.5" /> : <AlertCircle className="w-2.5 h-2.5" />}
+                                  </span>
+                                )}
+                                <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter border ${
+                                  job.status === 'Upcoming' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-rose-50 text-rose-700 border-rose-200'
+                                }`}>
+                                  {job.status === 'Upcoming' ? 'Notification Awaited' : job.status}
                                 </span>
+                              </div>
+                              <h4 className="text-xs font-bold text-slate-900 pr-12 leading-tight">{job.title}</h4>
+                              <p className="text-[10px] text-slate-500 mt-1">{getDepartmentById(job.departmentId)?.name || 'Unknown Dept'}</p>
+                              
+                              {elig && !elig.isEligible && (
+                                <p className="text-[9px] text-rose-600 font-bold mt-2 flex items-center gap-1">
+                                  <AlertCircle className="w-3 h-3" /> Ineligible: {job.minQualification} required
+                                </p>
                               )}
-                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter border ${
-                                job.status === 'Upcoming' ? 'bg-indigo-50 text-indigo-700 border-indigo-200' : 'bg-rose-50 text-rose-700 border-rose-200'
-                              }`}>
-                                {job.status === 'Upcoming' ? 'Notification Awaited' : job.status}
-                              </span>
-                            </div>
-                            <h4 className="text-xs font-bold text-slate-900 pr-12 leading-tight">{job.title}</h4>
-                            <p className="text-[10px] text-slate-500 mt-1">{job.department}</p>
-                            
-                            <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-2">
-                              <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                                job.status === 'Upcoming' ? 'text-indigo-600 bg-indigo-50' : 'text-rose-600 bg-rose-50'
-                              }`}>
-                                {job.status === 'Upcoming' ? `Starts: ${format(new Date(job.notificationDate), 'MMM d, yyyy')}` : `Closed: ${format(new Date(job.lastDate), 'MMM d, yyyy')}`}
+
+                              <div className="mt-3 flex items-center justify-between border-t border-slate-50 pt-2">
+                                <div className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                                  job.status === 'Upcoming' ? 'text-indigo-600 bg-indigo-50' : 'text-rose-600 bg-rose-50'
+                                }`}>
+                                  {job.status === 'Upcoming' ? `Starts: ${format(new Date(job.notificationDate), 'MMM d, yyyy')}` : `Closed: ${format(new Date(job.lastDate), 'MMM d, yyyy')}`}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))
+                          );
+                        })
                       ) : (
                         <div className="py-10 text-center text-slate-400">
                           <Info className="w-8 h-8 mx-auto mb-2 opacity-30" />
@@ -493,7 +624,7 @@ export default function App() {
                       </h2>
                       <p className="text-indigo-200 text-sm mt-1">
                         {profile 
-                          ? `Matching jobs for your ${profile.qualification} degree in ${profile.state}`
+                          ? `Matching jobs for your qualifications in ${profile.state}`
                           : 'Complete your profile to unlock AI matching'}
                       </p>
                     </div>
@@ -518,7 +649,7 @@ export default function App() {
                             <div className="space-y-4">
                               {matchedActive.length > 0 ? (
                                 matchedActive.map(({ job, guidance }) => (
-                                  <JobCard key={job.id} job={job} guidance={guidance} isMatch={true} />
+                                  <JobCard key={job.id} job={job} guidance={guidance} isMatch={true} userProfile={profile} />
                                 ))
                               ) : (
                                 <div className="py-12 text-center bg-white/5 rounded-xl border border-dashed border-white/20 text-indigo-200">
@@ -548,7 +679,7 @@ export default function App() {
                                     </div>
                                     <h4 className="text-xs font-bold text-white pr-10">{job.title}</h4>
                                     <p className="text-[10px] text-indigo-300 mt-1 line-clamp-1 italic">
-                                      {job.department}
+                                      {getDepartmentById(job.departmentId)?.name || 'Unknown Dept'}
                                     </p>
                                     
                                     <div className="mt-3 p-2 bg-indigo-950/50 rounded border border-indigo-700/30">
@@ -594,13 +725,7 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* Verification Badge */}
-          <div className="flex items-center justify-center gap-2 py-4 border-t border-slate-200">
-            <ShieldCheck className="w-4 h-4 text-emerald-500" />
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center px-4">
-              Verified Data derived from Official Recruitment Gazettes & Portals
-            </span>
-          </div>
+          <Footer />
         </div>
       </main>
     </div>

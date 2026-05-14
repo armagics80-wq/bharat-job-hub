@@ -1,6 +1,7 @@
-import { useState } from 'react';
-import { UserProfile } from '../types';
-import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { UserProfile, QualificationType } from '../types';
+import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase } from 'lucide-react';
+import { QUALIFICATIONS, QUAL_RANKS_MAP } from '../data/qualifications';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -14,7 +15,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       fullName: '',
       phoneNumber: '',
       age: 18,
-      qualification: '',
+      qualifications: [],
       state: '',
       district: '',
       gender: 'Male',
@@ -31,15 +32,30 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
 
     if (!initialData) return defaultData;
 
-    return {
-      ...defaultData,
-      ...initialData,
-      subscriptions: initialData.subscriptions || defaultData.subscriptions
-    };
-  });
+        return {
+          ...defaultData,
+          ...initialData,
+          qualifications: initialData.qualifications || (initialData.qualification ? [initialData.qualification as any] : []),
+          subscriptions: initialData.subscriptions || defaultData.subscriptions
+        };
+      });
+
+  const [qualSearch, setQualSearch] = useState('');
+
+  const filteredQuals = useMemo(() => {
+    if (!qualSearch) return QUALIFICATIONS;
+    return QUALIFICATIONS.filter(q => 
+      q.label.toLowerCase().includes(qualSearch.toLowerCase()) || 
+      q.category.toLowerCase().includes(qualSearch.toLowerCase())
+    );
+  }, [qualSearch]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.qualifications.length === 0) {
+      alert('Please select at least one qualification to check eligibility.');
+      return;
+    }
     onSave(formData);
   };
 
@@ -122,41 +138,97 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
+        <div className="space-y-3">
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Qualification
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <GraduationCap className="w-3 h-3" /> Select All Your Qualifications
             </label>
-            <select
-              required
-              value={formData.qualification}
-              onChange={(e) => setFormData({ ...formData, qualification: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
-            >
-              <option value="">Select</option>
-              <option value="10th Pass">10th Pass</option>
-              <option value="12th Pass">12th Pass</option>
-              <option value="Degree (Arts/Science/Comm)">Degree (General)</option>
-              <option value="B.E / B.Tech">B.E / B.Tech</option>
-              <option value="LLB / LLM (Law)">Law (LLB/LLM)</option>
-              <option value="MBBS / BDS / BPT">Medical (MBBS/BDS)</option>
-              <option value="B.Pharm / M.Pharm">Pharmacy</option>
-              <option value="Diploma (Polytechnic)">Diploma</option>
-              <option value="Post Graduate (MA/MSc/MCom)">Post Graduate</option>
-              <option value="PhD">Doctorate (PhD)</option>
-              <option value="CA / ICWA / CS">Finance (CA/CS)</option>
-            </select>
+            
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search qualification (e.g. BTech, Nursing, ITI...)"
+                value={qualSearch}
+                onChange={(e) => setQualSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+              />
+            </div>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[240px] overflow-y-auto space-y-4 shadow-inner">
+              {['School', 'Technical/Diploma', 'Degree', 'Postgraduate', 'Teaching', 'Special', 'Other'].map(cat => {
+                const qualsInCategory = filteredQuals.filter(q => q.category === cat);
+                if (qualsInCategory.length === 0) return null;
+                
+                return (
+                  <div key={cat} className="space-y-2">
+                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1">{cat}</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {qualsInCategory.map(q => {
+                        const isSelected = formData.qualifications.includes(q.id);
+                        return (
+                          <button
+                            key={q.id}
+                            type="button"
+                            onClick={() => {
+                              const newQuals = isSelected 
+                                ? formData.qualifications.filter(id => id !== q.id) 
+                                : [...formData.qualifications, q.id];
+                              setFormData({ ...formData, qualifications: newQuals });
+                            }}
+                            className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded border text-[10px] font-medium transition-all text-left ${
+                              isSelected 
+                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' 
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
+                            }`}
+                          >
+                            <span className="truncate">{q.label}</span>
+                            {isSelected && <Check className="w-3 h-3 shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredQuals.length === 0 && (
+                <div className="text-center py-4 text-slate-400 text-xs italic">
+                  No qualifications found matching "{qualSearch}"
+                </div>
+              )}
+            </div>
+
+            {/* Selected Summary */}
+            {formData.qualifications.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {formData.qualifications.map(id => (
+                  <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
+                    {QUAL_RANKS_MAP[id]?.label || id}
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
+                      className="hover:text-rose-600"
+                    >
+                      <X className="w-2.5 h-2.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
           
-          <div className="pb-1">
-            <label className="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-slate-50 border border-slate-100">
+          <div className="pb-1 bg-slate-50 border border-dashed border-slate-200 rounded p-3">
+            <label className="flex items-center gap-2 cursor-pointer">
               <input 
                 type="checkbox" 
                 checked={formData.isPWD} 
                 onChange={(e) => setFormData({ ...formData, isPWD: e.target.checked })}
                 className="w-4 h-4 accent-indigo-600"
               />
-              <span className="text-xs font-bold text-slate-700">PWD / Physically Handicapped?</span>
+              <div>
+                <span className="text-xs font-bold text-slate-700">PWD / Physically Handicapped?</span>
+                <p className="text-[9px] text-slate-500">Enable this to see jobs with age relaxation and PH reservation.</p>
+              </div>
             </label>
           </div>
         </div>

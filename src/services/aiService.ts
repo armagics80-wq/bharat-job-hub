@@ -1,6 +1,7 @@
 import { GoogleGenAI } from "@google/genai";
 import { Job, UserProfile } from "../types";
 import { isUserEligible } from "../lib/utils";
+import { getDepartmentById } from "../data/departments";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -26,7 +27,7 @@ export const aiService = {
       - Age: ${userProfile.age}
 
       Eligible Jobs:
-      ${eligibleJobs.map(j => `ID: ${j.id}, Title: ${j.title}, Dept: ${j.department}`).join('\n')}
+      ${eligibleJobs.map(j => `ID: ${j.id}, Title: ${j.title}, Dept: ${getDepartmentById(j.departmentId)?.name || j.departmentId}`).join('\n')}
       
       Format: { "matches": [{ "id": "job_id", "guidance": "Concise guidance string" }] }
     `;

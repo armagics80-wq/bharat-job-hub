@@ -27,11 +27,25 @@ service cloud.firestore {
       return resource.data;
     }
 
+    // --- Departments Collection ---
+    match /departments/{deptId} {
+      function isValidDepartment(data) {
+        return data.name is string && data.name.size() <= 200 &&
+               data.officialUrl is string &&
+               data.state in ['Central', 'Telangana', 'Andhra Pradesh'] &&
+               data.category is string &&
+               data.verified is bool;
+      }
+
+      allow read: if true;
+      allow create, update: if isSignedIn() && isValidDepartment(incoming());
+    }
+
     // --- Jobs Collection ---
     match /jobs/{jobId} {
       function isValidJob(data) {
         return data.title is string && data.title.size() <= 200 &&
-               data.department is string && data.department.size() <= 200 &&
+               data.departmentId is string && data.departmentId.size() <= 128 &&
                data.region in ['Central', 'Telangana', 'Andhra Pradesh'] &&
                data.qualification is string &&
                data.status in ['Active', 'Expired', 'Upcoming', 'Exam Scheduled'] &&

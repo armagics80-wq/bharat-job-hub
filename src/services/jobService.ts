@@ -18,23 +18,42 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-// Helper to filter and sort jobs
+// Helper to filter and sort jobs according to real-time aggregation rules
 const processJobs = (jobs: Job[]): Job[] => {
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayTime = today.getTime();
 
   return jobs
-    .filter(job => {
-      if (job.status === 'Upcoming' || job.status === 'Expired') return true;
-      if (job.status === 'Active') {
-        const lastDate = new Date(job.lastDate);
-        lastDate.setHours(23, 59, 59, 999);
-        return lastDate >= today;
+    .map(job => {
+      const notificationDate = new Date(job.notificationDate).getTime();
+      const lastDate = new Date(job.lastDate);
+      lastDate.setHours(23, 59, 59, 999);
+      const lastDateTime = lastDate.getTime();
+      const expiryThreshold = lastDateTime + (2 * 24 * 60 * 60 * 1000); // 2 days grace
+
+      let currentStatus: 'Active' | 'Upcoming' | 'Expired' = job.status;
+
+      if (todayTime < notificationDate) {
+        currentStatus = 'Upcoming';
+      } else if (todayTime > lastDateTime) {
+        currentStatus = 'Expired';
+      } else {
+        currentStatus = 'Active';
       }
-      return false;
+
+      return {
+        ...job,
+        status: currentStatus,
+        expiryTime: expiryThreshold // Metadata for filtering
+      };
+    })
+    .filter(job => {
+      // Rule: After 2 days beyond lastDate, automatically remove from feed
+      const todayTime = new Date().getTime();
+      return todayTime <= job.expiryTime;
     })
     .sort((a, b) => {
-      // Sort by notification date desc
+      // Sort by notification date desc (latest first)
       return new Date(b.notificationDate).getTime() - new Date(a.notificationDate).getTime();
     });
 };

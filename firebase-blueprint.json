@@ -1,12 +1,27 @@
 {
   "entities": {
+    "Department": {
+      "title": "Government Department",
+      "description": "Details about a government department or agency",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "oldNames": { "type": "array", "items": { "type": "string" } },
+        "officialUrl": { "type": "string" },
+        "state": { "type": "string", "enum": ["Central", "Telangana", "Andhra Pradesh"] },
+        "category": { "type": "string" },
+        "verified": { "type": "boolean" },
+        "lastVerifiedOn": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "officialUrl", "state", "category", "verified"]
+    },
     "Job": {
       "title": "Government Job Notification",
       "description": "Details about a government job vacancy",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
-        "department": { "type": "string" },
+        "departmentId": { "type": "string" },
         "region": { "type": "string", "enum": ["Central", "Telangana", "Andhra Pradesh"] },
         "qualification": { "type": "string" },
         "minAge": { "type": "number" },
@@ -15,13 +30,12 @@
         "lastDate": { "type": "string", "format": "date-time" },
         "notificationDate": { "type": "string", "format": "date-time" },
         "applyLink": { "type": "string" },
-        "officialWebsite": { "type": "string" },
+        "officialSource": { "type": "string" },
         "description": { "type": "string" },
         "documentRequired": { "type": "array", "items": { "type": "string" } },
-        "status": { "type": "string", "enum": ["Active", "Expired", "Upcoming", "Exam Scheduled"] },
-        "examNote": { "type": "string" }
+        "status": { "type": "string", "enum": ["Active", "Expired", "Upcoming", "Exam Scheduled"] }
       },
-      "required": ["title", "department", "region", "qualification", "lastDate", "status"]
+      "required": ["title", "departmentId", "region", "qualification", "lastDate", "status"]
     },
     "UserProfile": {
       "title": "User Eligibility Profile",
@@ -52,6 +66,10 @@
     }
   },
   "firestore": {
+    "departments": {
+      "schema": "Department",
+      "description": "Store all government department information"
+    },
     "jobs": {
       "schema": "Job",
       "description": "Store all government job notifications"
