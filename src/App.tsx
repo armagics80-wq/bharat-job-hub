@@ -90,7 +90,7 @@ export default function App() {
         }
         return new Set(updatedJobs.map(j => j.id));
       });
-    }, 50);
+    });
 
     // 2. Auth listener
     const unsubAuth = auth.onAuthStateChanged(async (u) => {
@@ -522,7 +522,7 @@ export default function App() {
                 </div>
 
                 {/* Dashboard Section */}
-                <MinimalActivityFeed />
+                <MinimalActivityFeed jobs={jobs} />
 
                 {/* Content Grid */}
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">

@@ -89,8 +89,8 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
     const isExpired = new Date(job.lastDate) < new Date();
     const isActive = job.status === 'Active' && !isExpired && !isUpcoming;
     
-    const isJobNewToday = job.lastUpdatedAt ? isToday(new Date(job.lastUpdatedAt)) : false;
-    const isRecentlyUpdated = job.lastUpdatedAt ? differenceInDays(new Date(), new Date(job.lastUpdatedAt)) <= 3 : false;
+    const isJobNewToday = job.lastUpdatedAt ? (new Date().getTime() - new Date(job.lastUpdatedAt).getTime()) <= (24 * 60 * 60 * 1000) : false;
+    const isRecentlyUpdated = job.lastUpdatedAt ? differenceInDays(new Date(), new Date(job.lastUpdatedAt)) <= 3 && !isJobNewToday : false;
     const isClosingSoon = !isExpired && differenceInDays(new Date(job.lastDate), new Date()) <= 3 && differenceInDays(new Date(job.lastDate), new Date()) >= 0;
 
   return (
@@ -125,8 +125,8 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
             )}
             
             {isJobNewToday && (
-              <span className="text-[9px] px-1.5 py-0.5 bg-rose-600 text-white rounded font-bold uppercase tracking-tighter flex items-center gap-1 shadow-sm">
-                <Zap className="w-2 h-2 fill-white" /> New Today
+              <span className="text-[9px] px-1.5 py-0.5 bg-rose-600 text-white rounded font-bold uppercase tracking-tighter flex items-center gap-1 shadow-sm ring-1 ring-rose-400 ring-offset-0">
+                <Zap className="w-2 h-2 fill-white animate-pulse" /> New Today
               </span>
             )}
             {!isJobNewToday && isRecentlyUpdated && (
@@ -199,7 +199,9 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
             {job.lastUpdatedAt && (
               <div className="flex items-center gap-1">
                 <Clock className="w-3 h-3 text-emerald-500" />
-                <span className="font-bold text-slate-400 uppercase tracking-tighter">Updated {formatDistanceToNow(new Date(job.lastUpdatedAt))} ago</span>
+                <span className="font-bold text-emerald-600 uppercase tracking-tighter">
+                  Updated {formatDistanceToNow(new Date(job.lastUpdatedAt), { addSuffix: true })}
+                </span>
               </div>
             )}
           </div>

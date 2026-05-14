@@ -16,65 +16,24 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128;
     }
 
-    function incoming() {
-      return request.resource.data;
-    }
-
-    function existing() {
-      return resource.data;
-    }
-
-    // --- Departments Collection ---
-    match /departments/{deptId} {
-      function isValidDepartment(data) {
-        return data.name is string && data.name.size() <= 200 &&
-               data.officialUrl is string &&
-               data.state in ['Central', 'Telangana', 'Andhra Pradesh'] &&
-               data.category is string &&
-               data.verified is bool;
-      }
-
-      allow read: if true;
-      allow create, update: if isSignedIn() && isValidDepartment(incoming());
-    }
-
-    // --- Jobs Collection ---
+    // Jobs collection
     match /jobs/{jobId} {
-      function isValidJob(data) {
-        return data.title is string && data.title.size() <= 200 &&
-               data.departmentId is string && data.departmentId.size() <= 128 &&
-               data.region in ['Central', 'Telangana', 'Andhra Pradesh'] &&
-               data.qualification is string &&
-               data.status in ['Active', 'Expired', 'Upcoming', 'Exam Scheduled'] &&
-               data.lastDate is string;
-      }
-
-      // Public read for all users
-      allow read: if true;
-
-      // Admin only write
-      allow create: if isSignedIn() && isValidJob(incoming());
-      allow update: if isSignedIn() && isValidJob(incoming());
+      allow read: if true; // Public access to job listings
+      allow write: if false; // Only server (Admin SDK) should write
     }
 
-    // --- User Profiles Collection ---
-    match /userProfiles/{userId} {
+    // Profiles collection
+    match /profiles/{userId} {
+      allow read, write: if isOwner(userId);
+      
+      // Validation for profile
       function isValidProfile(data) {
-        return data.fullName is string && data.fullName.size() <= 100 &&
-               data.age is number && data.age >= 18 && data.age <= 100 &&
-               data.qualification is string &&
-               data.state is string &&
-               data.district is string &&
-               data.gender in ['Male', 'Female', 'Other'] &&
-               data.isPWD is bool;
+        return data.fullName is string && data.fullName.size() <= 100
+            && data.age is number && data.age >= 18 && data.age <= 100;
       }
-
-      allow read: if isOwner(userId);
-      allow create, update: if isOwner(userId) && isValidProfile(incoming());
-      allow delete: if isOwner(userId);
     }
   }
 }

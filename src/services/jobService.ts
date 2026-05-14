@@ -1,6 +1,6 @@
 import { db, auth } from '../lib/firebase';
 import { Job, UserProfile, OperationType, FirestoreErrorInfo } from '../types';
-import { STATIC_JOBS } from '../data/jobData';
+import { collection, onSnapshot, query, orderBy, getDocs, getDoc, doc, updateDoc, setDoc, serverTimestamp, limit } from 'firebase/firestore';
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
   const errInfo: FirestoreErrorInfo = {
@@ -59,48 +59,60 @@ const processJobs = (jobs: Job[]): Job[] => {
 };
 
 export const jobService = {
-  async getLatestJobs(count: number = 20) {
-    // Merge static and potential live data (if any)
-    const combinedJobs = processJobs(STATIC_JOBS);
-    return combinedJobs.slice(0, count);
-  },
-
-  subscribeToLatestJobs(callback: (jobs: Job[]) => void, _count: number = 20) {
-    // For "reliable local data handling", we return local data immediately
-    // In a real app, this could also listen to Firestore and merge
-    const activeJobs = processJobs(STATIC_JOBS);
+  subscribeToLatestJobs(callback: (jobs: Job[]) => void) {
+    const jobsCol = collection(db, 'jobs');
+    const q = query(jobsCol, orderBy('lastUpdatedAt', 'desc'));
     
-    // Simulate initial load without the "fake loading" feel
-    setTimeout(() => {
-      callback(activeJobs);
-    }, 100);
-
-    // Return a dummy unsubscriber
-    return () => {};
+    return onSnapshot(q, (snapshot) => {
+      const jobs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Job[];
+      callback(processJobs(jobs));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'jobs');
+    });
   },
 
-  async getJobsByRegion(region: string) {
-    const activeJobs = processJobs(STATIC_JOBS);
-    if (region === 'All') return activeJobs;
-    return activeJobs.filter(j => j.region === region);
+  subscribeToActivity(callback: (activity: any[]) => void) {
+    const activityCol = collection(db, 'activity');
+    const q = query(activityCol, orderBy('timestamp', 'desc'), limit(15));
+    
+    return onSnapshot(q, (snapshot) => {
+      const activity = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      callback(activity);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'activity');
+    });
   },
 
   async getJobById(id: string) {
-    return STATIC_JOBS.find(j => j.id === id) || null;
+    const path = `jobs/${id}`;
+    try {
+      const docSnap = await getDoc(doc(db, 'jobs', id));
+      if (docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Job;
+      }
+      return null;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.GET, path);
+      return null;
+    }
   }
 };
 
 export const profileService = {
   async saveProfile(userId: string, profile: UserProfile) {
-    const { updateDoc, doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-    const path = `userProfiles/${userId}`;
+    const path = `profiles/${userId}`;
     try {
-      await updateDoc(doc(db, 'userProfiles', userId), { ...profile, updatedAt: serverTimestamp() });
+      await updateDoc(doc(db, 'profiles', userId), { ...profile, updatedAt: serverTimestamp() });
     } catch (error: any) {
       if (error.code === 'not-found') {
-        // Create if doesn't exist
         try {
-          await setDoc(doc(db, 'userProfiles', userId), { ...profile, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+          await setDoc(doc(db, 'profiles', userId), { ...profile, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
         } catch (innerError) {
           handleFirestoreError(innerError, OperationType.CREATE, path);
         }
@@ -111,10 +123,9 @@ export const profileService = {
   },
 
   async getProfile(userId: string) {
-    const { getDoc, doc } = await import('firebase/firestore');
-    const path = `userProfiles/${userId}`;
+    const path = `profiles/${userId}`;
     try {
-      const docSnap = await getDoc(doc(db, 'userProfiles', userId));
+      const docSnap = await getDoc(doc(db, 'profiles', userId));
       if (docSnap.exists()) {
         return docSnap.data() as UserProfile;
       }
