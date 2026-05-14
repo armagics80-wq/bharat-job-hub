@@ -2,13 +2,19 @@ import { GoogleGenAI } from "@google/genai";
 import { Job, UserProfile } from "../types";
 import { isUserEligible } from "../lib/utils";
 import { getDepartmentById } from "../data/departments";
-import { QUAL_RANKS_MAP, getQualificationById } from "../data/qualifications";
+import { getQualificationById } from "../data/qualifications";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
 export const aiService = {
   async matchJobs(userProfile: UserProfile, eligibleJobs: Job[]): Promise<{ matches: { id: string; guidance: string }[] }> {
-    const qualLabels = userProfile.qualifications.map(id => getQualificationById(id)?.label || id).join(", ");
+    const qualLabels = userProfile.qualifications.map(id => {
+      try {
+        return getQualificationById(id)?.label || id;
+      } catch (e) {
+        return id;
+      }
+    }).join(", ");
     
     if (eligibleJobs.length === 0 || !process.env.GEMINI_API_KEY) {
       return { 

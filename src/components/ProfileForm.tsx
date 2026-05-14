@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { UserProfile, QualificationType } from '../types';
 import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase } from 'lucide-react';
-import { QUALIFICATIONS, QUAL_RANKS_MAP, getQualificationById } from '../data/qualifications';
+import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -201,18 +201,27 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             {/* Selected Summary */}
             {formData.qualifications.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
-                {formData.qualifications.map(id => (
-                  <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
-                    {getQualificationById(id)?.label || id}
-                    <button 
-                      type="button"
-                      onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
-                      className="hover:text-rose-600"
-                    >
-                      <X className="w-2.5 h-2.5" />
-                    </button>
-                  </span>
-                ))}
+                {formData.qualifications.map(id => {
+                  let label = id;
+                  try {
+                    label = getQualificationById(id)?.label || id;
+                  } catch (e) {
+                    console.error("Error fetching qualification label:", e);
+                  }
+                  
+                  return (
+                    <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
+                      {label}
+                      <button 
+                        type="button"
+                        onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
+                        className="hover:text-rose-600"
+                      >
+                        <X className="w-2.5 h-2.5" />
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             )}
           </div>

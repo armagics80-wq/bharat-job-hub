@@ -28,11 +28,17 @@ export interface Job {
   salary: string;
   lastDate: string;
   notificationDate: string;
+  examDate?: string;
   applyLink: string;
   officialSource: string;
+  officialPdfUrl?: string;
   description: string;
   jobType: string;
+  jobCategory: 'Police' | 'Teaching' | 'Railway' | 'Clerical' | 'Medical' | 'Technical' | 'Defense' | 'Banking' | 'Civil Services' | 'Other';
+  natureOfWork: string;
   selectionProcess: string;
+  examPattern?: string;
+  reservationDetails?: string;
   location: string;
   howToApplySteps: string[];
   applicationFee?: string;
@@ -40,6 +46,8 @@ export interface Job {
   status: 'Active' | 'Upcoming' | 'Expired';
   sourceType: 'Official Notification' | 'Upcoming Opportunity' | 'Media Prediction';
   verified?: boolean;
+  verificationStatus: 'Verified' | 'Pending' | 'Unavailable';
+  lastVerifiedAt?: string;
   expiryTime?: number;
   lastCheckedAt?: string;
   lastUpdatedAt?: string;

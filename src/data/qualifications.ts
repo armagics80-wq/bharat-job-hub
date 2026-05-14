@@ -69,8 +69,41 @@ export const QUALIFICATIONS: Qualification[] = [
   { id: 'Any', label: 'Any Qualification', rank: 0, category: 'Other' }
 ];
 
-export const QUAL_RANKS_MAP: Record<string, Qualification> = Object.fromEntries(
-  QUALIFICATIONS.map(q => [q.id, q])
-);
+let cachedMap: Record<string, Qualification> | null = null;
 
-export const getQualificationById = (id: string) => QUAL_RANKS_MAP[id];
+const getMap = () => {
+  if (!cachedMap) {
+    try {
+      if (typeof QUALIFICATIONS !== 'undefined' && Array.isArray(QUALIFICATIONS)) {
+        cachedMap = Object.fromEntries(
+          QUALIFICATIONS.map(q => [q.id, q])
+        );
+      } else {
+        cachedMap = {};
+      }
+    } catch (e) {
+      console.error("Error creating qualifications map", e);
+      return {};
+    }
+  }
+  return cachedMap;
+};
+
+// Exporting a function instead of a constant prevents ReferenceErrors during module load
+export const getQualRanksMap = () => getMap();
+
+export const getQualificationById = (id: string) => {
+  try {
+    if (!id) return undefined;
+    const map = getMap();
+    if (map && map[id]) return map[id];
+
+    // Fallback to direct search
+    if (typeof QUALIFICATIONS !== 'undefined' && Array.isArray(QUALIFICATIONS)) {
+      return QUALIFICATIONS.find(q => q.id === id);
+    }
+  } catch (e) {
+    console.error("getQualificationById failed", e);
+  }
+  return undefined;
+};

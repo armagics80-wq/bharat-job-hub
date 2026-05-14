@@ -41,7 +41,7 @@ export default function MinimalActivityFeed({ jobs }: MinimalActivityFeedProps) 
           <h3 className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Live System Updates</h3>
         </div>
         <div className="text-[9px] font-medium text-slate-400">
-           System Online • {activities.length > 0 ? formatDistanceToNow(new Date(activities[0].timestamp), { addSuffix: true }) : 'Syncing...'}
+           System Online • {activities.length > 0 && activities[0].timestamp ? formatDistanceToNow(new Date(activities[0].timestamp), { addSuffix: true }) : 'Syncing...'}
         </div>
       </div>
       
@@ -87,7 +87,7 @@ export default function MinimalActivityFeed({ jobs }: MinimalActivityFeedProps) 
                     </p>
                 </div>
                 <span className="text-[9px] text-slate-400 whitespace-nowrap font-medium">
-                    {formatDistanceToNow(new Date(event.timestamp))} ago
+                    {event.timestamp ? formatDistanceToNow(new Date(event.timestamp)) : 'Recently'} ago
                 </span>
                 </motion.div>
             ))}

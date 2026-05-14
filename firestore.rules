@@ -16,24 +16,44 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128;
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Jobs collection
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Jobs collection - Strict read access
     match /jobs/{jobId} {
-      allow read: if true; // Public access to job listings
-      allow write: if false; // Only server (Admin SDK) should write
+      allow get: if isValidId(jobId);
+      allow list: if true; 
+      allow write: if false; 
     }
 
-    // Profiles collection
+    // Profiles collection - Hardened Identity logic
     match /profiles/{userId} {
-      allow read, write: if isOwner(userId);
+      allow get: if isOwner(userId) && isValidId(userId);
+      allow create: if isOwner(userId) && isValidId(userId) && isValidProfile(incoming());
+      allow update: if isOwner(userId) && isValidId(userId) && isValidProfile(incoming()) && (
+        incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'age', 'qualifications', 'state', 'district', 'gender', 'isPWD', 'skills', 'documents', 'otherCertificates', 'preferredRegion', 'subscriptions', 'updatedAt'])
+      );
+      allow delete: if false;
       
-      // Validation for profile
       function isValidProfile(data) {
         return data.fullName is string && data.fullName.size() <= 100
-            && data.age is number && data.age >= 18 && data.age <= 100;
+            && data.age is number && data.age >= 18 && data.age <= 100
+            && data.state is string && data.state.size() <= 50;
       }
+    }
+
+    // Activity collection
+    match /activity/{activityId} {
+      allow read: if true;
+      allow write: if false;
     }
   }
 }

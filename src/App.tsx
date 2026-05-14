@@ -9,8 +9,10 @@ import Footer from './components/Footer';
 import MinimalActivityFeed from './components/MinimalActivityFeed';
 import JobCard from './components/JobCard';
 import ProfileForm from './components/ProfileForm';
+import ErrorBoundary from './components/ErrorBoundary';
 import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
+import { STATIC_JOBS } from './data/jobData';
 import { auth, db } from './lib/firebase';
 import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
@@ -22,7 +24,7 @@ import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
 import { format, differenceInDays } from 'date-fns';
 
 export default function App() {
-  const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobs, setJobs] = useState<Job[]>(STATIC_JOBS);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -52,8 +54,18 @@ export default function App() {
   useEffect(() => {
     // 1. Real-time job listener
     const unsubJobs = jobService.subscribeToLatestJobs((updatedJobs) => {
+      // Merge with static jobs as fallback to ensure something always renders
+      const combined = [...updatedJobs];
+      const seenIds = new Set(updatedJobs.map(j => j.id));
+      
+      STATIC_JOBS.forEach(sJob => {
+        if (!seenIds.has(sJob.id)) {
+          combined.push(sJob);
+        }
+      });
+
       // Sort jobs by latest verified update by default
-      const sorted = [...updatedJobs].sort((a, b) => {
+      const sorted = combined.sort((a, b) => {
         const dateA = a.lastUpdatedAt ? new Date(a.lastUpdatedAt).getTime() : 0;
         const dateB = b.lastUpdatedAt ? new Date(b.lastUpdatedAt).getTime() : 0;
         return dateB - dateA;
@@ -138,9 +150,14 @@ export default function App() {
         
         // Initial matches based on code logic
         const localMatches = eligibleJobs.map(job => {
-          const qualLabel = p.qualifications && p.qualifications.length > 0 
-            ? getQualificationById(p.qualifications[0])?.label || p.qualifications[0]
-            : 'background';
+          let qualLabel = 'background';
+          try {
+            if (p.qualifications && p.qualifications.length > 0) {
+              qualLabel = getQualificationById(p.qualifications[0])?.label || p.qualifications[0];
+            }
+          } catch (e) {
+            console.error("Local match label error:", e);
+          }
 
           return {
             id: job.id,
@@ -235,46 +252,11 @@ export default function App() {
     });
 
     const results = {
-      activeJobs: processed.filter(j => {
-        // Strict Eligibility Filter for Browse (Requirement 5)
-        if (profile) {
-          try {
-            const elig = isUserEligible(profile, j);
-            // If totally ineligible due to qualification rank (error type), hide it
-            if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
-          } catch (e) {
-            console.error("In-list eligibility crash prevented:", e);
-            return true; // Show it if we can't determine eligibility to avoid blank screens
-          }
-        }
-
-        if (j.status === 'Active') return true;
-        if (j.status === 'Expired') {
-          const lastDate = new Date(j.lastDate);
-          lastDate.setHours(23, 59, 59, 999);
-          const diff = differenceInDays(new Date(), lastDate);
-          return diff <= 2; // Show for 2 days after expiry
-        }
-        return false;
-      }),
-      upcomingJobs: processed.filter(j => {
-         // Strict Eligibility Filter for Browse (Requirement 5)
-         if (profile) {
-          try {
-            const elig = isUserEligible(profile, j);
-            if (!elig.isEligible && elig.type === 'error' && elig.reason.includes('qualification')) return false;
-          } catch (e) {
-            return true;
-          }
-        }
-        return j.status === 'Upcoming';
-      })
+      activeJobs: processed.filter(j => j.status === 'Active' || j.status === 'Upcoming'),
+      upcomingJobs: processed.filter(j => j.status === 'Upcoming'),
+      totalMonitored: processed.length
     };
-
-    return {
-      ...results,
-      totalMonitored: results.activeJobs.length + results.upcomingJobs.length
-    };
+    return results;
   }, [jobs, searchTerm, filterRegion, filterCategory]);
 
   const matchedJobItems = useMemo(() => {
@@ -304,7 +286,8 @@ export default function App() {
   }, [matchedJobItems]);
 
   return (
-    <div id="app-root" className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
+    <ErrorBoundary>
+      <div id="app-root" className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {/* Sidebar - High Density Indigo Sidebar */}
       <aside className="w-64 bg-indigo-900 text-white flex flex-col shrink-0 hidden lg:flex">
         <div className="p-6 flex items-center gap-3 border-b border-indigo-800">
@@ -378,7 +361,14 @@ export default function App() {
                     <span>Qual:</span>
                     <span className="font-mono truncate ml-2 text-indigo-200">
                       {profile.qualifications && profile.qualifications.length > 0 
-                        ? `${(getQualificationById(profile.qualifications[0])?.label || profile.qualifications[0]).split(' ')[0]}${profile.qualifications.length > 1 ? '+' : ''}` 
+                        ? (() => {
+                            try {
+                              const label = getQualificationById(profile.qualifications[0])?.label || profile.qualifications[0];
+                              return `${label.split(' ')[0]}${profile.qualifications.length > 1 ? '+' : ''}`;
+                            } catch (e) {
+                              return profile.qualifications[0];
+                            }
+                          })()
                         : 'None'}
                     </span>
                   </div>
@@ -567,8 +557,8 @@ export default function App() {
                         ) : (
                           <div className="py-20 text-center">
                             <Search className="w-10 h-10 text-slate-300 mx-auto mb-4" />
-                            <h3 className="text-sm font-bold text-slate-700">No matching jobs found currently.</h3>
-                            <p className="text-xs text-slate-500 mt-1">Try adjusting your filters or search terms</p>
+                            <h3 className="text-sm font-bold text-slate-700">No matching jobs currently available</h3>
+                            <p className="text-xs text-slate-500 mt-1">Check back soon for fresh government notifications</p>
                           </div>
                         )}
                       </div>
@@ -780,5 +770,6 @@ export default function App() {
         </div>
       </main>
     </div>
+  </ErrorBoundary>
   );
 }

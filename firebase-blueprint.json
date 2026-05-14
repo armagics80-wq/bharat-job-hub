@@ -21,7 +21,12 @@
         "officialSource": { "type": "string" },
         "description": { "type": "string" },
         "jobType": { "type": "string" },
+        "jobCategory": { "type": "string" },
+        "natureOfWork": { "type": "string" },
         "selectionProcess": { "type": "string" },
+        "examPattern": { "type": "string" },
+        "reservationDetails": { "type": "string" },
+        "examDate": { "type": "string" },
         "location": { "type": "string" },
         "howToApplySteps": { "type": "array", "items": { "type": "string" } },
         "applicationFee": { "type": "string" },
@@ -29,8 +34,11 @@
         "status": { "type": "string", "enum": ["Active", "Upcoming", "Expired"] },
         "sourceType": { "type": "string", "enum": ["Official Notification", "Upcoming Opportunity", "Media Prediction"] },
         "verified": { "type": "boolean" },
+        "verificationStatus": { "type": "string" },
+        "lastVerifiedAt": { "type": "string", "format": "date-time" },
         "lastCheckedAt": { "type": "string", "format": "date-time" },
-        "lastUpdatedAt": { "type": "string", "format": "date-time" }
+        "lastUpdatedAt": { "type": "string", "format": "date-time" },
+        "officialPdfUrl": { "type": "string" }
       },
       "required": ["id", "title", "departmentId", "region", "minQualification", "lastDate", "notificationDate", "applyLink", "status"]
     },
