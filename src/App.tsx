@@ -15,7 +15,7 @@ import { auth, db } from './lib/firebase';
 import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
 import { getDepartmentById } from './data/departments';
-import { QUAL_RANKS_MAP } from './data/qualifications';
+import { getQualificationById } from './data/qualifications';
 import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
@@ -139,7 +139,7 @@ export default function App() {
         // Initial matches based on code logic
         const localMatches = eligibleJobs.map(job => {
           const qualLabel = p.qualifications && p.qualifications.length > 0 
-            ? QUAL_RANKS_MAP[p.qualifications[0]]?.label || p.qualifications[0]
+            ? getQualificationById(p.qualifications[0])?.label || p.qualifications[0]
             : 'background';
 
           return {
@@ -378,7 +378,7 @@ export default function App() {
                     <span>Qual:</span>
                     <span className="font-mono truncate ml-2 text-indigo-200">
                       {profile.qualifications && profile.qualifications.length > 0 
-                        ? `${QUAL_RANKS_MAP[profile.qualifications[0]]?.label.split(' ')[0]}${profile.qualifications.length > 1 ? '+' : ''}` 
+                        ? `${(getQualificationById(profile.qualifications[0])?.label || profile.qualifications[0]).split(' ')[0]}${profile.qualifications.length > 1 ? '+' : ''}` 
                         : 'None'}
                     </span>
                   </div>

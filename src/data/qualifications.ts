@@ -69,9 +69,8 @@ export const QUALIFICATIONS: Qualification[] = [
   { id: 'Any', label: 'Any Qualification', rank: 0, category: 'Other' }
 ];
 
-export const getQualificationById = (id: QualificationID) => QUAL_RANKS_MAP[id];
+export const QUAL_RANKS_MAP: Record<string, Qualification> = Object.fromEntries(
+  QUALIFICATIONS.map(q => [q.id, q])
+);
 
-export const QUAL_RANKS_MAP: Record<QualificationID, Qualification> = QUALIFICATIONS.reduce((acc, q) => {
-  acc[q.id] = q;
-  return acc;
-}, {} as Record<QualificationID, Qualification>);
+export const getQualificationById = (id: string) => QUAL_RANKS_MAP[id];

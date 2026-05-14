@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { getDepartmentById } from '../data/departments';
 import { isUserEligible } from '../lib/utils';
-import { QUAL_RANKS_MAP } from '../data/qualifications';
+import { getQualificationById } from '../data/qualifications';
 
 interface JobCardProps {
   job: Job;
@@ -153,7 +153,7 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
               </span>
             )}
             <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded font-bold uppercase tracking-tighter flex items-center gap-1 border border-slate-200">
-              <GraduationCap className="w-2.5 h-2.5" /> {QUAL_RANKS_MAP[job.minQualification]?.label || job.minQualification}
+              <GraduationCap className="w-2.5 h-2.5" /> {getQualificationById(job.minQualification)?.label || job.minQualification}
             </span>
           </div>
           <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">

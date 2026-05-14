@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { QualificationType, UserProfile, Job } from '../types';
-import { QUAL_RANKS_MAP } from '../data/qualifications';
+import { QUAL_RANKS_MAP, getQualificationById } from '../data/qualifications';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -15,27 +15,27 @@ export interface EligibilityResult {
 
 function QUALIFICATIONS_DISPLAY(ids: QualificationType[]): string {
   if (!ids || ids.length === 0) return 'None';
-  return ids.map(id => QUAL_RANKS_MAP[id]?.label || id).join(', ');
+  return ids.map(id => getQualificationById(id)?.label || id).join(', ');
 }
 
 export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
   // 1. Qualification Hierarchy Check
   const userQuals = user.qualifications || [];
-  const userRank = Math.max(0, ...userQuals.map(q => QUAL_RANKS_MAP[q]?.rank || 0));
+  const userRank = Math.max(0, ...userQuals.map(q => getQualificationById(q)?.rank || 0));
   
   // Strict matching if allowedQualifications is provided
   const hasAllowedQual = job.allowedQualifications 
     ? userQuals.some(q => job.allowedQualifications!.includes(q))
     : true;
 
-  const minRequiredQual = QUAL_RANKS_MAP[job.minQualification];
+  const minRequiredQual = getQualificationById(job.minQualification);
   const minRequiredRank = minRequiredQual?.rank || 0;
 
   // Rule: If job lists specific allowed types, user MUST have at least one
   if (job.allowedQualifications && !hasAllowedQual) {
     return {
       isEligible: false,
-      reason: `Requires specific qualification: ${job.allowedQualifications.map(q => QUAL_RANKS_MAP[q]?.label || q).join(' or ')}.`,
+      reason: `Requires specific qualification: ${job.allowedQualifications.map(q => getQualificationById(q)?.label || q).join(' or ')}.`,
       type: 'error'
     };
   }
@@ -51,7 +51,7 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
 
   // 2. Specific Technical Requirement Check
   if (job.specialRequirements && job.specialRequirements.length > 0) {
-    const userContext = (userQuals.map(q => QUAL_RANKS_MAP[q]?.label || '').join(' ') + ' ' + user.skills.join(' ') + ' ' + (user.otherCertificates || '')).toLowerCase();
+    const userContext = (userQuals.map(q => getQualificationById(q)?.label || '').join(' ') + ' ' + user.skills.join(' ') + ' ' + (user.otherCertificates || '')).toLowerCase();
     
     const missingSpecs = job.specialRequirements.filter(spec => 
       !userContext.includes(spec.toLowerCase())

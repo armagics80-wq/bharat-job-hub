@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { UserProfile, QualificationType } from '../types';
 import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase } from 'lucide-react';
-import { QUALIFICATIONS, QUAL_RANKS_MAP } from '../data/qualifications';
+import { QUALIFICATIONS, QUAL_RANKS_MAP, getQualificationById } from '../data/qualifications';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -203,7 +203,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {formData.qualifications.map(id => (
                   <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
-                    {QUAL_RANKS_MAP[id]?.label || id}
+                    {getQualificationById(id)?.label || id}
                     <button 
                       type="button"
                       onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
