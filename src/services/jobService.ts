@@ -36,8 +36,15 @@ const processJobs = (jobs: Job[]): Job[] => {
         return false;
       }
 
-      // Rule: After 2 days beyond lastDate, automatically remove from feed
       const todayTime = new Date().getTime();
+      const notificationTime = new Date(job.notificationDate).getTime();
+
+      // Strict limit check: do not hallucinate upcoming or future jobs. Show only jobs released up to current time.
+      if (todayTime < notificationTime) {
+        return false;
+      }
+
+      // Rule: After 2 days beyond lastDate, automatically remove from feed
       return todayTime <= job.expiryTime;
     })
     .sort((a, b) => {

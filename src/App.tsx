@@ -9,6 +9,8 @@ import Footer from './components/Footer';
 import MinimalActivityFeed from './components/MinimalActivityFeed';
 import JobCard from './components/JobCard';
 import ProfileForm from './components/ProfileForm';
+import SyncStatusDashboard from './components/SyncStatusDashboard';
+import EligibilityMatches from './components/EligibilityMatches';
 import ErrorBoundary from './components/ErrorBoundary';
 import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
@@ -18,7 +20,7 @@ import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
 import { getDepartmentById } from './data/departments';
 import { getQualificationById } from './data/qualifications';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle, Bookmark } from 'lucide-react';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle, Bookmark, Server } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, differenceInDays } from 'date-fns';
 
@@ -32,7 +34,7 @@ export default function App() {
   const [filterRegion, setFilterRegion] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [aiMatches, setAiMatches] = useState<{id: string, guidance: string}[]>([]);
-  const [activeTab, setActiveTab] = useState<'all-jobs' | 'your-matches' | 'saved-jobs'>('all-jobs');
+  const [activeTab, setActiveTab] = useState<'all-jobs' | 'your-matches' | 'saved-jobs' | 'sync-status'>('all-jobs');
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem('saved_job_ids');
@@ -396,6 +398,15 @@ export default function App() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('sync-status')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                  activeTab === 'sync-status' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                }`}
+              >
+                <Server className="w-4 h-4 text-emerald-400 animate-pulse" />
+                Website Sync Status
+              </button>
           </nav>
 
           <nav className="space-y-1">
@@ -502,24 +513,31 @@ export default function App() {
           </AnimatePresence>
 
           {/* Main Tabs */}
-          <div className="flex items-center gap-6 border-b border-slate-200 mb-6 sticky top-0 bg-slate-50 z-20 pt-2 lg:hidden">
+          <div className="flex items-center gap-6 border-b border-slate-200 mb-6 sticky top-0 bg-slate-50 z-20 pt-2 lg:hidden overflow-x-auto custom-scrollbar">
              <button 
               onClick={() => setActiveTab('all-jobs')}
-              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'all-jobs' ? 'text-indigo-600' : 'text-slate-400'}`}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative shrink-0 ${activeTab === 'all-jobs' ? 'text-indigo-600' : 'text-slate-400'}`}
             >
               Browse
               {activeTab === 'all-jobs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
             </button>
             <button 
               onClick={() => setActiveTab('your-matches')}
-              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'your-matches' ? 'text-indigo-600' : 'text-slate-400'}`}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative shrink-0 ${activeTab === 'your-matches' ? 'text-indigo-600' : 'text-slate-400'}`}
             >
               Matches {notificationsCount > 0 && <span className="ml-1 text-rose-500 text-[8px]">•</span>}
               {activeTab === 'your-matches' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
             </button>
             <button 
+              onClick={() => setActiveTab('sync-status')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative shrink-0 ${activeTab === 'sync-status' ? 'text-indigo-600' : 'text-slate-400'}`}
+            >
+              Sync Status
+              {activeTab === 'sync-status' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+            </button>
+            <button 
               onClick={() => setActiveTab('saved-jobs')}
-              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'saved-jobs' ? 'text-indigo-600' : 'text-slate-400'}`}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative shrink-0 ${activeTab === 'saved-jobs' ? 'text-indigo-600' : 'text-slate-400'}`}
             >
               Saved {savedJobIds.size > 0 && <span className="ml-1 text-indigo-500 text-[8px]">({savedJobIds.size})</span>}
               {activeTab === 'saved-jobs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
@@ -755,150 +773,21 @@ export default function App() {
                 />
 
                 {profile ? (
-                  <div className="space-y-8">
-                    <div>
-                      <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
-                        <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-                        Personalized Verification Matrix
-                      </h2>
-                      <p className="text-xs text-slate-500 mt-1">
-                        Dynamic eligibility matching based on your Age ({profile.age}y), Qualification, State ({profile.state}), and Category ({profile.category}).
-                      </p>
+                  isMatching ? (
+                    <div className="py-16 text-center bg-white rounded-xl border border-slate-200">
+                      <RefreshCw className="w-8 h-8 text-indigo-600 mx-auto mb-3 animate-spin" />
+                      <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Analyzing recruitment guidelines...</p>
                     </div>
-
-                    {isMatching ? (
-                      <div className="py-16 text-center bg-white rounded-xl border border-slate-200">
-                        <RefreshCw className="w-8 h-8 text-indigo-600 mx-auto mb-3 animate-spin" />
-                        <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Analyzing recruitment guidelines...</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-8">
-                        {/* Perfect Matches */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-                          <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                              <h3 className="text-xs font-black text-emerald-800 uppercase tracking-wider">✓ PERFECT MATCH ({categorizedMatches.perfect.length})</h3>
-                            </div>
-                            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-150 font-bold font-mono">100% Eligible</span>
-                          </div>
-                          <p className="text-xs text-slate-500 leading-relaxed">
-                            You meet 105% of the active recruitment criteria. Real-time listings open for registration and within your local state:
-                          </p>
-                          <div className="space-y-2">
-                            {categorizedMatches.perfect.length > 0 ? (
-                              categorizedMatches.perfect.map(({ job, reason }) => (
-                                <JobCard 
-                                  key={job.id} 
-                                  job={job} 
-                                  guidance={reason} 
-                                  isMatch={true} 
-                                  userProfile={profile} 
-                                  isSaved={savedJobIds.has(job.id)}
-                                  onToggleSave={handleToggleSave}
-                                />
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-400 italic py-4 text-center">No perfect matches right now. Add higher educational qualifications to match more notifications.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Almost Matches */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-                          <div className="flex items-center justify-between border-b border-amber-100 pb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-amber-500" />
-                              <h3 className="text-xs font-black text-amber-800 uppercase tracking-wider">⚠️ ALMOST MATCH ({categorizedMatches.almost.length})</h3>
-                            </div>
-                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-150 font-bold font-mono">Eligible on Conditions</span>
-                          </div>
-                          <p className="text-xs text-slate-500 leading-relaxed">
-                            You meet educational requirements but check special parameters (e.g. out-of-state regional quotas, category-specific age relaxation, or physical thresholds):
-                          </p>
-                          <div className="space-y-2">
-                            {categorizedMatches.almost.length > 0 ? (
-                              categorizedMatches.almost.map(({ job, reason }) => (
-                                <JobCard 
-                                  key={job.id} 
-                                  job={job} 
-                                  guidance={reason} 
-                                  isMatch={true} 
-                                  userProfile={profile} 
-                                  isSaved={savedJobIds.has(job.id)}
-                                  onToggleSave={handleToggleSave}
-                                />
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-400 italic py-4 text-center">No conditional matches found currently.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Future Opportunities */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-                          <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-indigo-500" />
-                              <h3 className="text-xs font-black text-indigo-800 uppercase tracking-wider">📅 FUTURE OPPORTUNITY ({categorizedMatches.future.length})</h3>
-                            </div>
-                            <span className="text-[10px] text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-150 font-bold font-mono">Upcoming Ads</span>
-                          </div>
-                          <p className="text-xs text-slate-500 leading-relaxed">
-                            Annual or expected upcoming notifications where you met the standard eligibility threshold. Bookmark these to prepare early:
-                          </p>
-                          <div className="space-y-2">
-                            {categorizedMatches.future.length > 0 ? (
-                              categorizedMatches.future.map(({ job, reason }) => (
-                                <JobCard 
-                                  key={job.id} 
-                                  job={job} 
-                                  guidance={reason} 
-                                  isMatch={true} 
-                                  userProfile={profile} 
-                                  isSaved={savedJobIds.has(job.id)}
-                                  onToggleSave={handleToggleSave}
-                                />
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-400 italic py-4 text-center">No upcoming mapped alerts for your profile.</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Needs Preparation */}
-                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
-                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                            <div className="flex items-center gap-2">
-                              <span className="h-2 w-2 rounded-full bg-slate-400" />
-                              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">🔒 NEEDS PREPARATION ({categorizedMatches.needsPrep.length})</h3>
-                            </div>
-                            <span className="text-[10px] text-slate-600 bg-slate-50 px-2.5 py-0.5 rounded border border-slate-205 font-bold font-mono">Future Targets</span>
-                          </div>
-                          <p className="text-xs text-slate-505 leading-relaxed">
-                            These notifications do not align with your current requirements (e.g. educational mismatch or age limit exceeded). Listed here for preparation planning:
-                          </p>
-                          <div className="space-y-2">
-                            {categorizedMatches.needsPrep.length > 0 ? (
-                              categorizedMatches.needsPrep.map(({ job, reason }) => (
-                                <JobCard 
-                                  key={job.id} 
-                                  job={job} 
-                                  guidance={reason} 
-                                  isMatch={false} 
-                                  userProfile={profile} 
-                                  isSaved={savedJobIds.has(job.id)}
-                                  onToggleSave={handleToggleSave}
-                                />
-                              ))
-                            ) : (
-                              <p className="text-xs text-slate-400 italic py-4 text-center">No preparation targets available.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  ) : (
+                    <EligibilityMatches 
+                      profile={profile}
+                      jobs={jobs}
+                      savedJobIds={savedJobIds}
+                      onToggleSave={handleToggleSave}
+                      aiMatches={aiMatches}
+                      onNotifySync={(msg) => setSuccessMessage(msg)}
+                    />
+                  )
                 ) : (
                   <div className="py-16 text-center bg-white rounded-xl border border-slate-200 p-6">
                     <Info className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
@@ -908,6 +797,16 @@ export default function App() {
                     </p>
                   </div>
                 )}
+              </motion.div>
+            ) : activeTab === 'sync-status' ? (
+              <motion.div 
+                key="sync-status"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-6"
+              >
+                <SyncStatusDashboard onNotifySync={(msg) => setSuccessMessage(msg)} />
               </motion.div>
             ) : (
               <motion.div 
