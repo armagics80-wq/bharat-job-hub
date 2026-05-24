@@ -131,45 +131,51 @@ async function seedJobs() {
     if (snapshot.empty) {
         console.log('[Migration] Seeding Firestore with static jobs...');
         const batch = db.batch();
+        let seedCount = 0;
         STATIC_JOBS.forEach(job => {
-            const ref = db.collection('jobs').doc(job.id);
-            batch.set(ref, {
-                ...job,
-                lastCheckedAt: new Date().toISOString(),
-                lastUpdatedAt: job.lastUpdatedAt || new Date().toISOString()
-                // Ensure verification fields exist
-            });
+            const validated = validateJobData(job);
+            if (validated) {
+                const ref = db.collection('jobs').doc(validated.id);
+                batch.set(ref, {
+                    ...validated,
+                    lastCheckedAt: new Date().toISOString(),
+                    lastUpdatedAt: validated.lastUpdatedAt || new Date().toISOString()
+                });
+                seedCount++;
+            } else {
+                console.warn(`[Migration Security] Skipped seeding unverified static job: ${job.id}`);
+            }
         });
         await batch.commit();
-        console.log('[Migration] Static jobs seeded successfully.');
+        console.log(`[Migration] Static jobs seeded successfully. Total seeded: ${seedCount}`);
     }
 }
 
-// Job Sync Intervals (Requirement 2)
-// 1. Telangana/AP: Every 30 minutes
-cron.schedule('*/30 * * * *', async () => {
+// Job Sync Intervals (Requirement 2 - Standardized to Hourly)
+// 1. Telangana/AP: Every 1 hour at XX:00
+cron.schedule('0 * * * *', async () => {
   try {
-    console.log('[Scheduler] Syncing Telangana/AP jobs...');
+    console.log('[Scheduler] Syncing Telangana/AP jobs hourly...');
     await syncStateJobs();
   } catch (error: any) {
     console.error('[Scheduler] Telangana/AP sync failed:', error.message);
   }
 });
 
-// 2. Central Government: Every hour
+// 2. Central Government: Every 1 hour at XX:00
 cron.schedule('0 * * * *', async () => {
   try {
-    console.log('[Scheduler] Syncing Central Gov jobs...');
+    console.log('[Scheduler] Syncing Central Gov jobs hourly...');
     await syncCentralJobs();
   } catch (error: any) {
     console.error('[Scheduler] Central Gov sync failed:', error.message);
   }
 });
 
-// 3. News/Upcoming: Every 3 hours
-cron.schedule('0 */3 * * *', async () => {
+// 3. News/Upcoming: Every 1 hour at XX:00
+cron.schedule('0 * * * *', async () => {
   try {
-    console.log('[Scheduler] Syncing News & Previews...');
+    console.log('[Scheduler] Syncing News & Previews hourly...');
     await syncNewsJobs();
   } catch (error: any) {
     console.error('[Scheduler] News sync failed:', error.message);
@@ -461,33 +467,94 @@ async function logActivity(type: 'added' | 'updated' | 'expired' | 'removed' | '
   });
 }
 
+// Anti-Hallucination & Validation Protocol (Requirement 1 & 4)
+function validateJobData(job: any): any | null {
+  try {
+    if (!job || !job.id || !job.title || !job.departmentId) {
+      console.warn(`[Validation] Rejected job: missing core identifiers:`, job?.id);
+      return null;
+    }
+
+    // List of trusted governmental domains
+    const trustedDomains = [
+      'gov.in', 
+      'nic.in', 
+      'ibps.in', 
+      'sbi.co.in', 
+      'bank.sbi', 
+      'joinindianarmy.nic.in', 
+      'indianrailways.gov.in', 
+      'rrcb.gov.in',
+      'telangana.gov.in',
+      'ap.gov.in'
+    ];
+    
+    const applyLink = (job.applyLink || '').toLowerCase();
+    const isGovDomain = trustedDomains.some(domain => applyLink.includes(domain));
+    
+    // Check active jobs for government domains
+    if (job.status === 'Active' && !isGovDomain) {
+      console.warn(`[Validation] Rejected active job ${job.id} due to unverified source domain: ${job.applyLink}`);
+      return null;
+    }
+
+    // Ensure realistic detailed salary format with currency
+    if (!job.salary || typeof job.salary !== 'string' || !job.salary.includes('₹')) {
+      console.warn(`[Validation] Rejected job ${job.id} due to invalid or unformatted salary: ${job.salary}`);
+      return null;
+    }
+
+    // Crucial date timeline validation
+    if (!job.lastDate || !job.notificationDate) {
+      console.warn(`[Validation] Rejected job ${job.id}: missing crucial timeline dates.`);
+      return null;
+    }
+
+    return {
+      ...job,
+      verified: true,
+      verificationStatus: 'Verified',
+      lastVerifiedAt: job.lastVerifiedAt || new Date().toISOString(),
+      lastCheckedAt: new Date().toISOString()
+    };
+  } catch (err: any) {
+    console.error(`[Validation Error] Failed to validate job ${job?.id}:`, err.message);
+    return null;
+  }
+}
+
 async function updateJobInFirestore(jobData: any) {
-  const jobRef = db.collection('jobs').doc(jobData.id);
+  const validated = validateJobData(jobData);
+  if (!validated) {
+    console.warn(`[Anti-Hallucination Security] Blocked unverified/suspicious job posting: ${jobData.title}`);
+    return;
+  }
+
+  const jobRef = db.collection('jobs').doc(validated.id);
   const doc = await jobRef.get();
   
   if (!doc.exists) {
     // New job detected
     await jobRef.set({
-      ...jobData,
+      ...validated,
       lastCheckedAt: new Date().toISOString(),
       lastUpdatedAt: new Date().toISOString()
     });
-    console.log(`[Sync] New Job Added: ${jobData.title}`);
-    await logActivity('added', jobData.title);
+    console.log(`[Sync] Verified New Job Added: ${validated.title}`);
+    await logActivity('added', validated.title);
   } else {
     // Existing job - check for updates
-    // Simulating a field change to trigger 'updated' log occasionally
     const existing = doc.data();
     let hasChanged = false;
-    if (existing && existing.status !== jobData.status) hasChanged = true;
+    if (existing && existing.status !== validated.status) hasChanged = true;
     
     await jobRef.update({
-      ...jobData,
+      ...validated,
       lastCheckedAt: new Date().toISOString()
     });
     
     if (hasChanged) {
-        await logActivity('updated', jobData.title);
+        await logActivity('updated', validated.title);
     }
   }
 }

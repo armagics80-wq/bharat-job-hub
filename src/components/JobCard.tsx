@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Job, UserProfile } from '../types';
-import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap } from 'lucide-react';
+import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { getDepartmentById } from '../data/departments';
@@ -12,9 +12,11 @@ interface JobCardProps {
   guidance?: string;
   isMatch?: boolean;
   userProfile?: UserProfile | null;
+  isSaved?: boolean;
+  onToggleSave?: (jobId: string) => void;
 }
 
-export default function JobCard({ job, guidance, isMatch, userProfile }: JobCardProps) {
+export default function JobCard({ job, guidance, isMatch, userProfile, isSaved = false, onToggleSave }: JobCardProps) {
   const [showHowToApply, setShowHowToApply] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
 
@@ -119,105 +121,159 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       onClick={() => setShowHowToApply(!showHowToApply)}
-      className={`relative group bg-white border-b last:border-b-0 border-slate-100 p-3 transition-colors hover:bg-slate-50 cursor-pointer ${isMatch ? 'bg-indigo-50/10' : ''} ${showHowToApply ? 'bg-slate-50' : ''}`}
+      className={`relative group bg-white border-b last:border-b-0 border-slate-200 p-4 transition-all hover:bg-slate-50/80 cursor-pointer ${isMatch ? 'bg-indigo-50/20' : ''} ${showHowToApply ? 'bg-slate-50 border-l-4 border-l-indigo-600' : ''}`}
     >
-      <div className="flex items-start gap-4">
-        <div className="flex-1 min-w-0">
-          <div className="flex flex-wrap items-center gap-2 mb-1.5">
-            {/* Status & Category Badges */}
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter border ${getSourceTypeColor(job.sourceType)}`}>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Top Line: Badges & Tags */}
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider border ${getSourceTypeColor(job.sourceType)}`}>
               {job.sourceType}
             </span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter border ${statusInfo.color}`}>
+            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider border ${statusInfo.color}`}>
               {statusInfo.label}
             </span>
-            <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-tighter border ${getRegionColor(job.region)}`}>
+            <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-wider border ${getRegionColor(job.region)}`}>
               {job.region}
             </span>
-            <span className="text-[9px] px-1.5 py-0.5 bg-slate-100 text-slate-700 rounded font-bold uppercase tracking-tighter border border-slate-200">
-               {job.jobCategory || 'General'}
-            </span>
-
-            {/* Verification Badge */}
-            {job.verificationStatus === 'Verified' ? (
-              <span className="text-[9px] px-1.5 py-0.5 bg-emerald-50 text-emerald-700 rounded font-bold uppercase tracking-tighter flex items-center gap-1 border border-emerald-100">
-                <ShieldCheck className="w-2.5 h-2.5" /> Official Notification
-              </span>
-            ) : job.verificationStatus === 'Pending' ? (
-              <span className="text-[9px] px-1.5 py-0.5 bg-amber-50 text-amber-700 rounded font-bold uppercase tracking-tighter flex items-center gap-1 border border-amber-100">
-                <Clock className="w-2.5 h-2.5" /> Verification Pending
-              </span>
-            ) : (
-              <span className="text-[9px] px-1.5 py-0.5 bg-rose-50 text-rose-700 rounded font-bold uppercase tracking-tighter flex items-center gap-1 border border-rose-100">
-                <BadgeInfo className="w-2.5 h-2.5" /> Source Awaited
+            {job.jobCategory && (
+              <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-700 rounded font-black uppercase tracking-wider border border-slate-200">
+                {job.jobCategory}
               </span>
             )}
-            
             {isJobNewToday && (
-              <span className="text-[9px] px-1.5 py-0.5 bg-rose-600 text-white rounded font-bold uppercase tracking-tighter flex items-center gap-1 shadow-sm ring-1 ring-rose-400 ring-offset-0">
-                <Zap className="w-2 h-2 fill-white animate-pulse" /> New Today
+              <span className="text-[9px] px-2 py-0.5 bg-rose-600 text-white rounded font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                <Zap className="w-2.5 h-2.5 fill-white" /> New Today
               </span>
             )}
           </div>
 
-          <h3 className="text-xs font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate flex items-center gap-2">
-            {job.title}
-            {eligibility && (
-              <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter ${
-                eligibility.isEligible 
-                ? 'bg-emerald-100 text-emerald-700' 
-                : eligibility.type === 'error' 
-                  ? 'bg-rose-100 text-rose-700' 
-                  : 'bg-amber-100 text-amber-700'
-              }`}>
-                {eligibility.isEligible ? <CheckCircle2 className="w-2 h-2" /> : <AlertCircle className="w-2 h-2" />}
-                {eligibility.isEligible ? 'Eligible' : 'Check Criteria'}
-              </span>
+          {/* Job Title / Position */}
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 group-hover:text-indigo-600 transition-colors leading-tight flex flex-wrap items-center gap-2">
+              <span>{job.title}</span>
+              {eligibility && (
+                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  eligibility.isEligible 
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
+                  : eligibility.type === 'error' 
+                    ? 'bg-rose-100 text-rose-800 border border-rose-200' 
+                    : 'bg-amber-100 text-amber-800 border border-amber-200'
+                }`}>
+                  {eligibility.isEligible ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> : <AlertCircle className="w-2.5 h-2.5 text-amber-600" />}
+                  {eligibility.isEligible ? 'Eligible' : 'Check Criteria'}
+                </span>
+              )}
+            </h3>
+            
+            {eligibility && !eligibility.isEligible && (
+              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-1 bg-rose-50/50 px-2 py-1 rounded inline-block">
+                <AlertCircle className="w-3 h-3" /> {eligibility.reason}
+              </p>
             )}
-          </h3>
+            {eligibility && eligibility.isEligible && eligibility.reason.includes('relaxation') && (
+              <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 mt-1 bg-emerald-50/50 px-2 py-1 rounded inline-block">
+                <ShieldCheck className="w-3 h-3" /> {eligibility.reason}
+              </p>
+            )}
+          </div>
 
-          {eligibility && !eligibility.isEligible && (
-            <p className="text-[9px] font-bold text-rose-600 flex items-center gap-1 mt-0.5">
-              <AlertCircle className="w-2.5 h-2.5" /> {eligibility.reason}
-            </p>
-          )}
-
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-2 text-[10px] text-slate-500">
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3 h-3 text-indigo-400" />
-              <span className="font-medium">Last Date: {job.lastDate ? format(new Date(job.lastDate), 'dd MMM yyyy') : 'Awaited'}</span>
+          {/* HIGH SPECIFICATION SOURCE ATTRIBUTION GRID (Clean Columnar Layout) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 p-3 bg-slate-50 border border-slate-200/80 rounded-lg text-[11px] leading-tight">
+            <div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Department</span>
+              <span className="font-bold text-slate-800 line-clamp-1">{department?.name || 'Recruitment Department'}</span>
             </div>
+            <div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Official Source</span>
+              <span className="font-bold text-slate-700 font-mono flex items-center gap-1 truncate">
+                <Globe className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+                {job.officialSource}
+              </span>
+            </div>
+            <div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Verification</span>
+              <span className="font-black text-emerald-600 flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                ✓ Official Source
+              </span>
+            </div>
+            <div>
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Last Synced</span>
+              <span className="font-bold text-slate-500 flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                {job.lastVerifiedAt ? formatDistanceToNow(new Date(job.lastVerifiedAt), { addSuffix: true }) : 'Checked recently'}
+              </span>
+            </div>
+          </div>
+
+          {/* Secondary Stats Row: Salary, Vacancies, Dates */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-1 text-[11px] text-slate-600 border-t border-dashed border-slate-100">
+            <span className="flex items-center gap-1.5 font-bold text-slate-700">
+              💰 Salary: <span className="font-black text-indigo-600">{job.salary}</span>
+            </span>
             {job.vacancies && (
-              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[9px] font-black uppercase tracking-wider">
-                <span>{job.vacancies} Vacancies</span>
-              </div>
-            )}
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3 text-slate-400" />
-              <span className="text-[9px] font-bold text-slate-400 uppercase">
-                {job.lastVerifiedAt ? `Verified ${formatDistanceToNow(new Date(job.lastVerifiedAt), { addSuffix: true })}` : 'Fresh Update'}
+              <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded font-black text-[10px] uppercase tracking-wider">
+                🔢 {job.vacancies} Vacancies
               </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Globe className="w-3 h-3 text-slate-400" />
-              <span className="font-bold text-indigo-600 truncate max-w-[120px]">{department?.name || 'Official Portal'}</span>
-            </div>
+            )}
+            <span className="flex items-center gap-1">
+              🎓 Req: <span className="font-semibold text-slate-800">{job.qualification}</span>
+            </span>
+            <span className="flex items-center gap-1">
+              📅 Last Date: <span className="font-bold text-rose-600">{format(new Date(job.lastDate), 'dd MMM yyyy')}</span>
+            </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 self-center">
-          <div className="text-right hidden sm:block">
-            <div className="text-[11px] font-bold text-slate-900">{job.salary}</div>
-            <div className="text-[9px] text-slate-400 font-mono tracking-tighter">{job.id.slice(0, 8)}</div>
+        {/* Action Controls Section */}
+        <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 sm:self-center mt-3 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-100 justify-between sm:justify-start">
+          {/* Quick Info text on desktop */}
+          <div className="hidden sm:block text-right mb-0.5">
+            <span className="text-[9px] text-slate-400 font-mono tracking-wider block">ID: {job.id.slice(0, 10).toUpperCase()}</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setShowHowToApply(!showHowToApply); }}
-              className={`px-3 py-1.5 rounded text-[10px] font-bold uppercase tracking-widest transition-all ${
-                showHowToApply ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+          
+          <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+            {/* Bookmark button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onToggleSave) onToggleSave(job.id);
+              }}
+              title={isSaved ? "Remove from Saved Jobs" : "Save Job Opportunity"}
+              className={`p-2 rounded border transition-all ${
+                isSaved 
+                ? 'bg-rose-50 border-rose-200 text-rose-600' 
+                : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-200'
               }`}
             >
-              Learn More
+              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-rose-600 text-rose-600' : ''}`} />
+            </button>
+
+            {/* Direct Official Apply Link */}
+            {job.applyLink && (
+              <a
+                href={job.applyLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm transition-all"
+              >
+                Apply ↗
+              </a>
+            )}
+
+            {/* Expansion button */}
+            <button 
+              onClick={(e) => { 
+                e.stopPropagation(); 
+                setShowHowToApply(!showHowToApply); 
+              }}
+              className={`px-3 py-2 rounded text-[10px] font-black uppercase tracking-widest transition-all ${
+                showHowToApply ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 border border-indigo-150 hover:bg-indigo-100'
+              }`}
+            >
+              {showHowToApply ? 'Close' : 'Details ⤓'}
             </button>
           </div>
         </div>

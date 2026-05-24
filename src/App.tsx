@@ -18,7 +18,7 @@ import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
 import { getDepartmentById } from './data/departments';
 import { getQualificationById } from './data/qualifications';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle, Bookmark } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, differenceInDays } from 'date-fns';
 
@@ -32,7 +32,28 @@ export default function App() {
   const [filterRegion, setFilterRegion] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [aiMatches, setAiMatches] = useState<{id: string, guidance: string}[]>([]);
-  const [activeTab, setActiveTab] = useState<'browse' | 'eligible'>('browse');
+  const [activeTab, setActiveTab] = useState<'all-jobs' | 'your-matches' | 'saved-jobs'>('all-jobs');
+  const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem('saved_job_ids');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch (e) {
+      return new Set();
+    }
+  });
+
+  const handleToggleSave = (jobId: string) => {
+    setSavedJobIds(prev => {
+      const updated = new Set(prev);
+      if (updated.has(jobId)) {
+        updated.delete(jobId);
+      } else {
+        updated.add(jobId);
+      }
+      localStorage.setItem('saved_job_ids', JSON.stringify(Array.from(updated)));
+      return updated;
+    });
+  };
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [knownJobIds, setKnownJobIds] = useState<Set<string>>(new Set());
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
@@ -181,7 +202,7 @@ export default function App() {
 
         setNotificationsCount(0);
         if (eligibleJobs.length > 0) {
-          setActiveTab('eligible');
+          setActiveTab('your-matches');
         }
       } catch (error) {
         console.error("Matching error:", error);
@@ -227,7 +248,7 @@ export default function App() {
       setProfile(data);
       setSuccessMessage('Eligibility profile updated successfully!');
       setIsSaving(false);
-      setActiveTab('eligible');
+      setActiveTab('your-matches');
       
       // Trigger matching immediately after save
       await handleMatch(data);
@@ -258,31 +279,65 @@ export default function App() {
     return results;
   }, [jobs, searchTerm, filterRegion, filterCategory]);
 
-  const matchedJobItems = useMemo(() => {
-    if (!aiMatches || aiMatches.length === 0) return [];
-    return aiMatches
-      .map(m => {
-        try {
-          const job = jobs.find(j => j.id === m.id);
-          if (job && profile) {
-            const elig = isUserEligible(profile, job);
-            if (!elig.isEligible) return null; // Strict filter failsafe
-          }
-          if (job) return { job, guidance: m.guidance };
-        } catch (e) {
-          console.error("Match processing error:", e);
-        }
-        return null;
-      })
-      .filter(Boolean) as { job: Job, guidance: string }[];
-  }, [aiMatches, jobs, profile]);
+  const categorizedMatches = useMemo(() => {
+    if (!profile) return { perfect: [], almost: [], future: [], needsPrep: [] };
 
-  const { matchedActive, matchedFuture } = useMemo(() => {
-    return {
-      matchedActive: matchedJobItems.filter(m => m.job.status === 'Active'),
-      matchedFuture: matchedJobItems.filter(m => m.job.status === 'Upcoming')
-    };
-  }, [matchedJobItems]);
+    const perfect: { job: Job; reason: string }[] = [];
+    const almost: { job: Job; reason: string }[] = [];
+    const future: { job: Job; reason: string }[] = [];
+    const needsPrep: { job: Job; reason: string }[] = [];
+
+    jobs.forEach(job => {
+      const elig = isUserEligible(profile, job);
+      const isUpcoming = job.status === 'Upcoming';
+      const aiMatch = aiMatches.find(m => m.id === job.id);
+      const baseGuidance = aiMatch?.guidance || '';
+
+      if (isUpcoming) {
+        if (elig.isEligible || elig.type === 'warning') {
+          future.push({
+            job,
+            reason: baseGuidance || `Future alert: Fits your qualification (${job.qualification}) perfectly. Expected publication: ${job.notificationDate ? format(new Date(job.notificationDate), 'MMMM yyyy') : 'Soon'}.`
+          });
+        }
+      } else {
+        if (elig.isEligible) {
+          const isCentralOrSameState = job.region === 'Central' || job.region === profile.state;
+          const exceedsBaseMaxAge = profile.age > job.maxAge;
+          
+          if (isCentralOrSameState && !exceedsBaseMaxAge && elig.type === 'success') {
+            perfect.push({
+              job,
+              reason: baseGuidance || `Strict perfect fit: Meets all credentials, age limit, and is located in ${job.region}.`
+            });
+          } else {
+            let reasonStr = baseGuidance || '';
+            if (!reasonStr) {
+              reasonStr += 'Eligible. ';
+              if (!isCentralOrSameState) reasonStr += `Applying as non-local candidate to ${job.region}. `;
+              if (exceedsBaseMaxAge) reasonStr += `Utilizes age relaxation thresholds. `;
+              if (elig.type === 'warning') reasonStr += `Note: ${elig.reason}. `;
+            }
+            almost.push({
+              job,
+              reason: reasonStr
+            });
+          }
+        } else {
+          needsPrep.push({
+            job,
+            reason: `Requirements needed: ${elig.reason}. Map this notification for credentials prep.`
+          });
+        }
+      }
+    });
+
+    return { perfect, almost, future, needsPrep };
+  }, [jobs, profile, aiMatches]);
+
+  const savedJobsList = useMemo(() => {
+    return jobs.filter(j => savedJobIds.has(j.id));
+  }, [jobs, savedJobIds]);
 
   return (
     <ErrorBoundary>
@@ -301,18 +356,18 @@ export default function App() {
           <nav className="space-y-1">
             <div className="text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-2 px-2">Navigation</div>
             <button
-                onClick={() => setActiveTab('browse')}
+                onClick={() => setActiveTab('all-jobs')}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  activeTab === 'browse' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                  activeTab === 'all-jobs' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
                 }`}
               >
                 <Globe className="w-4 h-4" />
                 Browse All Jobs
               </button>
               <button
-                onClick={() => setActiveTab('eligible')}
+                onClick={() => setActiveTab('your-matches')}
                 className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
-                  activeTab === 'eligible' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                  activeTab === 'your-matches' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800 font-bold'
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -325,6 +380,22 @@ export default function App() {
                   </span>
                 )}
               </button>
+              <button
+                onClick={() => setActiveTab('saved-jobs')}
+                className={`w-full flex items-center justify-between px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                  activeTab === 'saved-jobs' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Bookmark className="w-4 h-4 text-rose-400 fill-rose-400" />
+                  Saved Jobs
+                </div>
+                {savedJobIds.size > 0 && (
+                  <span className="bg-rose-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">
+                    {savedJobIds.size}
+                  </span>
+                )}
+              </button>
           </nav>
 
           <nav className="space-y-1">
@@ -334,10 +405,10 @@ export default function App() {
                 key={region}
                 onClick={() => {
                   setFilterRegion(region);
-                  setActiveTab('browse');
+                  setActiveTab('all-jobs');
                 }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  filterRegion === region && activeTab === 'browse' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                  filterRegion === region && activeTab === 'all-jobs' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
                 }`}
               >
                 <span>{region === 'All' ? '🇮🇳' : region === 'Central' ? '🏛️' : region === 'Telangana' ? '⚖️' : '🌴'}</span>
@@ -392,7 +463,7 @@ export default function App() {
                 </>
               )}
               <button 
-                onClick={() => setActiveTab(profile ? 'eligible' : 'browse')}
+                onClick={() => setActiveTab(profile ? 'your-matches' : 'all-jobs')}
                 className="w-full mt-2 py-2 bg-indigo-700 hover:bg-indigo-600 rounded text-center transition-colors font-bold uppercase tracking-tighter text-[10px]"
               >
                 {profile ? 'Check Matches' : 'Complete Profile'}
@@ -410,7 +481,7 @@ export default function App() {
       <main className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
         <Header 
           notificationCount={notificationsCount} 
-          onNotificationClick={() => setActiveTab('eligible')} 
+          onNotificationClick={() => setActiveTab('your-matches')} 
         />
 
         <div className="flex-1 p-4 lg:p-6 space-y-6 overflow-y-auto custom-scrollbar">
@@ -433,25 +504,32 @@ export default function App() {
           {/* Main Tabs */}
           <div className="flex items-center gap-6 border-b border-slate-200 mb-6 sticky top-0 bg-slate-50 z-20 pt-2 lg:hidden">
              <button 
-              onClick={() => setActiveTab('browse')}
-              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'browse' ? 'text-indigo-600' : 'text-slate-400'}`}
+              onClick={() => setActiveTab('all-jobs')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'all-jobs' ? 'text-indigo-600' : 'text-slate-400'}`}
             >
               Browse
-              {activeTab === 'browse' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+              {activeTab === 'all-jobs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
             </button>
             <button 
-              onClick={() => setActiveTab('eligible')}
-              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'eligible' ? 'text-indigo-600' : 'text-slate-400'}`}
+              onClick={() => setActiveTab('your-matches')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'your-matches' ? 'text-indigo-600' : 'text-slate-400'}`}
             >
               Matches {notificationsCount > 0 && <span className="ml-1 text-rose-500 text-[8px]">•</span>}
-              {activeTab === 'eligible' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+              {activeTab === 'your-matches' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+            </button>
+            <button 
+              onClick={() => setActiveTab('saved-jobs')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative ${activeTab === 'saved-jobs' ? 'text-indigo-600' : 'text-slate-400'}`}
+            >
+              Saved {savedJobIds.size > 0 && <span className="ml-1 text-indigo-500 text-[8px]">({savedJobIds.size})</span>}
+              {activeTab === 'saved-jobs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
             </button>
           </div>
 
           <AnimatePresence mode="wait">
-            {activeTab === 'browse' ? (
+            {activeTab === 'all-jobs' ? (
               <motion.div 
-                key="browse"
+                key="all-jobs"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
@@ -524,9 +602,25 @@ export default function App() {
                       <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
                         <Activity className="w-4 h-4 text-emerald-600" /> Live Verification Stream
                       </h2>
-                      <div className="flex items-center gap-4">
-                        <span className="text-[10px] text-slate-500 font-medium">Auto-Synced {minutesSinceLastSync === 0 ? 'just now' : `${minutesSinceLastSync}m ago`}</span>
-                        <span className="text-[10px] text-slate-500 font-medium font-mono">{activeJobs.length} Verified Ads</span>
+                      {/* Dynamic Data Freshness Indicator (Requirement 2) */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        {minutesSinceLastSync < 120 ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-750 border border-emerald-200 rounded-full text-[10px] font-black uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            ✓ System Fresh: Synced {minutesSinceLastSync === 0 ? 'just now' : `${minutesSinceLastSync}m ago`}
+                          </div>
+                        ) : minutesSinceLastSync < 360 ? (
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-black uppercase tracking-wider animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            ⚠️ Check Pending: Checked {Math.floor(minutesSinceLastSync / 60)}h ago
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5 px-3 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-[10px] font-black uppercase tracking-wider">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                            🚨 Sync Needed: Checked {Math.floor(minutesSinceLastSync / 60)}h ago
+                          </div>
+                        )}
+                        <span className="text-[10px] text-slate-550 font-bold font-mono px-2 py-0.5 bg-slate-100 rounded border border-slate-200">{activeJobs.length} Verified Ads</span>
                       </div>
                     </div>
 
@@ -554,7 +648,13 @@ export default function App() {
                           </div>
                         ) : activeJobs.length > 0 ? (
                           activeJobs.map(job => (
-                            <JobCard key={job.id} job={job} userProfile={profile} />
+                            <JobCard 
+                              key={job.id} 
+                              job={job} 
+                              userProfile={profile} 
+                              isSaved={savedJobIds.has(job.id)}
+                              onToggleSave={handleToggleSave}
+                            />
                           ))
                         ) : (
                           <div className="py-20 text-center">
@@ -640,9 +740,9 @@ export default function App() {
                   </div>
                 </div>
               </motion.div>
-            ) : (
+            ) : activeTab === 'your-matches' ? (
               <motion.div 
-                key="eligible"
+                key="your-matches"
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
@@ -654,116 +754,208 @@ export default function App() {
                   isLoading={isSaving} 
                 />
 
-                <div className="bg-indigo-900 border border-indigo-700 rounded-xl p-5 text-white shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <ShieldCheck className="w-32 h-32" />
-                  </div>
-                  
-                  <div className="flex items-center justify-between mb-6 relative">
+                {profile ? (
+                  <div className="space-y-8">
                     <div>
-                      <h2 className="text-xl font-bold flex items-center gap-3">
-                        <Sparkles className="w-6 h-6 text-amber-400" /> 
-                        Recommended for Your Profile
+                      <h2 className="text-base font-bold text-slate-800 flex items-center gap-2">
+                        <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
+                        Personalized Verification Matrix
                       </h2>
-                      <p className="text-indigo-200 text-sm mt-1">
-                        {profile 
-                          ? `Matching jobs for your qualifications in ${profile.state}`
-                          : 'Complete your profile to unlock AI matching'}
+                      <p className="text-xs text-slate-500 mt-1">
+                        Dynamic eligibility matching based on your Age ({profile.age}y), Qualification, State ({profile.state}), and Category ({profile.category}).
                       </p>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative">
-                    {profile ? (
-                      isMatching ? (
-                        <div className="xl:col-span-3 py-16 text-center bg-white/5 rounded-lg border border-white/10">
-                          <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto mb-3 animate-spin" />
-                          <p className="text-sm text-indigo-200">Analyzing official recruitment calendars...</p>
-                        </div>
-                      ) : (
-                        <>
-                          {/* Matched Active Jobs */}
-                          <div className="xl:col-span-2 space-y-4">
-                            <div className="flex items-center justify-between px-1">
-                              <h2 className="text-sm font-bold uppercase tracking-tight text-white flex items-center gap-2">
-                                <ShieldCheck className="w-4 h-4 text-emerald-400" /> Available Jobs Now
-                              </h2>
-                            </div>
-                            <div className="space-y-4">
-                              {matchedActive.length > 0 ? (
-                                matchedActive.map(({ job, guidance }) => (
-                                  <JobCard key={job.id} job={job} guidance={guidance} isMatch={true} userProfile={profile} />
-                                ))
-                              ) : (
-                                <div className="py-12 text-center bg-white/5 rounded-xl border border-dashed border-white/20 text-indigo-200">
-                                  <Info className="w-8 h-8 text-indigo-400 mx-auto mb-2 opacity-50" />
-                                  <p className="text-sm font-medium">No matching jobs found currently.</p>
-                                  <p className="text-[10px] mt-1 opacity-60">We only show jobs where you meet 100% of the eligibility criteria.</p>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Future Opportunities */}
-                          <div className="space-y-4">
-                            <div className="flex items-center justify-between px-1">
-                              <h2 className="text-sm font-bold uppercase tracking-tight text-white flex items-center gap-2">
-                                <BellRing className="w-4 h-4 text-amber-400" /> Future Opportunities
-                              </h2>
-                            </div>
-                            <div className="space-y-3">
-                              {matchedFuture.length > 0 ? (
-                                matchedFuture.map(({ job, guidance }) => (
-                                  <div key={job.id} className="bg-indigo-800/40 p-4 rounded-xl border border-indigo-700/50 relative group shadow-lg">
-                                    <div className="absolute top-2 right-2">
-                                      <span className="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase bg-indigo-900/80 text-amber-200 border border-amber-600/50">
-                                        Notification Awaited
-                                      </span>
-                                    </div>
-                                    <h4 className="text-xs font-bold text-white pr-10">{job.title}</h4>
-                                    <p className="text-[10px] text-indigo-300 mt-1 line-clamp-1 italic">
-                                      {getDepartmentById(job.departmentId)?.name || 'Unknown Dept'}
-                                    </p>
-                                    
-                                    <div className="mt-3 p-2 bg-indigo-950/50 rounded border border-indigo-700/30">
-                                      <p className="text-[10px] text-indigo-200 leading-tight">
-                                        <Sparkles className="w-2.5 h-2.5 inline mr-1 text-amber-400" />
-                                        {guidance}
-                                      </p>
-                                    </div>
-                                    
-                                    <div className="mt-3 flex items-center justify-between text-[9px] font-bold">
-                                      <span className="text-amber-400/90 flex items-center gap-1">
-                                        <Calendar className="w-2.5 h-2.5" />
-                                        Expected: {format(new Date(job.notificationDate), 'MMMM yyyy')}
-                                      </span>
-                                      <span className="text-indigo-400 uppercase tracking-tighter">Deterministic Match</span>
-                                    </div>
-                                  </div>
-                                ))
-                              ) : (
-                                <div className="py-10 text-center bg-white/5 rounded-lg border border-white/10 text-indigo-400">
-                                  <p className="text-[10px] uppercase font-bold tracking-widest text-indigo-500 italic px-4">No future predicted alerts for your qualification</p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="p-3 bg-indigo-950/40 rounded-lg border border-indigo-700/30">
-                               <p className="text-[10px] text-indigo-300/80 leading-relaxed italic">
-                                 <Info className="w-3 h-3 inline mr-1 text-indigo-400" />
-                                 Note: Future opportunities are based on recurring recruitment patterns. Notification awaited.
-                               </p>
-                            </div>
-                          </div>
-                        </>
-                      )
+                    {isMatching ? (
+                      <div className="py-16 text-center bg-white rounded-xl border border-slate-200">
+                        <RefreshCw className="w-8 h-8 text-indigo-600 mx-auto mb-3 animate-spin" />
+                        <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Analyzing recruitment guidelines...</p>
+                      </div>
                     ) : (
-                      <div className="xl:col-span-3 py-16 text-center bg-white/5 rounded-lg border border-white/10">
-                        <Info className="w-10 h-10 text-indigo-400 mx-auto mb-3" />
-                        <p className="text-sm text-indigo-200 px-10">Enter your official details above to get precise eligibility recommendations.</p>
+                      <div className="space-y-8">
+                        {/* Perfect Matches */}
+                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+                          <div className="flex items-center justify-between border-b border-emerald-100 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                              <h3 className="text-xs font-black text-emerald-800 uppercase tracking-wider">✓ PERFECT MATCH ({categorizedMatches.perfect.length})</h3>
+                            </div>
+                            <span className="text-[10px] text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-150 font-bold font-mono">100% Eligible</span>
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            You meet 105% of the active recruitment criteria. Real-time listings open for registration and within your local state:
+                          </p>
+                          <div className="space-y-2">
+                            {categorizedMatches.perfect.length > 0 ? (
+                              categorizedMatches.perfect.map(({ job, reason }) => (
+                                <JobCard 
+                                  key={job.id} 
+                                  job={job} 
+                                  guidance={reason} 
+                                  isMatch={true} 
+                                  userProfile={profile} 
+                                  isSaved={savedJobIds.has(job.id)}
+                                  onToggleSave={handleToggleSave}
+                                />
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-400 italic py-4 text-center">No perfect matches right now. Add higher educational qualifications to match more notifications.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Almost Matches */}
+                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+                          <div className="flex items-center justify-between border-b border-amber-100 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-amber-500" />
+                              <h3 className="text-xs font-black text-amber-800 uppercase tracking-wider">⚠️ ALMOST MATCH ({categorizedMatches.almost.length})</h3>
+                            </div>
+                            <span className="text-[10px] text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded border border-amber-150 font-bold font-mono">Eligible on Conditions</span>
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            You meet educational requirements but check special parameters (e.g. out-of-state regional quotas, category-specific age relaxation, or physical thresholds):
+                          </p>
+                          <div className="space-y-2">
+                            {categorizedMatches.almost.length > 0 ? (
+                              categorizedMatches.almost.map(({ job, reason }) => (
+                                <JobCard 
+                                  key={job.id} 
+                                  job={job} 
+                                  guidance={reason} 
+                                  isMatch={true} 
+                                  userProfile={profile} 
+                                  isSaved={savedJobIds.has(job.id)}
+                                  onToggleSave={handleToggleSave}
+                                />
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-400 italic py-4 text-center">No conditional matches found currently.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Future Opportunities */}
+                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+                          <div className="flex items-center justify-between border-b border-indigo-100 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-indigo-500" />
+                              <h3 className="text-xs font-black text-indigo-800 uppercase tracking-wider">📅 FUTURE OPPORTUNITY ({categorizedMatches.future.length})</h3>
+                            </div>
+                            <span className="text-[10px] text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded border border-indigo-150 font-bold font-mono">Upcoming Ads</span>
+                          </div>
+                          <p className="text-xs text-slate-500 leading-relaxed">
+                            Annual or expected upcoming notifications where you met the standard eligibility threshold. Bookmark these to prepare early:
+                          </p>
+                          <div className="space-y-2">
+                            {categorizedMatches.future.length > 0 ? (
+                              categorizedMatches.future.map(({ job, reason }) => (
+                                <JobCard 
+                                  key={job.id} 
+                                  job={job} 
+                                  guidance={reason} 
+                                  isMatch={true} 
+                                  userProfile={profile} 
+                                  isSaved={savedJobIds.has(job.id)}
+                                  onToggleSave={handleToggleSave}
+                                />
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-400 italic py-4 text-center">No upcoming mapped alerts for your profile.</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Needs Preparation */}
+                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm space-y-4">
+                          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <div className="flex items-center gap-2">
+                              <span className="h-2 w-2 rounded-full bg-slate-400" />
+                              <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">🔒 NEEDS PREPARATION ({categorizedMatches.needsPrep.length})</h3>
+                            </div>
+                            <span className="text-[10px] text-slate-600 bg-slate-50 px-2.5 py-0.5 rounded border border-slate-205 font-bold font-mono">Future Targets</span>
+                          </div>
+                          <p className="text-xs text-slate-505 leading-relaxed">
+                            These notifications do not align with your current requirements (e.g. educational mismatch or age limit exceeded). Listed here for preparation planning:
+                          </p>
+                          <div className="space-y-2">
+                            {categorizedMatches.needsPrep.length > 0 ? (
+                              categorizedMatches.needsPrep.map(({ job, reason }) => (
+                                <JobCard 
+                                  key={job.id} 
+                                  job={job} 
+                                  guidance={reason} 
+                                  isMatch={false} 
+                                  userProfile={profile} 
+                                  isSaved={savedJobIds.has(job.id)}
+                                  onToggleSave={handleToggleSave}
+                                />
+                              ))
+                            ) : (
+                              <p className="text-xs text-slate-400 italic py-4 text-center">No preparation targets available.</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>
+                ) : (
+                  <div className="py-16 text-center bg-white rounded-xl border border-slate-200 p-6">
+                    <Info className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
+                    <h3 className="text-sm font-bold text-slate-800">Complete Your Eligibility Profile</h3>
+                    <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
+                      Fill out your age, qualifications, local state and reserve categories above to dynamically check live eligible advertisements across the central SSC, Railways and State PSCs.
+                    </p>
+                  </div>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="saved-jobs"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-850 flex items-center gap-2">
+                      <Bookmark className="w-5 h-5 text-rose-500 fill-rose-500" /> Bookmarked Announcements
+                    </h2>
+                    <p className="text-xs text-slate-505 mt-1">
+                      Access your hand-saved official government listings. These are kept locally in your secure browser sandbox.
+                    </p>
+                  </div>
+                  <span className="text-[11px] font-mono text-slate-500 px-2.5 py-1 bg-slate-100 rounded border border-slate-200 font-bold">{savedJobsList.length} Saved Ads</span>
                 </div>
+
+                {savedJobsList.length > 0 ? (
+                  <div className="bg-white rounded-xl border border-slate-200 p-2 space-y-1">
+                    {savedJobsList.map(job => (
+                      <JobCard 
+                        key={job.id} 
+                        job={job} 
+                        userProfile={profile} 
+                        isSaved={true}
+                        onToggleSave={handleToggleSave}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-20 text-center bg-white rounded-xl border border-slate-200 p-6">
+                    <Bookmark className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+                    <h3 className="text-sm font-bold text-slate-755">No bookmarked notices yet</h3>
+                    <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
+                      Click the Bookmark (Icon) on any job notice card in the main feed or matches dashboard to easily save them here.
+                    </p>
+                    <button 
+                      onClick={() => setActiveTab('all-jobs')}
+                      className="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] font-black uppercase tracking-widest transition-all"
+                    >
+                      Browse All Notifications
+                    </button>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>

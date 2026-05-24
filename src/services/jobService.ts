@@ -31,6 +31,11 @@ const processJobs = (jobs: Job[]): Job[] => {
       };
     })
     .filter(job => {
+      // Anti-Hallucination rule: STRICTLY display ONLY verified, official government notifications
+      if (job.verified === false || job.verificationStatus === 'Unavailable') {
+        return false;
+      }
+
       // Rule: After 2 days beyond lastDate, automatically remove from feed
       const todayTime = new Date().getTime();
       return todayTime <= job.expiryTime;
