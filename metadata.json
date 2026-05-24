@@ -1,6 +1,6 @@
 {
-  "name": "Bharat Govt Job Hub",
-  "description": "A verified portal for Central and State (Telangana & Andhra Pradesh) government job notifications. Features deterministic eligibility matching based on official source data, application guidance, and real-time alerts.",
+  "name": "BHARAT GOVT JOB NOTIFY",
+  "description": "The ultimate Indian government job notification portal with dynamic eligibility checks, personalized matching, age relaxation support, and step-by-step guidance for Central and State (TS/AP) opportunities.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

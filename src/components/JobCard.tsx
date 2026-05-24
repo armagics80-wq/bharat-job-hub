@@ -187,6 +187,11 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
               <Calendar className="w-3 h-3 text-indigo-400" />
               <span className="font-medium">Last Date: {job.lastDate ? format(new Date(job.lastDate), 'dd MMM yyyy') : 'Awaited'}</span>
             </div>
+            {job.vacancies && (
+              <div className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[9px] font-black uppercase tracking-wider">
+                <span>{job.vacancies} Vacancies</span>
+              </div>
+            )}
             <div className="flex items-center gap-1">
               <Clock className="w-3 h-3 text-slate-400" />
               <span className="text-[9px] font-bold text-slate-400 uppercase">
@@ -249,14 +254,7 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
                         <p className="text-[10px] text-slate-500 mt-0.5">{job.region} • {job.location || 'Official Vacancy'}</p>
                       </div>
 
-                      <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Nature of Work</h5>
-                        <p className="text-[11px] text-slate-600 leading-relaxed italic">
-                          {job.natureOfWork || 'Official details not yet released'}
-                        </p>
-                      </div>
-
-                      <div className="pt-2">
+                      <div className="pt-1">
                          <div className="flex items-center gap-2 mb-2">
                             <span className="text-[9px] px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-bold uppercase tracking-wider border border-slate-200">
                              Type: {job.jobType}
@@ -266,6 +264,23 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
                             </span>
                          </div>
                       </div>
+
+                      <div className="space-y-3">
+                         <div>
+                            <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Department Role</h5>
+                            <p className="text-[10px] text-slate-700 font-medium leading-tight">{job.departmentRole || 'Detailed role information awaited'}</p>
+                         </div>
+                         <div className="grid grid-cols-2 gap-3">
+                            <div>
+                               <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Work Type</h5>
+                               <p className="text-[10px] text-slate-700 font-medium">{job.workType || 'Permanent'}</p>
+                            </div>
+                            <div>
+                               <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Probation</h5>
+                               <p className="text-[10px] text-slate-700 font-medium">{job.probationPeriod || 'Standard'}</p>
+                            </div>
+                         </div>
+                      </div>
                     </div>
 
                     {/* Eligibility & Selection Column */}
@@ -273,16 +288,22 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
                       <div>
                         <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Eligibility Criteria</h5>
                         <div className="space-y-1">
-                          <p className="text-[11px] font-bold text-slate-800">Age: {job.minAge} - {job.maxAge} Years</p>
+                          <p className="text-[11px] font-bold text-slate-800">Base Age: {job.minAge} - {job.maxAge} Years</p>
                           <p className="text-[11px] font-bold text-slate-800">Qualification: {job.qualification}</p>
                           <p className="text-[10px] text-slate-500 leading-tight">{job.specialRequirements?.join(', ') || 'Standard norms apply'}</p>
                         </div>
                       </div>
 
                       <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Salary & Benefits</h5>
-                        <p className="text-[12px] font-extrabold text-emerald-600">{job.salary}</p>
-                        <p className="text-[9px] text-slate-400 mt-0.5 font-medium">Includes basic pay + allowed DA/HRA as per rules</p>
+                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Transfer & Shift Policy</h5>
+                        <div className="space-y-2">
+                          <p className="text-[10px] text-slate-600 leading-tight">
+                            <span className="font-bold text-slate-400 uppercase text-[8px]">Transfer:</span> {job.transferPolicy || 'As per departmental norms'}
+                          </p>
+                          <p className="text-[10px] text-slate-600 leading-tight">
+                            <span className="font-bold text-slate-400 uppercase text-[8px]">Shift:</span> {job.shiftNature || 'General Shift'}
+                          </p>
+                        </div>
                       </div>
 
                       <div>
@@ -296,22 +317,52 @@ export default function JobCard({ job, guidance, isMatch, userProfile }: JobCard
                     {/* Exam & Fees Column */}
                     <div className="space-y-4">
                        <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Exam Pattern & Syllabus</h5>
-                        <p className="text-[11px] text-slate-600 leading-tight">
-                          {job.examPattern || 'Official details not yet released'}
-                        </p>
+                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Detailed Reservation & Relaxation</h5>
+                        {job.detailedReservation ? (
+                          <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                            {job.detailedReservation.centralRules && (
+                              <p className="text-[9px] text-indigo-700 font-bold bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100 flex items-center gap-1">
+                                <ShieldCheck className="w-2.5 h-2.5" /> Central Rules
+                              </p>
+                            )}
+                            {job.detailedReservation.stateRules && (
+                              <p className="text-[9px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                                <ShieldCheck className="w-2.5 h-2.5" /> State Rules
+                              </p>
+                            )}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {Object.entries(job.detailedReservation.ageRelaxation || {}).map(([cat, yrs]) => (
+                                <div key={cat} className="flex items-center justify-between px-2 py-0.5 bg-slate-50 rounded border border-slate-200">
+                                   <span className="text-[8px] font-bold text-slate-500 uppercase">{cat.replace('_', ' ')}</span>
+                                   <span className="text-[9px] font-black text-indigo-600">+{yrs}y</span>
+                                </div>
+                              ))}
+                            </div>
+                            {job.detailedReservation.localNonLocalRules && (
+                              <div className="p-1.5 bg-amber-50 border border-amber-100 rounded">
+                                <p className="text-[8px] font-bold text-amber-800 leading-tight uppercase mb-0.5">Local Quota</p>
+                                <p className="text-[9px] text-amber-900 font-medium leading-tight">{job.detailedReservation.localNonLocalRules}</p>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-slate-400 italic">Official reservation details not yet released</p>
+                        )}
                       </div>
 
                       <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Application Fee</h5>
-                        <p className="text-[11px] font-bold text-slate-800">{job.applicationFee || 'Official details not yet released'}</p>
-                      </div>
-
-                      <div>
-                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Reservation Policy</h5>
-                        <p className="text-[10px] text-slate-500 leading-tight">
-                          {job.reservationDetails || 'Official details not yet released'}
-                        </p>
+                        <h5 className="text-[9px] font-bold text-slate-400 uppercase mb-1">Fee Exemptions</h5>
+                        <div className="flex flex-wrap gap-1">
+                          {job.detailedReservation?.feeDetails ? (
+                             Object.entries(job.detailedReservation.feeDetails).map(([cat, fee]) => (
+                               <span key={cat} className={`text-[8px] px-1.5 py-0.5 rounded font-bold border ${fee.toLowerCase().includes('exempt') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                                 {cat}: {fee}
+                               </span>
+                             ))
+                          ) : (
+                            <p className="text-[10px] text-slate-800 font-bold">{job.applicationFee || 'Standard Fees Apply'}</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>

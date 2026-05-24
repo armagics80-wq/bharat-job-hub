@@ -10,13 +10,120 @@ import * as cheerio from 'cheerio';
 import firebaseConfig from './firebase-applet-config.json';
 import { STATIC_JOBS } from './src/data/jobData';
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-  });
+// Safe In-Memory database definitions to protect against disabled Firestore API
+class InMemoryDocumentReference {
+  constructor(public collectionName: string, public id: string, public store: any) {}
+
+  async get() {
+    const data = this.store[this.collectionName]?.[this.id];
+    return {
+      exists: !!data,
+      id: this.id,
+      data: () => data,
+      ref: this
+    };
+  }
+
+  async set(data: any) {
+    if (!this.store[this.collectionName]) this.store[this.collectionName] = {};
+    this.store[this.collectionName][this.id] = { ...data };
+  }
+
+  async update(data: any) {
+    if (!this.store[this.collectionName]) this.store[this.collectionName] = {};
+    const existing = this.store[this.collectionName][this.id] || {};
+    this.store[this.collectionName][this.id] = { ...existing, ...data };
+  }
+
+  async delete() {
+    if (this.store[this.collectionName]) {
+      delete this.store[this.collectionName][this.id];
+    }
+  }
 }
 
-const db = admin.firestore();
+class InMemoryCollectionReference {
+  constructor(public name: string, public store: any) {}
+
+  limit(n: number) {
+    return this;
+  }
+
+  doc(id: string) {
+    return new InMemoryDocumentReference(this.name, id, this.store);
+  }
+
+  async get() {
+    const colData = this.store[this.name] || {};
+    const docs = Object.keys(colData).map(id => ({
+      id,
+      exists: true,
+      data: () => colData[id],
+      ref: new InMemoryDocumentReference(this.name, id, this.store)
+    }));
+    return {
+      empty: docs.length === 0,
+      docs
+    };
+  }
+
+  async add(data: any) {
+    if (!this.store[this.name]) this.store[this.name] = {};
+    const id = Math.random().toString(36).substring(7);
+    this.store[this.name][id] = { ...data };
+    return new InMemoryDocumentReference(this.name, id, this.store);
+  }
+}
+
+class InMemoryBatch {
+  private operations: (() => Promise<void>)[] = [];
+  constructor(public store: any) {}
+
+  set(ref: any, data: any) {
+    this.operations.push(async () => {
+      await ref.set(data);
+    });
+    return this;
+  }
+
+  async commit() {
+    for (const op of this.operations) {
+      await op();
+    }
+  }
+}
+
+function createInMemoryDb() {
+  const store: any = {
+    jobs: {},
+    activity: {},
+    profiles: {}
+  };
+  return {
+    collection(name: string) {
+      return new InMemoryCollectionReference(name, store);
+    },
+    batch() {
+      return new InMemoryBatch(store);
+    }
+  };
+}
+
+// Safely initialize firebase-admin and default to the in-memory fallback until proved live on start
+let db: any = createInMemoryDb();
+let isFirestoreAvailable = false;
+
+try {
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.applicationDefault(),
+    });
+  }
+  db = admin.firestore();
+} catch (error: any) {
+  console.warn('[Firestore] Standard admin.firestore() initialization failed. Using memory database.', error.message);
+  db = createInMemoryDb();
+}
 
 // Migration: Seed Firestore with static jobs if empty
 async function seedJobs() {
@@ -30,6 +137,7 @@ async function seedJobs() {
                 ...job,
                 lastCheckedAt: new Date().toISOString(),
                 lastUpdatedAt: job.lastUpdatedAt || new Date().toISOString()
+                // Ensure verification fields exist
             });
         });
         await batch.commit();
@@ -40,41 +148,146 @@ async function seedJobs() {
 // Job Sync Intervals (Requirement 2)
 // 1. Telangana/AP: Every 30 minutes
 cron.schedule('*/30 * * * *', async () => {
-  console.log('[Scheduler] Syncing Telangana/AP jobs...');
-  await syncStateJobs();
+  try {
+    console.log('[Scheduler] Syncing Telangana/AP jobs...');
+    await syncStateJobs();
+  } catch (error: any) {
+    console.error('[Scheduler] Telangana/AP sync failed:', error.message);
+  }
 });
 
 // 2. Central Government: Every hour
 cron.schedule('0 * * * *', async () => {
-  console.log('[Scheduler] Syncing Central Gov jobs...');
-  await syncCentralJobs();
+  try {
+    console.log('[Scheduler] Syncing Central Gov jobs...');
+    await syncCentralJobs();
+  } catch (error: any) {
+    console.error('[Scheduler] Central Gov sync failed:', error.message);
+  }
 });
 
 // 3. News/Upcoming: Every 3 hours
 cron.schedule('0 */3 * * *', async () => {
-  console.log('[Scheduler] Syncing News & Previews...');
-  await syncNewsJobs();
+  try {
+    console.log('[Scheduler] Syncing News & Previews...');
+    await syncNewsJobs();
+  } catch (error: any) {
+    console.error('[Scheduler] News sync failed:', error.message);
+  }
 });
 
 // 4. Expired Cleanup: Every 12 hours
 cron.schedule('0 */12 * * *', async () => {
-  console.log('[Scheduler] Cleaning up expired jobs...');
-  await cleanupExpiredJobs();
+  try {
+    console.log('[Scheduler] Cleaning up expired jobs...');
+    await cleanupExpiredJobs();
+  } catch (error: any) {
+    console.error('[Scheduler] Expired cleanup failed:', error.message);
+  }
 });
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  // Enable JSON request body parsing
+  app.use(express.json());
+
   // API Routes
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ status: 'ok', timestamp: new Date().toISOString(), firestoreSupported: isFirestoreAvailable });
+  });
+
+  // Get all jobs from Firestore or fallback
+  app.get('/api/jobs', async (req, res) => {
+    try {
+      const snapshot = await db.collection('jobs').get();
+      if (!snapshot || snapshot.empty) {
+        return res.json(STATIC_JOBS);
+      }
+      const jobsList = snapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      res.json(jobsList);
+    } catch (err: any) {
+      console.warn('[Server] Error fetching jobs from db, falling back to static jobs:', err.message);
+      res.json(STATIC_JOBS);
+    }
+  });
+
+  // Get recent activity
+  app.get('/api/activity', async (req, res) => {
+    try {
+      const snapshot = await db.collection('activity').get();
+      if (!snapshot || snapshot.empty) {
+        return res.json([
+          { id: '1', type: 'verified', title: 'BHARAT GOVT JOB NOTIFY Engine Active', timestamp: new Date().toISOString() }
+        ]);
+      }
+      let activityList = snapshot.docs.map((doc: any) => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      activityList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      res.json(activityList.slice(0, 15));
+    } catch (err: any) {
+      res.json([
+        { id: '1', type: 'verified', title: 'BHARAT GOVT JOB NOTIFY Engine Active', timestamp: new Date().toISOString() }
+      ]);
+    }
+  });
+
+  // Log activity
+  app.post('/api/activity', async (req, res) => {
+    try {
+      const { type, title } = req.body;
+      await logActivity(type, title);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get user profile
+  app.get('/api/profile/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+      const doc = await db.collection('profiles').doc(userId).get();
+      if (doc.exists) {
+        res.json(doc.data());
+      } else {
+        res.status(404).json({ error: 'Profile not found' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Save/Update user profile
+  app.post('/api/profile/:userId', async (req, res) => {
+    const { userId } = req.params;
+    try {
+      const profileData = req.body;
+      await db.collection('profiles').doc(userId).set({
+        ...profileData,
+        updatedAt: new Date().toISOString()
+      });
+      await logActivity('updated', `Profile updated for ${profileData.fullName || userId}`);
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // Manual Trigger for testing
   app.post('/api/sync/trigger', async (req, res) => {
-    await Promise.all([syncStateJobs(), syncCentralJobs(), syncNewsJobs(), cleanupExpiredJobs()]);
-    res.json({ message: 'Sync triggered successfully' });
+    try {
+      await Promise.all([syncStateJobs(), syncCentralJobs(), syncNewsJobs(), cleanupExpiredJobs()]);
+      res.json({ message: 'Sync completed successfully' });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // Vite middleware for development
@@ -94,18 +307,40 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', async () => {
     console.log(`[Server] Running on http://localhost:${PORT}`);
-    // Initial sync and seed on startup
-    console.log('[Server] Performing initial setup and sync...');
-    await seedJobs();
-    await syncAll();
+    // Probe Firestore connectivity at runtime
+    console.log('[Server] Testing live Cloud Firestore connectivity...');
+    try {
+      // Create a test collection call to verify if API is enabled / used
+      const testDb = admin.firestore();
+      await testDb.collection('jobs').limit(1).get();
+      db = testDb;
+      isFirestoreAvailable = true;
+      console.log('[Firestore] Successfully established live connection to Firestore DB.');
+    } catch (dbError: any) {
+      console.warn('[Firestore] Firestore API not accessible or permission denied. Defaulting to local in-memory fallback. Server will continue operating securely.', dbError.message);
+      db = createInMemoryDb();
+      isFirestoreAvailable = false;
+    }
+
+    try {
+      await seedJobs();
+    } catch (err: any) {
+      console.error('[Migration] Initial job seeding failed (handled safely):', err.message);
+    }
+
+    try {
+      await syncAll();
+    } catch (err: any) {
+      console.error('[Sync] Initial job sync failed (handled safely):', err.message);
+    }
   });
 }
 
 async function syncAll() {
     try {
         await Promise.all([syncStateJobs(), syncCentralJobs(), syncNewsJobs(), cleanupExpiredJobs()]);
-    } catch (e) {
-        console.error('Initial sync failed:', e);
+    } catch (e: any) {
+        console.error('Initial sync failed:', e.message);
     }
 }
 
@@ -120,14 +355,19 @@ async function syncStateJobs() {
 
     for (const source of sources) {
        try {
-         // Attempt real fetch with timeout
-         const response = await axios.get(source.url, { timeout: 10000 });
+         // Attempt real fetch with a snappy timeout and custom User-Agent headers
+         const response = await axios.get(source.url, { 
+           headers: {
+             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+           },
+           timeout: 3000 
+         });
          const $ = cheerio.load(response.data);
          // Extraction logic goes here...
          console.log(`[Sync] Successfully polled ${source.id}`);
-       } catch (pollError) {
-         console.warn(`[Sync] Polling ${source.id} failed, using cached knowledge.`, pollError.message);
-         // Fallback: Trigger internal verification system or alert admin
+       } catch (pollError: any) {
+         console.warn(`[Sync] Polling ${source.id} failed (falling back safely to cached data): ${pollError.message}`);
        }
     }
     

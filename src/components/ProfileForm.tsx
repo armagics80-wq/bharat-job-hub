@@ -15,6 +15,8 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       fullName: '',
       phoneNumber: '',
       age: 18,
+      category: 'UR',
+      isExServiceman: false,
       qualifications: [],
       state: '',
       district: '',
@@ -202,7 +204,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             {formData.qualifications.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-2">
                 {formData.qualifications.map(id => {
-                  let label = id;
+                  let label: string = id;
                   try {
                     label = getQualificationById(id)?.label || id;
                   } catch (e) {
@@ -225,8 +227,55 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </div>
             )}
           </div>
-          
-          <div className="pb-1 bg-slate-50 border border-dashed border-slate-200 rounded p-3">
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Category / Reservation
+            </label>
+            <select
+              required
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
+            >
+              <optgroup label="Central / Standard">
+                <option value="UR">General / Unreserved (UR)</option>
+                <option value="EWS">Economically Weaker Section (EWS)</option>
+                <option value="OBC_NCL">OBC - Non Creamy Layer</option>
+                <option value="OBC_CL">OBC - Creamy Layer</option>
+                <option value="SC">Scheduled Caste (SC)</option>
+                <option value="ST">Scheduled Tribe (ST)</option>
+              </optgroup>
+              <optgroup label="Telangana (TS)">
+                <option value="BC_A">BC-A (TS)</option>
+                <option value="BC_B">BC-B (TS)</option>
+                <option value="BC_C">BC-C (TS)</option>
+                <option value="BC_D">BC-D (TS)</option>
+                <option value="BC_E">BC-E (TS)</option>
+              </optgroup>
+              <optgroup label="Andhra Pradesh (AP)">
+                <option value="AP_BC_A">BC-A (AP)</option>
+                <option value="AP_BC_B">BC-B (AP)</option>
+                <option value="AP_BC_C">BC-C (AP)</option>
+                <option value="AP_BC_D">BC-D (AP)</option>
+                <option value="AP_BC_E">BC-E (AP)</option>
+              </optgroup>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-4 pt-0 sm:pt-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={formData.isExServiceman} 
+                onChange={(e) => setFormData({ ...formData, isExServiceman: e.target.checked })}
+                className="w-4 h-4 accent-indigo-600"
+              />
+              <span className="text-xs font-bold text-slate-700">Ex-Serviceman?</span>
+            </label>
+
             <label className="flex items-center gap-2 cursor-pointer">
               <input 
                 type="checkbox" 
@@ -234,10 +283,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
                 onChange={(e) => setFormData({ ...formData, isPWD: e.target.checked })}
                 className="w-4 h-4 accent-indigo-600"
               />
-              <div>
-                <span className="text-xs font-bold text-slate-700">PWD / Physically Handicapped?</span>
-                <p className="text-[9px] text-slate-500">Enable this to see jobs with age relaxation and PH reservation.</p>
-              </div>
+              <span className="text-xs font-bold text-slate-700">PwBD / PH?</span>
             </label>
           </div>
         </div>

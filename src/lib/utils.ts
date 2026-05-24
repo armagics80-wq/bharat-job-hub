@@ -101,10 +101,42 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
       }
     }
 
-    // 3. Age Check with Relaxation
+    // 3. Age Check with Advanced Relaxation
     const baseMaxAge = job.maxAge;
-    const isReserved = user.isPWD || user.gender === 'Female';
-    const relaxation = isReserved ? 5 : 0;
+    let totalRelaxation = 0;
+    let relaxationReason = "";
+
+    // Define standard relaxations
+    const CATEGORY_RELAXATION: Record<string, number> = {
+      'OBC_NCL': 3,
+      'SC': 5,
+      'ST': 5,
+      'EWS': 0, // Usually no age relaxation for EWS in most notifications
+      'BC_A': 5, 'BC_B': 5, 'BC_C': 5, 'BC_D': 5, 'BC_E': 5,
+      'AP_BC_A': 5, 'AP_BC_B': 5, 'AP_BC_C': 5, 'AP_BC_D': 5, 'AP_BC_E': 5,
+    };
+
+    // Calculate relaxation
+    const catRelax = CATEGORY_RELAXATION[user.category] || 0;
+    
+    if (user.isPWD) {
+      // PwBD relaxation is often cumulative or a fixed higher value (usually +10)
+      totalRelaxation = 10 + (catRelax > 0 ? catRelax : 0);
+      relaxationReason = `Eligible under PwBD + ${user.category.replace('_', ' ')} relaxation (+${totalRelaxation}y)`;
+    } else if (catRelax > 0) {
+      totalRelaxation = catRelax;
+      relaxationReason = `Eligible under ${user.category.replace('_', ' ')} relaxation (+${totalRelaxation}y)`;
+    } else if (user.isExServiceman) {
+      totalRelaxation = 3;
+      relaxationReason = `Eligible under Ex-Serviceman relaxation (+3y)`;
+    } else if (user.gender === 'Female' && job.region !== 'Central') {
+      // Many State govt jobs have 5 years relaxation for women
+      totalRelaxation = 5;
+      relaxationReason = `Eligible under Women's relaxation (+5y)`;
+    }
+
+    const maxAllowedAge = baseMaxAge + totalRelaxation;
+
     if (user.age < job.minAge) {
       return {
         isEligible: false,
@@ -112,26 +144,47 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
         type: 'error'
       };
     }
-    if (user.age > (baseMaxAge + relaxation)) {
+
+    if (user.age > maxAllowedAge) {
       return {
         isEligible: false,
-        reason: `Exceeds age limit (${user.age} > ${baseMaxAge}${relaxation ? `+${relaxation}` : ''}).`,
+        reason: `Age ${user.age} exceeds relaxed limit of ${maxAllowedAge} for ${user.category.replace('_', ' ')}.`,
         type: 'error'
       };
     }
 
-    // 4. Regional Check
-    if (job.region !== 'Central' && job.region !== user.state) {
+    if (user.age > baseMaxAge && user.age <= maxAllowedAge) {
       return {
-        isEligible: false,
-        reason: `Restricted to ${job.region} residents.`,
-        type: 'error'
+        isEligible: true,
+        reason: relaxationReason || `Eligible due to age relaxation.`,
+        type: 'success'
+      };
+    }
+
+    // 4. Regional / State Check (Local vs Non-Local)
+    if (job.region !== 'Central' && job.region !== user.state) {
+      // In TS/AP, non-locals can apply for "Open" quota (usually 5-20% of posts)
+      // We'll mark as warning instead of strict error unless specified
+      const isStrictLocal = job.detailedReservation?.localNonLocalRules?.toLowerCase().includes('only') || false;
+      
+      if (isStrictLocal) {
+        return {
+          isEligible: false,
+          reason: `Restricted to ${job.region} residents only (Strictly Local).`,
+          type: 'error'
+        };
+      }
+
+      return {
+        isEligible: true,
+        reason: `Eligible as Non-Local candidate for ${job.region} notification.`,
+        type: 'warning'
       };
     }
 
     return {
       isEligible: true,
-      reason: `Eligible based on ${minRequiredQual?.label || 'general'} requirements.`,
+      reason: relaxationReason || `Eligible based on ${minRequiredQual?.label || 'general'} requirements.`,
       type: 'success'
     };
   } catch (error) {

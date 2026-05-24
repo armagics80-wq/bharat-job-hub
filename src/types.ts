@@ -14,6 +14,11 @@ export interface Department {
   lastCheckedAt: string;
 }
 
+export type ReservationCategory = 
+  | 'UR' | 'EWS' | 'OBC_NCL' | 'OBC_CL' | 'SC' | 'ST' | 'PwBD' | 'Ex_Servicemen'
+  | 'BC_A' | 'BC_B' | 'BC_C' | 'BC_D' | 'BC_E'
+  | 'AP_BC_A' | 'AP_BC_B' | 'AP_BC_C' | 'AP_BC_D' | 'AP_BC_E';
+
 export interface Job {
   id: string;
   title: string;
@@ -34,19 +39,33 @@ export interface Job {
   officialPdfUrl?: string;
   description: string;
   jobType: string;
-  jobCategory: 'Police' | 'Teaching' | 'Railway' | 'Clerical' | 'Medical' | 'Technical' | 'Defense' | 'Banking' | 'Civil Services' | 'Other';
-  natureOfWork: string;
+  jobCategory?: 'Police' | 'Teaching' | 'Railway' | 'Clerical' | 'Medical' | 'Technical' | 'Defense' | 'Banking' | 'Civil Services' | 'Other';
+  natureOfWork?: string;
   selectionProcess: string;
   examPattern?: string;
   reservationDetails?: string;
+  detailedReservation?: {
+    centralRules?: string;
+    stateRules?: string;
+    ageRelaxation?: Record<string, number>;
+    feeDetails?: Record<string, string>;
+    localNonLocalRules?: string;
+  };
+  workType?: 'Permanent' | 'Contract' | 'Part-time';
+  postingType?: 'Initial' | 'Direct' | 'Promotion';
+  departmentRole?: string;
+  probationPeriod?: string;
+  transferPolicy?: string;
+  shiftNature?: string;
   location: string;
   howToApplySteps: string[];
   applicationFee?: string;
   documentRequired: string[];
   status: 'Active' | 'Upcoming' | 'Expired';
+  vacancies?: string | number;
   sourceType: 'Official Notification' | 'Upcoming Opportunity' | 'Media Prediction';
   verified?: boolean;
-  verificationStatus: 'Verified' | 'Pending' | 'Unavailable';
+  verificationStatus?: 'Verified' | 'Pending' | 'Unavailable';
   lastVerifiedAt?: string;
   expiryTime?: number;
   lastCheckedAt?: string;
@@ -65,6 +84,8 @@ export interface UserProfile {
   fullName: string;
   phoneNumber?: string;
   age: number;
+  category: ReservationCategory;
+  isExServiceman: boolean;
   qualifications: QualificationType[];
   state: string;
   district: string;

@@ -13,14 +13,13 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
 import { STATIC_JOBS } from './data/jobData';
-import { auth, db } from './lib/firebase';
+import { auth } from './lib/firebase';
 import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
 import { getDepartmentById } from './data/departments';
 import { getQualificationById } from './data/qualifications';
 import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { collection, addDoc, getDocs, query, limit } from 'firebase/firestore';
 import { format, differenceInDays } from 'date-fns';
 
 export default function App() {
@@ -289,10 +288,13 @@ export default function App() {
     <ErrorBoundary>
       <div id="app-root" className="flex h-screen bg-slate-50 font-sans text-slate-900 overflow-hidden">
       {/* Sidebar - High Density Indigo Sidebar */}
-      <aside className="w-64 bg-indigo-900 text-white flex flex-col shrink-0 hidden lg:flex">
-        <div className="p-6 flex items-center gap-3 border-b border-indigo-800">
-          <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center font-bold text-indigo-950">B</div>
-          <span className="font-bold tracking-tight text-xl">BharatHub</span>
+      <aside className="w-64 bg-indigo-950 text-white flex flex-col shrink-0 hidden lg:flex border-r border-indigo-900">
+        <div className="p-5 flex items-center gap-3 border-b border-indigo-900/60">
+          <div className="w-8 h-8 bg-orange-500 rounded flex items-center justify-center font-black text-white text-sm shadow-md">🇮🇳</div>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="font-black tracking-tight text-[10px] text-orange-400 uppercase leading-none">BHARAT GOVT</span>
+            <span className="font-black tracking-tight text-sm text-white uppercase leading-normal truncate">JOB NOTIFY</span>
+          </div>
         </div>
 
         <div className="p-4 flex-1 space-y-6 overflow-y-auto custom-scrollbar">
@@ -400,7 +402,7 @@ export default function App() {
         </div>
 
         <div className="p-4 bg-indigo-950 text-[10px] text-indigo-400 text-center font-mono">
-          v1.0.5-stable • Bharat Govt Notifications
+          v1.1.0-stable • BHARAT GOVT JOB NOTIFY
         </div>
       </aside>
 

@@ -1,22 +1,5 @@
-import { db, auth } from '../lib/firebase';
-import { Job, UserProfile, OperationType, FirestoreErrorInfo } from '../types';
-import { collection, onSnapshot, query, orderBy, getDocs, getDoc, doc, updateDoc, setDoc, serverTimestamp, limit } from 'firebase/firestore';
-
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-    },
-    operationType,
-    path
-  }
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
-}
+import { Job, UserProfile } from '../types';
+import { STATIC_JOBS } from '../data/jobData';
 
 // Helper to filter and sort jobs according to real-time aggregation rules
 const processJobs = (jobs: Job[]): Job[] => {
@@ -60,79 +43,110 @@ const processJobs = (jobs: Job[]): Job[] => {
 
 export const jobService = {
   subscribeToLatestJobs(callback: (jobs: Job[]) => void) {
-    const jobsCol = collection(db, 'jobs');
-    const q = query(jobsCol, orderBy('lastUpdatedAt', 'desc'));
-    
-    return onSnapshot(q, (snapshot) => {
-      const jobs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Job[];
-      callback(processJobs(jobs));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'jobs');
-    });
+    let active = true;
+    const fetchJobs = async () => {
+      try {
+        const res = await fetch('/api/jobs');
+        if (!res.ok) throw new Error('API server down');
+        const data = await res.json();
+        if (active) callback(processJobs(data));
+      } catch (err) {
+        console.warn('[Sync Client] Failed to fetch live jobs, using cached Static Jobs fallback:', err);
+        if (active) callback(processJobs(STATIC_JOBS));
+      }
+    };
+
+    fetchJobs();
+    const interval = setInterval(fetchJobs, 12000); // Check for updates every 12s
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   },
 
   subscribeToActivity(callback: (activity: any[]) => void) {
-    const activityCol = collection(db, 'activity');
-    const q = query(activityCol, orderBy('timestamp', 'desc'), limit(15));
-    
-    return onSnapshot(q, (snapshot) => {
-      const activity = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      callback(activity);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'activity');
-    });
+    let active = true;
+    const fetchActivity = async () => {
+      try {
+        const res = await fetch('/api/activity');
+        if (!res.ok) throw new Error('API server down');
+        const data = await res.json();
+        if (active) callback(data);
+      } catch (err) {
+        if (active) {
+          callback([
+            { id: '1', type: 'verified', title: 'BHARAT GOVT JOB NOTIFY Engine Active', timestamp: new Date().toISOString() }
+          ]);
+        }
+      }
+    };
+
+    fetchActivity();
+    const interval = setInterval(fetchActivity, 12000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   },
 
-  async getJobById(id: string) {
-    const path = `jobs/${id}`;
+  async getJobById(id: string): Promise<Job | null> {
     try {
-      const docSnap = await getDoc(doc(db, 'jobs', id));
-      if (docSnap.exists()) {
-        return { id: docSnap.id, ...docSnap.data() } as Job;
+      const res = await fetch('/api/jobs');
+      if (res.ok) {
+        const jobsList = await res.json();
+        const found = jobsList.find((j: any) => j.id === id);
+        if (found) return found as Job;
       }
-      return null;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
-      return null;
+    } catch (err) {
+      console.warn('Error fetching job by id:', err);
     }
+    const staticJob = STATIC_JOBS.find(j => j.id === id);
+    return staticJob || null;
   }
 };
 
 export const profileService = {
   async saveProfile(userId: string, profile: UserProfile) {
-    const path = `profiles/${userId}`;
     try {
-      await updateDoc(doc(db, 'profiles', userId), { ...profile, updatedAt: serverTimestamp() });
-    } catch (error: any) {
-      if (error.code === 'not-found') {
-        try {
-          await setDoc(doc(db, 'profiles', userId), { ...profile, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
-        } catch (innerError) {
-          handleFirestoreError(innerError, OperationType.CREATE, path);
-        }
-      } else {
-        handleFirestoreError(error, OperationType.UPDATE, path);
-      }
+      // Synchronously record in local storage for double-safe offline fallback
+      localStorage.setItem(`profile_${userId}`, JSON.stringify(profile));
+
+      const res = await fetch(`/api/profile/${userId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(profile)
+      });
+      if (!res.ok) throw new Error('Failed to save profile to server');
+    } catch (err) {
+      console.warn('[Sync Client] Failed to save profile to server, saved locally in browser:', err);
     }
   },
 
-  async getProfile(userId: string) {
-    const path = `profiles/${userId}`;
+  async getProfile(userId: string): Promise<UserProfile | null> {
     try {
-      const docSnap = await getDoc(doc(db, 'profiles', userId));
-      if (docSnap.exists()) {
-        return docSnap.data() as UserProfile;
+      const local = localStorage.getItem(`profile_${userId}`);
+      if (local) {
+        try {
+          return JSON.parse(local) as UserProfile;
+        } catch (e) {}
       }
-      return null;
-    } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
-      return null;
+
+      const res = await fetch(`/api/profile/${userId}`);
+      if (res.ok) {
+        const data = await res.json();
+        return data as UserProfile;
+      }
+    } catch (err) {
+      console.warn('[Sync Client] Failed to get profile from server, trying local cache storage:', err);
     }
+    const local = localStorage.getItem(`profile_${userId}`);
+    if (local) {
+      try {
+        return JSON.parse(local) as UserProfile;
+      } catch (e) {}
+    }
+    return null;
   }
 };

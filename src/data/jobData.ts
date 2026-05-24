@@ -6,6 +6,7 @@ export const STATIC_JOBS: Job[] = [
     title: 'SSC Combined Graduate Level Examination (CGL) 2026',
     departmentId: 'ssc',
     region: 'Central',
+    vacancies: '17,727',
     qualification: 'Graduation',
     minQualification: 'Degree_Any',
     allowedQualifications: ['Degree_Any', 'PG_Any'],
@@ -25,6 +26,22 @@ export const STATIC_JOBS: Job[] = [
     selectionProcess: 'Computer Based Examination (Tier-I & Tier-II)',
     examPattern: 'Tier-I: MCQ (Gen Intelligence, Awareness, Quant, English). Tier-II: Detailed Paper on Math, English, and General Studies.',
     reservationDetails: 'As per central government norms for SC/ST/OBC/EWS/PwD/Ex-Servicemen.',
+    detailedReservation: {
+      centralRules: 'Standard DoPT (Government of India) reservation rules apply.',
+      ageRelaxation: {
+        'SC': 5, 'ST': 5, 'OBC_NCL': 3, 'PwBD': 10, 'Ex_Servicemen': 3
+      },
+      feeDetails: {
+        'UR': '₹100', 'OBC_NCL': '₹100', 'EWS': '₹100', 'SC': 'Exempted', 'ST': 'Exempted', 'PwBD': 'Exempted', 'Female': 'Exempted'
+      },
+      localNonLocalRules: 'Not applicable (All India Merit)'
+    },
+    workType: 'Permanent',
+    postingType: 'Direct',
+    departmentRole: 'Assistant Section Officer (ASO), Inspector (Income Tax), Auditor, and Junior Statistical Officer.',
+    probationPeriod: '2 Years (Standard Central Govt Probation)',
+    transferPolicy: 'All India Transfer Liability. Transfers governed by department-specific rotation policies.',
+    shiftNature: 'Standard General Shift; Field roles may involve irregular hours.',
     location: 'All India',
     applicationFee: '₹100 (General/OBC), Exempted for Women/SC/ST/PwD',
     howToApplySteps: [
@@ -52,6 +69,7 @@ export const STATIC_JOBS: Job[] = [
     title: 'Central Armed Police Forces (ACs) Examination 2026',
     departmentId: 'upsc',
     region: 'Central',
+    vacancies: '506',
     qualification: 'Bachelor\'s Degree',
     minQualification: 'Degree_Any',
     allowedQualifications: ['Degree_Any', 'PG_Any'],
@@ -98,6 +116,7 @@ export const STATIC_JOBS: Job[] = [
     title: 'RRB Non-Technical Popular Categories (NTPC) 2026',
     departmentId: 'rrb-central',
     region: 'Central',
+    vacancies: '11,558 (Expected)',
     qualification: '12th Pass/Degree',
     minQualification: '12th',
     allowedQualifications: ['12th', 'Polytechnic', 'Degree_Any', 'PG_Any'],
@@ -134,6 +153,7 @@ export const STATIC_JOBS: Job[] = [
     title: 'TGPSC Group-I Services Recruitment 2026',
     departmentId: 'tgpsc',
     region: 'Telangana',
+    vacancies: '563',
     qualification: 'Graduation',
     minQualification: 'Degree_Any',
     allowedQualifications: ['Degree_Any', 'PG_Any'],
@@ -153,6 +173,22 @@ export const STATIC_JOBS: Job[] = [
     selectionProcess: 'Preliminary Test (Objective Type) and Main Examination (Conventional Type)',
     examPattern: 'Prelims: General Studies & Mental Ability (150 Marks). Mains: 6 Descriptive papers + English (Qualifying).',
     reservationDetails: 'As per Telangana state norms (SC/ST/BC/EWS/Women/Sports/PH/Ex-Servicemen).',
+    detailedReservation: {
+      stateRules: 'Telangana State Subordinate Service Rules apply.',
+      ageRelaxation: {
+        'SC': 5, 'ST': 5, 'BC_A': 5, 'BC_B': 5, 'BC_C': 5, 'BC_D': 5, 'BC_E': 5, 'PwBD': 10, 'Ex_Servicemen': 3
+      },
+      feeDetails: {
+        'UR': '₹200 + ₹120', 'BC_A': '₹200 (Exam Fee Exempted)', 'SC': '₹200 (Exam Fee Exempted)', 'ST': '₹200 (Exam Fee Exempted)'
+      },
+      localNonLocalRules: '95% of posts reserved for Local Candidates of Telangana as per Presidential Order 2018.'
+    },
+    workType: 'Permanent',
+    postingType: 'Direct',
+    departmentRole: 'Revenue (Deputy Collector), Police (DSP), Commercial Taxes (CTO), etc.',
+    probationPeriod: '2 Years',
+    transferPolicy: 'Zonal/Multi-Zonal Transfer Policy within Telangana State.',
+    shiftNature: 'General administrative hours; 24/7 accountability for executive roles.',
     location: 'Telangana (Statewide)',
     applicationFee: '₹200 (Application) + ₹120 (Examination), SC/ST/BC exempted from exam fee',
     howToApplySteps: [

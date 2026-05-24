@@ -43,10 +43,10 @@ export default function Header({ notificationCount = 0, onNotificationClick, onT
 
   return (
     <header id="app-header" className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0 sticky top-0 z-50">
-      <div className="flex items-center gap-4 flex-1 font-bold italic text-indigo-900">
-        <div className="flex items-center gap-2 lg:hidden">
-          <div className="w-8 h-8 bg-amber-400 rounded-sm flex items-center justify-center font-bold text-indigo-950">B</div>
-          <span className="font-bold tracking-tight text-xl">BharatHub</span>
+      <div className="flex items-center gap-4 flex-1 lg:hidden">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-orange-500 rounded flex items-center justify-center font-black text-white text-xs shadow-sm">🇮🇳</div>
+          <span className="font-extrabold tracking-tight text-sm text-indigo-950 uppercase selection:bg-indigo-300">BHARAT GOVT JOB NOTIFY</span>
         </div>
       </div>
 
