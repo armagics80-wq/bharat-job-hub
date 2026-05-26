@@ -31,7 +31,17 @@ export function isTrustedGovernmentDomain(urlStr: string): boolean {
       'joinindianarmy.nic.in',
       'indianrailways.gov.in',
       'rrcb.gov.in',
-      'aptonline.in'
+      'aptonline.in',
+      'tntet.in',
+      'upnhsrc.in',
+      'bseb.in',
+      'wbtedgwb.in',
+      'bsssbihar.org',
+      'karnatakacareers.org',
+      'testbook.com',
+      'sarkariresult.com',
+      'allgovernmentjobs.in',
+      'apsc.in'
     ];
     
     return trustedDomains.some(domain => host.endsWith('.' + domain) || host === domain);

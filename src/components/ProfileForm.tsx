@@ -385,8 +385,12 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Subscribe to Regions
             </label>
-            <div className="flex flex-wrap gap-2">
-              {['Central', 'Telangana', 'Andhra Pradesh'].map((region) => {
+            <div className="max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-lg flex flex-wrap gap-1.5 custom-scrollbar">
+              {[
+                'Central', 'Andhra Pradesh', 'Telangana', 'Uttar Pradesh', 'Maharashtra', 'Bihar', 'West Bengal', 'Tamil Nadu', 'Madhya Pradesh', 'Rajasthan', 'Karnataka',
+                'Gujarat', 'Odisha', 'Kerala', 'Punjab', 'Haryana', 'Jharkhand', 'Assam', 'Chhattisgarh', 'Uttarakhand', 'Himachal Pradesh', 'Jammu & Kashmir', 'Tripura',
+                'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Sikkim', 'Arunachal Pradesh', 'Goa', 'Delhi', 'Puducherry', 'Chandigarh', 'Andaman & Nicobar', 'Dadra & Nagar Haveli', 'Ladakh', 'Lakshadweep'
+              ].map((region) => {
                 const isSelected = formData.subscriptions?.regions.includes(region);
                 return (
                   <button
@@ -405,7 +409,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
                         } 
                       });
                     }}
-                    className={`px-3 py-1 rounded-full border text-[9px] font-bold transition-all ${
+                    className={`px-2.5 py-1 rounded-full border text-[9px] font-bold transition-all ${
                       isSelected 
                       ? 'bg-indigo-600 border-indigo-600 text-white' 
                       : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'

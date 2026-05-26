@@ -246,5 +246,172 @@ export const MONITORED_WEBSITES: MonitoredWebsite[] = [
   { id: 'rj-ssc', name: 'Rajasthan Staff Selection Board (RSSB)', url: 'https://rrb.jodhpur.gov.in', category: 'Rajasthan', department: 'Recruitment Board' },
   { id: 'rj-police', name: 'Rajasthan State Police Department', url: 'https://police.rajasthan.gov.in', category: 'Rajasthan', department: 'Police & Security' },
   { id: 'rj-teachers', name: 'Rajasthan Board of Secondary Education', url: 'https://rajeduboard.rajasthan.gov.in', category: 'Rajasthan', department: 'Education Department' },
-  { id: 'rj-health', name: 'Rajasthan Medical & Health Services', url: 'https://health.rajasthan.gov.in', category: 'Rajasthan', department: 'Health Department' }
+  { id: 'rj-health', name: 'Rajasthan Medical & Health Services', url: 'https://health.rajasthan.gov.in', category: 'Rajasthan', department: 'Health Department' },
+
+  // --- GUJARAT GOVERNMENT WEBSITES ---
+  { id: 'gj-portal', name: 'Gujarat State Government Portal', url: 'https://guj.nic.in/', category: 'Gujarat', department: 'Main State Portal' },
+  { id: 'gj-cmo', name: 'Gujarat Chief Minister Office', url: 'https://cm.gujarat.gov.in', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-psc', name: 'Gujarat Public Service Commission (GPSC)', url: 'https://gpsc.gujarat.gov.in/', category: 'Gujarat', department: 'Recruitment Board' },
+  { id: 'gj-sssb', name: 'Gujarat Subordinate Service Selection Board (GSSSB)', url: 'https://gsssb.gujarat.gov.in/', category: 'Gujarat', department: 'Recruitment Board' },
+  { id: 'gj-police', name: 'Gujarat Police Department', url: 'https://police.gujarat.gov.in/', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-teachers', name: 'Gujarat Education Board', url: 'https://edugujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-health', name: 'Gujarat Health Department', url: 'https://health.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+
+  // --- ODISHA GOVERNMENT WEBSITES ---
+  { id: 'od-portal', name: 'Odisha State Government Portal', url: 'https://odisha.gov.in/', category: 'Odisha', department: 'Main State Portal' },
+  { id: 'od-psc', name: 'Odisha Public Service Commission (OPSC)', url: 'https://opsc.gov.in/', category: 'Odisha', department: 'Recruitment Board' },
+  { id: 'od-ssc', name: 'Odisha Staff Selection Commission (OSSC)', url: 'https://ossc.gov.in/', category: 'Odisha', department: 'Recruitment Board' },
+  { id: 'od-police', name: 'Odisha State Police', url: 'https://police.odisha.gov.in/', category: 'Odisha', department: 'Police & Security' },
+  { id: 'od-teachers', name: 'Odisha Department of School Education', url: 'https://odisha.gov.in/departments/education', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-health', name: 'Odisha Health & Family Welfare', url: 'https://health.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+
+  // --- KERALA GOVERNMENT WEBSITES ---
+  { id: 'kl-portal', name: 'Kerala State Government Portal', url: 'https://kerala.gov.in/', category: 'Kerala', department: 'Main State Portal' },
+  { id: 'kl-psc', name: 'Kerala Public Service Commission (KPSC)', url: 'https://keralapsc.gov.in/', category: 'Kerala', department: 'Recruitment Board' },
+  { id: 'kl-police', name: 'Kerala State Police', url: 'https://police.kerala.gov.in/', category: 'Kerala', department: 'Police & Security' },
+  { id: 'kl-teachers', name: 'Kerala General Education Department', url: 'https://education.kerala.gov.in/', category: 'Kerala', department: 'Education Department' },
+  { id: 'kl-health', name: 'Kerala Health Services Department', url: 'https://health.kerala.gov.in/', category: 'Kerala', department: 'Health Department' },
+  { id: 'kl-police-rec', name: 'Kerala Police Recruitment Desk', url: 'https://police.kerala.gov.in/', category: 'Kerala', department: 'Employment Services' },
+
+  // --- PUNJAB GOVERNMENT WEBSITES ---
+  { id: 'pb-portal', name: 'Punjab State Government Portal', url: 'https://punjab.gov.in/', category: 'Punjab', department: 'Main State Portal' },
+  { id: 'pb-psc', name: 'Punjab Public Service Commission (PPSC)', url: 'https://ppsc.punjab.gov.in/', category: 'Punjab', department: 'Recruitment Board' },
+  { id: 'pb-police', name: 'Punjab Police Department', url: 'https://punjabpolice.gov.in/', category: 'Punjab', department: 'Police & Security' },
+  { id: 'pb-teachers', name: 'Punjab School Education Board', url: 'https://education.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-health', name: 'Punjab Health & Family Welfare', url: 'https://health.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+
+  // --- HARYANA GOVERNMENT WEBSITES ---
+  { id: 'hr-portal', name: 'Haryana State Government Portal', url: 'https://haryana.gov.in/', category: 'Haryana', department: 'Main State Portal' },
+  { id: 'hr-psc', name: 'Haryana Public Service Commission (HPPSC)', url: 'https://haryanapsc.gov.in', category: 'Haryana', department: 'Recruitment Board' },
+  { id: 'hr-ssc', name: 'Haryana Staff Selection Commission (HSSC)', url: 'https://hssc.haryana.gov.in/', category: 'Haryana', department: 'Recruitment Board' },
+  { id: 'hr-police', name: 'Haryana State Police', url: 'https://haryanapolice.gov.in/', category: 'Haryana', department: 'Police & Security' },
+  { id: 'hr-teachers', name: 'Haryana Department of School Education', url: 'https://educationhry.nic.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-health', name: 'Haryana Health Department Division', url: 'https://healthhry.nic.in/', category: 'Haryana', department: 'Health Department' },
+
+  // --- JHARKHAND GOVERNMENT WEBSITES ---
+  { id: 'jh-portal', name: 'Jharkhand State Government Portal', url: 'https://jharkhand.gov.in/', category: 'Jharkhand', department: 'Main State Portal' },
+  { id: 'jh-psc', name: 'Jharkhand Public Service Commission (JPSC)', url: 'https://jrpsc.jharkhand.gov.in/', category: 'Jharkhand', department: 'Recruitment Board' },
+  { id: 'jh-ssc', name: 'Jharkhand Staff Selection Commission (JSSC)', url: 'https://jssc.jharkhand.gov.in/', category: 'Jharkhand', department: 'Recruitment Board' },
+  { id: 'jh-police', name: 'Jharkhand Police Force', url: 'https://police.jharkhand.gov.in/', category: 'Jharkhand', department: 'Police & Security' },
+  { id: 'jh-teachers', name: 'Jharkhand School Education Board', url: 'https://education.jharkhand.gov.in/', category: 'Jharkhand', department: 'Education Department' },
+  { id: 'jh-health', name: 'Jharkhand Health & Family Welfare', url: 'https://health.jharkhand.gov.in/', category: 'Jharkhand', department: 'Health Department' },
+
+  // --- ASSAM GOVERNMENT WEBSITES ---
+  { id: 'as-portal', name: 'Assam State Government Portal', url: 'https://assam.gov.in/', category: 'Assam', department: 'Main State Portal' },
+  { id: 'as-psc', name: 'Assam Public Service Commission (APSC)', url: 'https://apsc.in/', category: 'Assam', department: 'Recruitment Board' },
+  { id: 'as-police', name: 'Assam Police Headquarters', url: 'https://police.assam.gov.in/', category: 'Assam', department: 'Police & Security' },
+  { id: 'as-teachers', name: 'Assam Secondary Education Department', url: 'https://education.assam.gov.in/', category: 'Assam', department: 'Education Department' },
+  { id: 'as-health', name: 'Assam Health Department Commission', url: 'https://health.assam.gov.in/', category: 'Assam', department: 'Health Department' },
+
+  // --- CHHATTISGARH GOVERNMENT WEBSITES ---
+  { id: 'cg-portal', name: 'Chhattisgarh State Government Portal', url: 'https://chhattisgarh.nic.in/', category: 'Chhattisgarh', department: 'Main State Portal' },
+  { id: 'cg-psc', name: 'Chhattisgarh Public Service Commission (CGPSC)', url: 'https://cgpsc.cg.gov.in/', category: 'Chhattisgarh', department: 'Recruitment Board' },
+  { id: 'cg-gbs', name: 'Chhattisgarh Board of Secondary Education', url: 'https://cgbs.cg.gov.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-police', name: 'Chhattisgarh State Police HQ', url: 'https://police.cg.nic.in/', category: 'Chhattisgarh', department: 'Police & Security' },
+  { id: 'cg-teachers', name: 'Chhattisgarh Education Department', url: 'https://education.cg.nic.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-health', name: 'Chhattisgarh Department of Health', url: 'https://health.cg.nic.in/', category: 'Chhattisgarh', department: 'Health Department' },
+
+  // --- UTTARAKHAND GOVERNMENT WEBSITES ---
+  { id: 'uk-portal', name: 'Uttarakhand State Government Portal', url: 'https://uk.gov.in/', category: 'Uttarakhand', department: 'Main State Portal' },
+  { id: 'uk-psc', name: 'Uttarakhand Public Service Commission (UKPSC)', url: 'https://ukpsc.gov.in/', category: 'Uttarakhand', department: 'Recruitment Board' },
+  { id: 'uk-police', name: 'Uttarakhand Police force', url: 'https://ukpolice.gov.in/', category: 'Uttarakhand', department: 'Police & Security' },
+  { id: 'uk-teachers', name: 'Uttarakhand School Education Portal', url: 'https://education.uk.gov.in/', category: 'Uttarakhand', department: 'Education Department' },
+  { id: 'uk-health', name: 'Uttarakhand Health General Services', url: 'https://health.uk.gov.in/', category: 'Uttarakhand', department: 'Health Department' },
+
+  // --- HIMACHAL PRADESH GOVERNMENT WEBSITES ---
+  { id: 'hp-portal', name: 'Himachal Pradesh State Government Portal', url: 'https://himachal.nic.in/', category: 'Himachal Pradesh', department: 'Main State Portal' },
+  { id: 'hp-ssc', name: 'Himachal Pradesh Staff Selection Commission', url: 'https://hpssc.hp.gov.in/', category: 'Himachal Pradesh', department: 'Recruitment Board' },
+  { id: 'hp-psc', name: 'Himachal Pradesh Public Service Commission', url: 'https://hppsc.hp.gov.in/', category: 'Himachal Pradesh', department: 'Recruitment Board' },
+  { id: 'hp-police', name: 'Himachal Pradesh State Police Force', url: 'https://hppolice.gov.in/', category: 'Himachal Pradesh', department: 'Police & Security' },
+  { id: 'hp-teachers', name: 'Himachal Department of Higher Education', url: 'https://education.hp.nic.in/', category: 'Himachal Pradesh', department: 'Education Department' },
+  { id: 'hp-health', name: 'Himachal Health & Family Welfare department', url: 'https://health.hp.nic.in/', category: 'Himachal Pradesh', department: 'Health Department' },
+
+  // --- JAMMU AND KASHMIR (UT) GOVERNMENT WEBSITES ---
+  { id: 'jk-portal', name: 'Jammu & Kashmir Government Portal', url: 'https://jk.gov.in/', category: 'Jammu & Kashmir', department: 'Main State Portal' },
+  { id: 'jk-psc', name: 'J&K Public Service Commission (JKPSC)', url: 'https://jkpsc.nic.in/', category: 'Jammu & Kashmir', department: 'Recruitment Board' },
+  { id: 'jk-police', name: 'Jammu & Kashmir Police Force', url: 'https://jkpolice.gov.in/', category: 'Jammu & Kashmir', department: 'Police & Security' },
+  { id: 'jk-teachers', name: 'J&K School Education Ministry', url: 'https://education.gov.in/', category: 'Jammu & Kashmir', department: 'Education Department' },
+  { id: 'jk-health', name: 'J&K Department of Family Welfare', url: 'https://health.jk.gov.in/', category: 'Jammu & Kashmir', department: 'Health Department' },
+
+  // --- TRIPURA GOVERNMENT WEBSITES ---
+  { id: 'tr-portal', name: 'Tripura State Government Portal', url: 'https://tripura.nic.in/', category: 'Tripura', department: 'Main State Portal' },
+  { id: 'tr-psc', name: 'Tripura Public Service Commission (TPSC)', url: 'https://tppsc.tripura.gov.in/', category: 'Tripura', department: 'Recruitment Board' },
+  { id: 'tr-police', name: 'Tripura State Police', url: 'https://police.tripura.gov.in/', category: 'Tripura', department: 'Police & Security' },
+  { id: 'tr-teachers', name: 'Tripura Higher Education Board', url: 'https://education.tripura.gov.in/', category: 'Tripura', department: 'Education Department' },
+
+  // --- MANIPUR GOVERNMENT WEBSITES ---
+  { id: 'mn-portal', name: 'Manipur State Government Portal', url: 'https://manipur.gov.in/', category: 'Manipur', department: 'Main State Portal' },
+  { id: 'mn-psc', name: 'Manipur Public Service Commission (MPPSC)', url: 'https://mppsc.manipur.gov.in/', category: 'Manipur', department: 'Recruitment Board' },
+  { id: 'mn-police', name: 'Manipur State Police Department', url: 'https://police.manipur.gov.in/', category: 'Manipur', department: 'Police & Security' },
+  { id: 'mn-teachers', name: 'Manipur Secondary Education Department', url: 'https://education.manipur.gov.in/', category: 'Manipur', department: 'Education Department' },
+
+  // --- MEGHALAYA GOVERNMENT WEBSITES ---
+  { id: 'me-portal', name: 'Meghalaya State Government Portal', url: 'https://meghalaya.gov.in/', category: 'Meghalaya', department: 'Main State Portal' },
+  { id: 'me-psc', name: 'Meghalaya Public Service Commission (MPSC)', url: 'https://mpsc.meghalaya.gov.in/', category: 'Meghalaya', department: 'Recruitment Board' },
+  { id: 'me-police', name: 'Meghalaya Police Headquarters', url: 'https://police.meghalaya.gov.in/', category: 'Meghalaya', department: 'Police & Security' },
+  { id: 'me-teachers', name: 'Meghalaya State Education Board', url: 'https://education.meghalaya.gov.in/', category: 'Meghalaya', department: 'Education Department' },
+
+  // --- MIZORAM GOVERNMENT WEBSITES ---
+  { id: 'mz-portal', name: 'Mizoram State Government Portal', url: 'https://mizoram.nic.in/', category: 'Mizoram', department: 'Main State Portal' },
+  { id: 'mz-psc', name: 'Mizoram Public Service Commission', url: 'https://secs.mizoram.gov.in/', category: 'Mizoram', department: 'Recruitment Board' },
+  { id: 'mz-police', name: 'Mizoram State Police Force', url: 'https://police.mizoram.gov.in/', category: 'Mizoram', department: 'Police & Security' },
+
+  // --- NAGALAND GOVERNMENT WEBSITES ---
+  { id: 'ng-portal', name: 'Nagaland State Government Portal', url: 'https://nagaland.gov.in/', category: 'Nagaland', department: 'Main State Portal' },
+  { id: 'ng-psc', name: 'Nagaland Public Service Commission (NPSC)', url: 'https://npsc.nagaland.gov.in/', category: 'Nagaland', department: 'Recruitment Board' },
+  { id: 'ng-police', name: 'Nagaland State Police', url: 'https://police.nagaland.gov.in/', category: 'Nagaland', department: 'Police & Security' },
+
+  // --- SIKKIM GOVERNMENT WEBSITES ---
+  { id: 'sk-portal', name: 'Sikkim State Government Portal', url: 'https://sikkim.gov.in/', category: 'Sikkim', department: 'Main State Portal' },
+  { id: 'sk-psc', name: 'Sikkim Public Service Commission (SPSC)', url: 'https://spscsikkim.gov.in/', category: 'Sikkim', department: 'Recruitment Board' },
+  { id: 'sk-police', name: 'Sikkim State Police Department', url: 'https://police.sikkim.gov.in/', category: 'Sikkim', department: 'Police & Security' },
+
+  // --- ARUNACHAL PRADESH GOVERNMENT WEBSITES ---
+  { id: 'ar-portal', name: 'Arunachal State Government Portal', url: 'https://arunachal.nic.in/', category: 'Arunachal Pradesh', department: 'Main State Portal' },
+  { id: 'ar-psc', name: 'Arunachal Public Service Commission', url: 'https://apsc.arunachal.nic.in/', category: 'Arunachal Pradesh', department: 'Recruitment Board' },
+  { id: 'ar-police', name: 'Arunachal State Police force', url: 'https://police.arunachal.nic.in/', category: 'Arunachal Pradesh', department: 'Police & Security' },
+
+  // --- GOA GOVERNMENT WEBSITES ---
+  { id: 'ga-portal', name: 'Goa State Government Portal', url: 'https://www.goa.gov.in/', category: 'Goa', department: 'Main State Portal' },
+  { id: 'ga-psc', name: 'Goa Public Service Commission (GPSC)', url: 'https://gpsc.goa.gov.in/', category: 'Goa', department: 'Recruitment Board' },
+  { id: 'ga-police', name: 'Goa Police Department', url: 'https://police.goa.gov.in/', category: 'Goa', department: 'Police & Security' },
+
+  // --- DELHI NCT GOVERNMENT WEBSITES ---
+  { id: 'dl-portal', name: 'Delhi Govt Information Portal', url: 'https://delhi.gov.in/', category: 'Delhi', department: 'Main State Portal' },
+  { id: 'dl-sssb', name: 'Delhi Subordinate Services Board (DSSSB)', url: 'https://dsssb.delhigovt.nic.in/', category: 'Delhi', department: 'Recruitment Board' },
+  { id: 'dl-police-head', name: 'Delhi Police Recruitment Headquarters', url: 'https://delhigovt.nic.in/', category: 'Delhi', department: 'Police & Security' },
+
+  // --- PUDUCHERRY UNION TERRITORY ---
+  { id: 'py-portal', name: 'Puducherry Government Portal', url: 'https://py.gov.in/', category: 'Puducherry', department: 'Main State Portal' },
+  { id: 'py-psc', name: 'Puducherry Service Selection Board', url: 'https://psc.py.gov.in/', category: 'Puducherry', department: 'Recruitment Board' },
+
+  // --- CHANDIGARH UNION TERRITORY ---
+  { id: 'ch-portal', name: 'Chandigarh Administration Portal', url: 'https://chandigarh.gov.in/', category: 'Chandigarh', department: 'Main State Portal' },
+  { id: 'ch-ssb', name: 'Chandigarh Staff Selection Board', url: 'https://ssbchd.gov.in/', category: 'Chandigarh', department: 'Recruitment Board' },
+
+  // --- ANDAMAN & NICOBAR ISLANDS ---
+  { id: 'an-portal', name: 'Andaman & Nicobar Administration', url: 'https://andaman.gov.in/', category: 'Andaman & Nicobar', department: 'Main State Portal' },
+
+  // --- DADRA & NAGAR HAVELI, DAMAN & DIU ---
+  { id: 'dd-portal', name: 'Dadra & Nagar Daman & Diu Portal', url: 'https://dnh.gov.in/', category: 'Dadra & Nagar Haveli', department: 'Main State Portal' },
+
+  // --- LADAKH ---
+  { id: 'ld-portal', name: 'Ladakh Administration Portal', url: 'https://ladakh.gov.in/', category: 'Ladakh', department: 'Main State Portal' },
+
+  // --- LAKSHADWEEP ---
+  { id: 'lw-portal', name: 'Lakshadweep Administration Portal', url: 'https://lakshadweep.gov.in/', category: 'Lakshadweep', department: 'Main State Portal' },
+
+  // --- CENTRAL GOVERNMENT EXTENSIONS ---
+  { id: 'c-ssc-cgl', name: 'SSC Combined Graduate Level', url: 'https://ssc.nic.in', category: 'Central', department: 'Recruitment Board' },
+  { id: 'c-ssc-chsl', name: 'SSC Combined Higher Secondary', url: 'https://ssc.nic.in', category: 'Central', department: 'Recruitment Board' },
+  { id: 'c-rrb-ntpc', name: 'RRB NTPC Central Recruitment', url: 'https://rrbnntpccen.in/', category: 'Central', department: 'Recruitment Board' },
+  { id: 'c-join-army', name: 'Join Indian Army Recruitment', url: 'https://joinindianarmy.nic.in/', category: 'Central', department: 'Defence & Paramilitary' },
+  { id: 'c-bsf', name: 'Border Security Force (BSF)', url: 'https://bsf.gov.in/', category: 'Central', department: 'Defence & Paramilitary' },
+  { id: 'c-cisf', name: 'Central Industrial Security Force', url: 'https://cisf.gov.in/', category: 'Central', department: 'Defence & Paramilitary' },
+  { id: 'c-crpf', name: 'Central Reserve Police Force', url: 'https://crpf.gov.in/', category: 'Central', department: 'Defence & Paramilitary' },
+  { id: 'c-itbp', name: 'Indo-Tibetan Border Police', url: 'https://itbpolice.nic.in/', category: 'Central', department: 'Defence & Paramilitary' },
+  { id: 'c-g-ssb', name: 'Sashastra Seema Bal (SSB)', url: 'https://ssb.gov.in/', category: 'Central', department: 'Defence & Paramilitary' },
+  { id: 'c-emp-news', name: 'Employment News Government Weekly', url: 'https://employmentnews.gov.in/', category: 'Central', department: 'Job Directory Services' },
+  { id: 'c-ncs-portal', name: 'National Career Service Portal', url: 'https://www.ncs.gov.in/', category: 'Central', department: 'Job Directory Services' },
+  { id: 'c-all-jobs', name: 'All India Gov Jobs Portal', url: 'https://allgovernmentjobs.in', category: 'Central', department: 'Job Directory Services' }
 ];

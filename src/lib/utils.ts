@@ -101,7 +101,13 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
       }
     }
 
-    // 3. Age Check with Advanced Relaxation
+    // 3. Regional / State Check Configuration (Inter-state candidates can apply as UR)
+    const isOutofState = job.region !== 'Central' && user.state && job.region !== user.state;
+    const effectiveCategory = isOutofState ? 'UR' : user.category;
+    const effectiveIsPWD = isOutofState ? false : user.isPWD;
+    const effectiveIsExServiceman = isOutofState ? false : user.isExServiceman;
+
+    // 4. Age Check with Advanced Relaxation
     const baseMaxAge = job.maxAge;
     let totalRelaxation = 0;
     let relaxationReason = "";
@@ -116,21 +122,21 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
       'AP_BC_A': 5, 'AP_BC_B': 5, 'AP_BC_C': 5, 'AP_BC_D': 5, 'AP_BC_E': 5,
     };
 
-    // Calculate relaxation
-    const catRelax = CATEGORY_RELAXATION[user.category] || 0;
+    // Calculate relaxation based on effective qualifications/categories
+    const catRelax = CATEGORY_RELAXATION[effectiveCategory] || 0;
     
-    if (user.isPWD) {
+    if (effectiveIsPWD) {
       // PwBD relaxation is often cumulative or a fixed higher value (usually +10)
       totalRelaxation = 10 + (catRelax > 0 ? catRelax : 0);
-      relaxationReason = `Eligible under PwBD + ${user.category.replace('_', ' ')} relaxation (+${totalRelaxation}y)`;
+      relaxationReason = `Eligible under PwBD + ${effectiveCategory.replace('_', ' ')} relaxation (+${totalRelaxation}y)`;
     } else if (catRelax > 0) {
       totalRelaxation = catRelax;
-      relaxationReason = `Eligible under ${user.category.replace('_', ' ')} relaxation (+${totalRelaxation}y)`;
-    } else if (user.isExServiceman) {
+      relaxationReason = `Eligible under ${effectiveCategory.replace('_', ' ')} relaxation (+${totalRelaxation}y)`;
+    } else if (effectiveIsExServiceman) {
       totalRelaxation = 3;
       relaxationReason = `Eligible under Ex-Serviceman relaxation (+3y)`;
-    } else if (user.gender === 'Female' && job.region !== 'Central') {
-      // Many State govt jobs have 5 years relaxation for women
+    } else if (user.gender === 'Female' && job.region !== 'Central' && !isOutofState) {
+      // Many State govt jobs have 5 years relaxation for local state women candidates
       totalRelaxation = 5;
       relaxationReason = `Eligible under Women's relaxation (+5y)`;
     }
@@ -148,30 +154,25 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
     if (user.age > maxAllowedAge) {
       return {
         isEligible: false,
-        reason: `Age ${user.age} exceeds relaxed limit of ${maxAllowedAge} for ${user.category.replace('_', ' ')}.`,
+        reason: isOutofState
+          ? `Age ${user.age} exceeds out-of-state General (UR) limit of ${maxAllowedAge} Yrs.`
+          : `Age ${user.age} exceeds relaxed limit of ${maxAllowedAge} for ${user.category.replace('_', ' ')}.`,
         type: 'error'
       };
     }
 
+    let ageExplanation = "";
     if (user.age > baseMaxAge && user.age <= maxAllowedAge) {
-      return {
-        isEligible: true,
-        reason: relaxationReason || `Eligible due to age relaxation.`,
-        type: 'success'
-      };
+      ageExplanation = relaxationReason || `Eligible due to age relaxation.`;
     }
 
-    // 4. Regional / State Check (Local vs Non-Local)
-    if (job.region !== 'Central' && job.region !== user.state) {
-      return {
-        isEligible: false,
-        reason: `Restricted to ${job.region} residents only. Your state is registered as ${user.state}.`,
-        type: 'error'
-      };
-    }
+    // 5. Regional / State Status context
+    const regionalNote = isOutofState 
+      ? `Applying as Out-of-State General (Non-Local UR) candidate. State reservation benefits are not applicable.`
+      : '';
 
-    // 5. District-Level Filtering (if job defines a specific district location, check if user resides there)
-    if (job.location && job.location !== 'All India' && !job.location.toLowerCase().includes('statewide') && !job.location.toLowerCase().includes('all districts')) {
+    // 6. District-Level Filtering (if job defines a specific district location, check if user resides there)
+    if (!isOutofState && job.location && job.location !== 'All India' && !job.location.toLowerCase().includes('statewide') && !job.location.toLowerCase().includes('all districts')) {
       const userDistrict = (user.district || '').toLowerCase();
       const jobLocation = job.location.toLowerCase();
       
@@ -188,8 +189,10 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
 
     return {
       isEligible: true,
-      reason: relaxationReason || `Eligible based on ${minRequiredQual?.label || 'general'} requirements.`,
-      type: 'success'
+      reason: isOutofState 
+        ? regionalNote 
+        : (ageExplanation || relaxationReason || `Eligible based on ${minRequiredQual?.label || 'general'} requirements.`),
+      type: isOutofState ? 'warning' : 'success'
     };
   } catch (error) {
     console.error("Eligibility processing failed:", error);
