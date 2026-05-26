@@ -1,5 +1,7 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import http from 'http';
+import https from 'https';
 import { Job } from '../src/types';
 
 // Standard 10 State Public Service Commission URLs
@@ -9,7 +11,7 @@ export const STATE_SCRAPER_SOURCES = [
   { id: 'kpsc', name: 'KPSC', url: 'https://kpsc.kar.nic.in/notifications', region: 'Karnataka', deptId: 'ka-kpsc' },
   { id: 'tnpsc', name: 'TNPSC', url: 'https://tnpsc.gov.in/notifications', region: 'Tamil Nadu', deptId: 'tn-tnpsc' },
   { id: 'mpsc', name: 'MPSC', url: 'https://mpsc.gov.in/notifications', region: 'Maharashtra', deptId: 'mh-mpsc' },
-  { id: 'uppsc', name: 'UPPSC', url: 'https://uppsc.up.nic.in/notifications', region: 'Uttar Pradesh', deptId: 'up-uppsc' },
+  { id: 'uppsc', name: 'UPPSC', url: 'https://uppsc.up.nic.in/', region: 'Uttar Pradesh', deptId: 'up-uppsc' },
   { id: 'bpsc', name: 'BPSC', url: 'https://bpsc.bih.nic.in/notifications', region: 'Bihar', deptId: 'br-bpsc' },
   { id: 'rpsc', name: 'RPSC', url: 'https://psc.rajasthan.gov.in/notifications', region: 'Rajasthan', deptId: 'rj-rpsc' },
   { id: 'wbpsc', name: 'WBPSC', url: 'https://wbpsc.gov.in/notifications', region: 'West Bengal', deptId: 'wb-wbpsc' },
@@ -61,11 +63,52 @@ export async function scrapeStatePortal(source: typeof STATE_SCRAPER_SOURCES[num
       timeout: 4000,
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-      }
+      },
+      insecureHTTPParser: true,
+      httpAgent: new http.Agent({ keepAlive: true, insecureHTTPParser: true } as any),
+      httpsAgent: new https.Agent({ keepAlive: true, insecureHTTPParser: true } as any)
     });
 
-    const response = await instance.get(source.url);
-    const $ = cheerio.load(response.data);
+    let htmlData = '';
+    let response;
+    try {
+      response = await instance.get(source.url);
+      htmlData = response.data;
+    } catch (fetchErr: any) {
+      const isParseError = fetchErr.message?.includes('Parse Error') || fetchErr.code?.includes('HPE_');
+      const is450Or404 = fetchErr.response?.status === 404 || fetchErr.response?.status === 403;
+      const urlObj = new URL(source.url);
+      const isNotRoot = urlObj.pathname !== '/' && urlObj.pathname !== '';
+
+      if (isParseError) {
+        console.log(`[Scraper Engine] Detected HTTP Parse Error on URL ${source.url} for ${source.name}. Retrying with native fetch parser...`);
+        try {
+          const fetchRes = await globalThis.fetch(source.url, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            },
+            signal: (AbortSignal as any).timeout?.(4000)
+          });
+          htmlData = await fetchRes.text();
+          console.log(`[Scraper Engine] Native fetch recovery was successful for ${source.name}`);
+        } catch (nativeErr: any) {
+          console.warn(`[Scraper Engine] Native fetch retry also failed for ${source.name}: ${nativeErr.message}`);
+          throw fetchErr;
+        }
+      } else if (is450Or404 && isNotRoot) {
+        console.log(`[Scraper Engine] Try recovery with base origin URL: ${urlObj.origin} for ${source.name}`);
+        try {
+          response = await instance.get(urlObj.origin);
+          htmlData = response.data;
+        } catch (err2) {
+          throw fetchErr;
+        }
+      } else {
+        throw fetchErr;
+      }
+    }
+
+    const $ = cheerio.load(htmlData);
     const parsedJobs: Partial<Job>[] = [];
 
     // Cheerio extractors matching common Gov tables and list templates
