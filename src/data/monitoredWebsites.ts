@@ -2,7 +2,7 @@ export interface MonitoredWebsite {
   id: string;
   name: string;
   url: string;
-  category: 'Andhra Pradesh' | 'Telangana' | 'Central';
+  category: string;
   department: string;
 }
 
@@ -172,5 +172,79 @@ export const MONITORED_WEBSITES: MonitoredWebsite[] = [
   { id: 'ref-sarkari', name: 'Sarkari Result Central Portal', url: 'https://www.sarkariresult.com', category: 'Central', department: 'Job Directory Services' },
   { id: 'ref-sarkari-ap', name: 'Sarkari Result AP Portal', url: 'https://www.sarkariresult.com/ap', category: 'Andhra Pradesh', department: 'Job Directory Services' },
   { id: 'ref-testbook', name: 'Testbook Government Jobs Center', url: 'https://testbook.com', category: 'Central', department: 'Job Directory Services' },
-  { id: 'ref-testbook-tg', name: 'Testbook Telangana Recruitment Hub', url: 'https://testbook.com/te', category: 'Telangana', department: 'Job Directory Services' }
+  { id: 'ref-testbook-tg', name: 'Testbook Telangana Recruitment Hub', url: 'https://testbook.com/te', category: 'Telangana', department: 'Job Directory Services' },
+
+  // --- KARNATAKA GOVERNMENT WEBSITES ---
+  { id: 'ka-portal', name: 'Karnataka State Government Portal', url: 'https://karnataka.gov.in', category: 'Karnataka', department: 'Main State Portal' },
+  { id: 'ka-psc', name: 'Karnataka Public Service Commission (KPSC)', url: 'https://ksc.karnataka.gov.in', category: 'Karnataka', department: 'Recruitment Board' },
+  { id: 'ka-police', name: 'Karnataka State Police (KSP)', url: 'https://ksp.karnataka.gov.in', category: 'Karnataka', department: 'Police & Security' },
+  { id: 'ka-careers', name: 'Karnataka Careers Direct', url: 'https://www.karnatakacareers.org', category: 'Karnataka', department: 'Employment Services' },
+  { id: 'ka-kio', name: 'Karnataka Information Office', url: 'https://kio.karnataka.gov.in', category: 'Karnataka', department: 'E-Governance' },
+  { id: 'ka-edu', name: 'Karnataka School Teachers Board', url: 'https://karresults.nic.in', category: 'Karnataka', department: 'Education Department' },
+
+  // --- TAMIL NADU GOVERNMENT WEBSITES ---
+  { id: 'tn-portal', name: 'Tamil Nadu State Government Portal', url: 'https://tn.gov.in', category: 'Tamil Nadu', department: 'Main State Portal' },
+  { id: 'tn-psc', name: 'Tamil Nadu Public Service Commission (TNPSC)', url: 'https://tnpsc.gov.in', category: 'Tamil Nadu', department: 'Recruitment Board' },
+  { id: 'tn-police', name: 'Tamil Nadu State Police Direct', url: 'https://www.tnpolice.gov.in', category: 'Tamil Nadu', department: 'Police & Security' },
+  { id: 'tn-trb', name: 'Tamil Nadu Teacher Recruitment Board', url: 'https://www.trb.tn.gov.in', category: 'Tamil Nadu', department: 'Recruitment Board' },
+  { id: 'tn-tet', name: 'Tamil Nadu Teacher Eligibility Test Portal', url: 'https://www.tntet.in', category: 'Tamil Nadu', department: 'Education Department' },
+  { id: 'tn-health', name: 'TN Health & Family Welfare Department', url: 'https://www.tn.gov.in/departments/11/health-and-family-welfare', category: 'Tamil Nadu', department: 'Health Department' },
+
+  // --- UTTAR PRADESH GOVERNMENT WEBSITES ---
+  { id: 'up-portal', name: 'Uttar Pradesh State Government Portal', url: 'https://up.gov.in', category: 'Uttar Pradesh', department: 'Main State Portal' },
+  { id: 'up-cmo', name: 'UP Chief Minister Office', url: 'https://cmo.up.nic.in', category: 'Uttar Pradesh', department: 'Administration' },
+  { id: 'up-psc', name: 'Uttar Pradesh Public Service Commission (UPPSC)', url: 'https://uppsc.up.nic.in', category: 'Uttar Pradesh', department: 'Recruitment Board' },
+  { id: 'up-sssc', name: 'UP Subordinate Services Selection Commission', url: 'https://upsssc.gov.in', category: 'Uttar Pradesh', department: 'Recruitment Board' },
+  { id: 'up-police', name: 'Uttar Pradesh Police Headquarters', url: 'https://uppolice.gov.in', category: 'Uttar Pradesh', department: 'Police & Security' },
+  { id: 'up-police-rec', name: 'UP Police Recruitment Board (UPPRPB)', url: 'https://uppbpb.gov.in', category: 'Uttar Pradesh', department: 'Police & Security' },
+  { id: 'up-teachers', name: 'UP Secondary Education recruitment (UPES)', url: 'https://upes.up.nic.in', category: 'Uttar Pradesh', department: 'Education Department' },
+  { id: 'up-nhsrc', name: 'UP National Health Resource Cell (NHM)', url: 'https://upnhsrc.in', category: 'Uttar Pradesh', department: 'Health Department' },
+  { id: 'up-agriculture', name: 'UP Department of Agriculture', url: 'https://agri.up.nic.in', category: 'Uttar Pradesh', department: 'Agriculture Department' },
+  { id: 'up-forest', name: 'UP Environment & Forest Board', url: 'https://forest.up.gov.in', category: 'Uttar Pradesh', department: 'Forest & Environment' },
+  { id: 'up-panchayat', name: 'UP Directorate of Panchayat Raj', url: 'https://panchayat.up.gov.in', category: 'Uttar Pradesh', department: 'Rural Development' },
+  { id: 'up-jobs', name: 'Uttar Pradesh Employment Gateway', url: 'https://upjobs.nic.in', category: 'Uttar Pradesh', department: 'Employment Services' },
+
+  // --- MAHARASHTRA GOVERNMENT WEBSITES ---
+  { id: 'mh-portal', name: 'Maharashtra State Government Portal', url: 'https://maharashtra.gov.in', category: 'Maharashtra', department: 'Main State Portal' },
+  { id: 'mh-psc', name: 'Maharashtra Public Service Commission (MPSC)', url: 'https://mpsc.maharashtra.gov.in', category: 'Maharashtra', department: 'Recruitment Board' },
+  { id: 'mh-police', name: 'Maharashtra State Police Recruitment', url: 'https://mahapolice.maharashtra.gov.in', category: 'Maharashtra', department: 'Police & Security' },
+  { id: 'mh-jobs', name: 'MahaJobs Career Portal', url: 'https://mahajobs.maharashtra.gov.in', category: 'Maharashtra', department: 'Employment Services' },
+  { id: 'mh-health', name: 'Maharashtra Public Health Department', url: 'https://health.maharashtra.gov.in', category: 'Maharashtra', department: 'Health Department' },
+  { id: 'mh-agri', name: 'Maharashtra Agriculture Department', url: 'https://agriculture.maharashtra.gov.in', category: 'Maharashtra', department: 'Agriculture Department' },
+
+  // --- BIHAR GOVERNMENT WEBSITES ---
+  { id: 'br-portal', name: 'Bihar State Government Portal', url: 'https://bihar.nic.in', category: 'Bihar', department: 'Main State Portal' },
+  { id: 'br-cmo', name: 'Bihar Chief Minister Office', url: 'https://cm.bihar.gov.in', category: 'Bihar', department: 'Administration' },
+  { id: 'br-psc', name: 'Bihar Public Service Commission (BPSC)', url: 'https://bpsc.bih.nic.in', category: 'Bihar', department: 'Recruitment Board' },
+  { id: 'br-sssc', name: 'Bihar Police Sub-ordinate Services Commission', url: 'https://bsssbihar.org', category: 'Bihar', department: 'Police Recruitment' },
+  { id: 'br-police', name: 'Bihar State Police HQ', url: 'https://police.bihar.gov.in', category: 'Bihar', department: 'Police & Security' },
+  { id: 'br-btsc', name: 'Bihar Technical Service Commission', url: 'https://btsc.bih.nic.in', category: 'Bihar', department: 'Recruitment Board' },
+  { id: 'br-teachers', name: 'Bihar School Examination Board (BSEB)', url: 'https://bseb.in', category: 'Bihar', department: 'Education Department' },
+  { id: 'br-health', name: 'Bihar State Health Society', url: 'https://health.bihar.gov.in', category: 'Bihar', department: 'Health Department' },
+  { id: 'br-agri', name: 'Bihar Directorate of Agriculture', url: 'https://agriculture.bihar.gov.in', category: 'Bihar', department: 'Agriculture Department' },
+
+  // --- WEST BENGAL GOVERNMENT WEBSITES ---
+  { id: 'wb-portal', name: 'West Bengal State Government Portal', url: 'https://wb.gov.in', category: 'West Bengal', department: 'Main State Portal' },
+  { id: 'wb-psc', name: 'West Bengal Public Service Commission', url: 'https://wbpsc.gov.in', category: 'West Bengal', department: 'Recruitment Board' },
+  { id: 'wb-ssc', name: 'West Bengal Staff Selection Commission', url: 'https://wbssc.gov.in', category: 'West Bengal', department: 'Recruitment Board' },
+  { id: 'wb-police', name: 'West Bengal Police Recruitment Board', url: 'https://police.wb.gov.in', category: 'West Bengal', department: 'Police & Security' },
+  { id: 'wb-teachers', name: 'West Bengal Teacher Recruitment Board', url: 'https://wbtedgwb.in', category: 'West Bengal', department: 'Education Department' },
+  { id: 'wb-health', name: 'West Bengal Health & Family Welfare', url: 'https://health.wb.gov.in', category: 'West Bengal', department: 'Health Department' },
+
+  // --- MADHYA PRADESH GOVERNMENT WEBSITES ---
+  { id: 'mp-portal', name: 'Madhya Pradesh State Government Portal', url: 'https://mp.gov.in', category: 'Madhya Pradesh', department: 'Main State Portal' },
+  { id: 'mp-peb', name: 'Madhya Pradesh Professional Board (MPPEB)', url: 'https://peb.mp.gov.in', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-psc', name: 'Madhya Pradesh Public Service Commission (MPPSC)', url: 'https://mppsc.mp.gov.in', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-police', name: 'Madhya Pradesh State Police', url: 'https://mpcowab.mp.gov.in', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-teachers', name: 'MP School Education Department', url: 'https://mpeducation.gov.in', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-health', name: 'MP Public Health Department', url: 'https://health.mp.gov.in', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-agri', name: 'MP Farmers Welfare & Land Department', url: 'https://agriculture.mp.gov.in', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+
+  // --- RAJASTHAN GOVERNMENT WEBSITES ---
+  { id: 'rj-portal', name: 'Rajasthan State Government Portal', url: 'https://rajasthan.gov.in', category: 'Rajasthan', department: 'Main State Portal' },
+  { id: 'rj-psc', name: 'Rajasthan Public Service Commission (RPSC)', url: 'https://rpsc.rajasthan.gov.in', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-ssc', name: 'Rajasthan Staff Selection Board (RSSB)', url: 'https://rrb.jodhpur.gov.in', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-police', name: 'Rajasthan State Police Department', url: 'https://police.rajasthan.gov.in', category: 'Rajasthan', department: 'Police & Security' },
+  { id: 'rj-teachers', name: 'Rajasthan Board of Secondary Education', url: 'https://rajeduboard.rajasthan.gov.in', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-health', name: 'Rajasthan Medical & Health Services', url: 'https://health.rajasthan.gov.in', category: 'Rajasthan', department: 'Health Department' }
 ];

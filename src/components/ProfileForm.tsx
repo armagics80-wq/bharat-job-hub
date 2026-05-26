@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { UserProfile, QualificationType } from '../types';
 import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase } from 'lucide-react';
 import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
+import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -296,13 +297,16 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             <select
               required
               value={formData.state}
-              onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+              onChange={(e) => {
+                const newState = e.target.value;
+                setFormData({ ...formData, state: newState, district: '' });
+              }}
               className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
             >
               <option value="">Select State</option>
-              <option value="Telangana">Telangana</option>
-              <option value="Andhra Pradesh">Andhra Pradesh</option>
-              <option value="Other">Other</option>
+              {Object.keys(STATES_AND_DISTRICTS).sort().map(state => (
+                <option key={state} value={state}>{state}</option>
+              ))}
             </select>
           </div>
 
@@ -310,14 +314,21 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               District
             </label>
-            <input
-              type="text"
+            <select
               required
               value={formData.district}
               onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-              placeholder="Your district"
-            />
+              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
+            >
+              <option value="">Select District</option>
+              {formData.state && STATES_AND_DISTRICTS[formData.state] ? (
+                STATES_AND_DISTRICTS[formData.state].map(dist => (
+                  <option key={dist} value={dist}>{dist}</option>
+                ))
+              ) : (
+                <option value="" disabled>Select state first</option>
+              )}
+            </select>
           </div>
         </div>
 

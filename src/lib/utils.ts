@@ -163,23 +163,27 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
 
     // 4. Regional / State Check (Local vs Non-Local)
     if (job.region !== 'Central' && job.region !== user.state) {
-      // In TS/AP, non-locals can apply for "Open" quota (usually 5-20% of posts)
-      // We'll mark as warning instead of strict error unless specified
-      const isStrictLocal = job.detailedReservation?.localNonLocalRules?.toLowerCase().includes('only') || false;
+      return {
+        isEligible: false,
+        reason: `Restricted to ${job.region} residents only. Your state is registered as ${user.state}.`,
+        type: 'error'
+      };
+    }
+
+    // 5. District-Level Filtering (if job defines a specific district location, check if user resides there)
+    if (job.location && job.location !== 'All India' && !job.location.toLowerCase().includes('statewide') && !job.location.toLowerCase().includes('all districts')) {
+      const userDistrict = (user.district || '').toLowerCase();
+      const jobLocation = job.location.toLowerCase();
       
-      if (isStrictLocal) {
+      // If the location specifies a structured district (not 'statewide') and doesn't match the user district
+      if (userDistrict && !jobLocation.includes(userDistrict) && jobLocation.trim() !== '') {
+        // District-specific jobs are highly localized; warn but mark ineligible if they don't match
         return {
           isEligible: false,
-          reason: `Restricted to ${job.region} residents only (Strictly Local).`,
+          reason: `Restricted to candidates residing in ${job.location} district only. Your district is registered as ${user.district}.`,
           type: 'error'
         };
       }
-
-      return {
-        isEligible: true,
-        reason: `Eligible as Non-Local candidate for ${job.region} notification.`,
-        type: 'warning'
-      };
     }
 
     return {

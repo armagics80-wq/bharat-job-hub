@@ -7,7 +7,7 @@ export interface Department {
   name: string;
   oldNames?: string[];
   officialUrl: string;
-  state: 'Central' | 'Telangana' | 'Andhra Pradesh';
+  state: string;
   category: 'SSC' | 'UPSC' | 'RRB' | 'Banking' | 'Police' | 'PSC' | 'Defence' | 'State Govt' | 'Central Govt' | 'Teaching';
   verified: boolean;
   lastVerifiedOn: string;
@@ -23,7 +23,7 @@ export interface Job {
   id: string;
   title: string;
   departmentId: string;
-  region: 'Central' | 'Telangana' | 'Andhra Pradesh';
+  region: string;
   qualification: string; // Display string
   minQualification: QualificationType;
   allowedQualifications?: QualificationType[];

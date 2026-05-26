@@ -411,21 +411,41 @@ export default function App() {
 
           <nav className="space-y-1">
             <div className="text-indigo-300 text-[10px] font-bold uppercase tracking-wider mb-2 px-2">Regions</div>
-            {['All', 'Central', 'Telangana', 'Andhra Pradesh'].map((region) => (
-              <button
-                key={region}
-                onClick={() => {
-                  setFilterRegion(region);
-                  setActiveTab('all-jobs');
-                }}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                  filterRegion === region && activeTab === 'all-jobs' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
-                }`}
-              >
-                <span>{region === 'All' ? '🇮🇳' : region === 'Central' ? '🏛️' : region === 'Telangana' ? '⚖️' : '🌴'}</span>
-                {region === 'All' ? 'All Regions' : region}
-              </button>
-            ))}
+            {['All', 'Central', 'Andhra Pradesh', 'Telangana', 'Uttar Pradesh', 'Maharashtra', 'Bihar', 'West Bengal', 'Tamil Nadu', 'Madhya Pradesh', 'Rajasthan', 'Karnataka'].map((region) => {
+              const getRegionEmoji = (r: string) => {
+                switch(r) {
+                  case 'All': return '🇮🇳';
+                  case 'Central': return '🏛️';
+                  case 'Andhra Pradesh': return '🌴';
+                  case 'Telangana': return '⚖️';
+                  case 'Uttar Pradesh': return '🛕';
+                  case 'Maharashtra': return '⚓';
+                  case 'Bihar': return '📖';
+                  case 'West Bengal': return '🐅';
+                  case 'Tamil Nadu': return '🛕';
+                  case 'Madhya Pradesh': return '🌳';
+                  case 'Rajasthan': return '🏰';
+                  case 'Karnataka': return '🪷';
+                  default: return '📍';
+                }
+              };
+
+              return (
+                <button
+                  key={region}
+                  onClick={() => {
+                    setFilterRegion(region);
+                    setActiveTab('all-jobs');
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors text-left ${
+                    filterRegion === region && activeTab === 'all-jobs' ? 'bg-indigo-800 text-white font-bold' : 'text-indigo-100 hover:bg-indigo-800'
+                  }`}
+                >
+                  <span className="text-xs shrink-0">{getRegionEmoji(region)}</span>
+                  <span className="truncate">{region === 'All' ? 'All Regions' : region}</span>
+                </button>
+              );
+            })}
           </nav>
 
           <div>
@@ -584,12 +604,20 @@ export default function App() {
                     <select 
                       value={filterRegion}
                       onChange={(e) => setFilterRegion(e.target.value)}
-                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none font-bold text-slate-600"
+                      className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none font-bold text-slate-600 bg-white"
                     >
-                      <option value="All">All Regions</option>
-                      <option value="Central">Central Govt</option>
-                      <option value="Telangana">Telangana State</option>
-                      <option value="Andhra Pradesh">Andhra Pradesh State</option>
+                      <option value="All">All Regions 🇮🇳</option>
+                      <option value="Central">Central Govt 🏛️</option>
+                      <option value="Andhra Pradesh">Andhra Pradesh 🌴</option>
+                      <option value="Telangana">Telangana State ⚖️</option>
+                      <option value="Uttar Pradesh">Uttar Pradesh 🛕</option>
+                      <option value="Maharashtra">Maharashtra ⚓</option>
+                      <option value="Bihar">Bihar 📖</option>
+                      <option value="West Bengal">West Bengal 🐅</option>
+                      <option value="Tamil Nadu">Tamil Nadu 🛕</option>
+                      <option value="Madhya Pradesh">Madhya Pradesh 🌳</option>
+                      <option value="Rajasthan">Rajasthan 🏰</option>
+                      <option value="Karnataka">Karnataka 🪷</option>
                     </select>
                     <select 
                       value={filterCategory}

@@ -9,12 +9,31 @@ interface SyncStatusDashboardProps {
 
 export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboardProps) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterCategory, setFilterCategory] = useState<'All' | 'Andhra Pradesh' | 'Telangana' | 'Central'>('All');
+  const [filterCategory, setFilterCategory] = useState<string>('All');
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date(Date.now() - 10 * 60 * 1000)); // default 10 min ago
-  const [isAPExpanded, setIsAPExpanded] = useState(true);
-  const [isTGExpanded, setIsTGExpanded] = useState(true);
-  const [isCentralExpanded, setIsCentralExpanded] = useState(true);
+
+  // Track expanded accordion states dynamically
+  const [expandedStates, setExpandedStates] = useState<Record<string, boolean>>({
+    'Andhra Pradesh': true,
+    'Telangana': true,
+    'Central': true,
+    'Karnataka': false,
+    'Tamil Nadu': false,
+    'Uttar Pradesh': false,
+    'Maharashtra': false,
+    'Bihar': false,
+    'West Bengal': false,
+    'Madhya Pradesh': false,
+    'Rajasthan': false
+  });
+
+  const toggleStateExpanded = (stateName: string) => {
+    setExpandedStates(prev => ({
+      ...prev,
+      [stateName]: !prev[stateName]
+    }));
+  };
 
   // Simulated latency speeds and stable response indicators to represent real-time status of governement servers
   const engineStatuses = useMemo(() => {
@@ -86,25 +105,53 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
   }, [searchTerm, filterCategory]);
 
   const stats = useMemo(() => {
-    const APArray = MONITORED_WEBSITES.filter(w => w.category === 'Andhra Pradesh');
-    const TGArray = MONITORED_WEBSITES.filter(w => w.category === 'Telangana');
-    const CentralArray = MONITORED_WEBSITES.filter(w => w.category === 'Central');
+    const statesConfig = [
+      { name: 'Andhra Pradesh', emoji: '🌴', color: 'indigo' },
+      { name: 'Telangana', emoji: '⚖️', color: 'emerald' },
+      { name: 'Uttar Pradesh', emoji: '🛕', color: 'amber' },
+      { name: 'Maharashtra', emoji: '⚓', color: 'cyan' },
+      { name: 'Bihar', emoji: '📖', color: 'rose' },
+      { name: 'West Bengal', emoji: '🐅', color: 'orange' },
+      { name: 'Tamil Nadu', emoji: '🛕', color: 'teal' },
+      { name: 'Madhya Pradesh', emoji: '🌳', color: 'lime' },
+      { name: 'Rajasthan', emoji: '🏰', color: 'yellow' },
+      { name: 'Karnataka', emoji: '🪷', color: 'purple' },
+      { name: 'Central', emoji: '🏛️', color: 'blue' }
+    ];
+
+    const breakdown = statesConfig.map(s => {
+      const count = MONITORED_WEBSITES.filter(w => w.category === s.name).length;
+      return {
+        ...s,
+        count
+      };
+    });
 
     return {
-      apTotal: APArray.length,
-      tgTotal: TGArray.length,
-      centralTotal: CentralArray.length,
+      breakdown,
       total: MONITORED_WEBSITES.length
     };
   }, []);
 
   const categorizedFiltered = useMemo(() => {
-    return {
-      AP: filteredWebsites.filter(w => w.category === 'Andhra Pradesh'),
-      TG: filteredWebsites.filter(w => w.category === 'Telangana'),
-      Central: filteredWebsites.filter(w => w.category === 'Central')
-    };
+    const groups: Record<string, MonitoredWebsite[]> = {};
+    filteredWebsites.forEach(site => {
+      if (!groups[site.category]) {
+        groups[site.category] = [];
+      }
+      groups[site.category].push(site);
+    });
+    return groups;
   }, [filteredWebsites]);
+
+  const availableCategories = useMemo(() => {
+    const categoriesSet = new Set(MONITORED_WEBSITES.map(w => w.category));
+    const sorted = Array.from(categoriesSet).sort();
+    // Prioritize All, Andhra Pradesh, Telangana, Central, then others
+    const prioritized = ['All', 'Andhra Pradesh', 'Telangana', 'Central'];
+    const others = sorted.filter(c => c !== 'Andhra Pradesh' && c !== 'Telangana' && c !== 'Central');
+    return [...prioritized, ...others];
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -153,23 +200,46 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
           </div>
         </div>
 
-        {/* Engine Metadata Bento mini items */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-3 border-t border-slate-100 text-slate-600">
-          <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-center">
-            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Total Seeded Ports</span>
-            <span className="text-lg font-black text-slate-900 font-mono">{stats.total} Portals</span>
+        {/* Engine Metadata Bento items showing each and every state */}
+        <div className="pt-3 border-t border-slate-100 space-y-3">
+          <div className="flex items-center gap-2 text-[11px] font-extrabold text-slate-700 uppercase tracking-wider">
+            <Globe className="w-4 h-4 text-indigo-500" />
+            <span>Monitored Registry Count by State / Territory</span>
           </div>
-          <div className="p-3 bg-indigo-50/50 border border-indigo-100 rounded-lg text-center">
-            <span className="text-[8px] font-black text-indigo-400 uppercase tracking-widest block mb-0.5">Andhra Pradesh</span>
-            <span className="text-lg font-black text-indigo-900 font-mono">{stats.apTotal} Sites</span>
-          </div>
-          <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-lg text-center">
-            <span className="text-[8px] font-black text-emerald-400 uppercase tracking-widest block mb-0.5">Telangana</span>
-            <span className="text-lg font-black text-emerald-900 font-mono">{stats.tgTotal} Sites</span>
-          </div>
-          <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-center">
-            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest block mb-0.5">Central Government</span>
-            <span className="text-lg font-black text-blue-900 font-mono">{stats.centralTotal} Sites</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            <div className="p-3 bg-slate-900 text-white border border-slate-950 rounded-lg text-center flex flex-col justify-center items-center">
+              <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Total Seeded Ports</span>
+              <span className="text-xs font-black font-mono">{stats.total} Portals</span>
+            </div>
+            {stats.breakdown.map((item) => {
+              // Color helper classes for premium badge themes
+              const colors: Record<string, string> = {
+                indigo: 'bg-indigo-50/55 border-indigo-120 text-indigo-900 text-indigo-500',
+                emerald: 'bg-emerald-50/55 border-emerald-120 text-emerald-900 text-emerald-550',
+                amber: 'bg-amber-50/55 border-amber-120 text-amber-900 text-amber-650',
+                cyan: 'bg-cyan-50/55 border-cyan-120 text-cyan-900 text-cyan-600',
+                rose: 'bg-rose-50/55 border-rose-120 text-rose-900 text-rose-550',
+                orange: 'bg-orange-50/55 border-orange-120 text-orange-900 text-orange-550',
+                teal: 'bg-teal-50/55 border-teal-120 text-teal-900 text-teal-600',
+                lime: 'bg-lime-50/55 border-lime-120 text-lime-900 text-lime-550',
+                yellow: 'bg-yellow-50/55 border-yellow-120 text-yellow-905 text-yellow-600',
+                purple: 'bg-purple-50/55 border-purple-120 text-purple-900 text-purple-550',
+                blue: 'bg-blue-50/55 border-blue-120 text-blue-900 text-blue-550',
+              };
+              const c = colors[item.color] || 'bg-slate-50 border-slate-100 text-slate-800 text-slate-400';
+              const parts = c.split(' ');
+              
+              return (
+                <div key={item.name} className={`p-2 rounded-lg border text-center flex flex-col justify-center ${parts[0]} ${parts[1]}`}>
+                  <span className={`text-[8px] font-black uppercase tracking-widest block mb-0.5 truncate ${parts[3]}`}>
+                    {item.emoji} {item.name}
+                  </span>
+                  <span className={`text-[11px] font-black font-mono ${parts[2]}`}>
+                    {item.count} Sites
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -182,8 +252,8 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
             Verified Portal Index Registry ({filteredWebsites.length} found)
           </h3>
 
-          <div className="flex flex-wrap gap-2 items-center">
-            <div className="relative w-44 sm:w-64">
+          <div className="flex flex-wrap gap-2 items-center max-w-full">
+            <div className="relative w-44 sm:w-56">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
               <input 
                 type="text" 
@@ -194,12 +264,12 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
               />
             </div>
 
-            <div className="flex rounded-lg border border-slate-200 overflow-hidden text-[10px] font-bold">
-              {(['All', 'Andhra Pradesh', 'Telangana', 'Central'] as const).map(cat => (
+            <div className="flex rounded-lg border border-slate-200 overflow-x-auto max-w-full text-[10px] font-bold divide-x divide-slate-200 scrollbar-none">
+              {availableCategories.map(cat => (
                 <button
                   key={cat}
                   onClick={() => setFilterCategory(cat)}
-                  className={`px-3 py-1.5 transition-colors ${filterCategory === cat ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-650 hover:bg-slate-100'}`}
+                  className={`px-3 py-1.5 transition-colors shrink-0 ${filterCategory === cat ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-650 hover:bg-slate-100'}`}
                 >
                   {cat === 'All' ? 'All (100+)' : cat}
                 </button>
@@ -210,75 +280,39 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
 
         {/* Section groupings */}
         <div className="space-y-4 pt-2">
-          
-          {/* Group 1: ANDHRA PRADESH COV */}
-          {categorizedFiltered.AP.length > 0 && (filterCategory === 'All' || filterCategory === 'Andhra Pradesh') && (
-            <div className="border border-slate-150 rounded-lg overflow-hidden bg-white">
-              <button
-                onClick={() => setIsAPExpanded(!isAPExpanded)}
-                className="w-full flex items-center justify-between bg-slate-50 px-4 py-3 border-b border-slate-150 text-left font-black text-[11px] text-slate-700 uppercase tracking-wider"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  Andhra Pradesh Portals ({categorizedFiltered.AP.length} listed)
-                </span>
-                {isAPExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-              {isAPExpanded && (
-                <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto">
-                  {categorizedFiltered.AP.map(site => (
-                    <WebsiteRow key={site.id} site={site} rawStatus={engineStatuses[site.id]} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+          {Object.entries(categorizedFiltered).map(([categoryName, sites]) => {
+            if (sites.length === 0) return null;
+            if (filterCategory !== 'All' && filterCategory !== categoryName) return null;
+            
+            const isExpanded = expandedStates[categoryName] ?? false;
+            
+            let dotColor = "bg-amber-500";
+            if (categoryName === 'Andhra Pradesh') dotColor = "bg-indigo-500";
+            else if (categoryName === 'Telangana') dotColor = "bg-emerald-500";
+            else if (categoryName === 'Central') dotColor = "bg-blue-500";
 
-          {/* Group 2: TELANGANA SEC */}
-          {categorizedFiltered.TG.length > 0 && (filterCategory === 'All' || filterCategory === 'Telangana') && (
-            <div className="border border-slate-150 rounded-lg overflow-hidden bg-white">
-              <button
-                onClick={() => setIsTGExpanded(!isTGExpanded)}
-                className="w-full flex items-center justify-between bg-slate-50 px-4 py-3 border-b border-slate-150 text-left font-black text-[11px] text-slate-700 uppercase tracking-wider"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                  Telangana Portals ({categorizedFiltered.TG.length} listed)
-                </span>
-                {isTGExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-              {isTGExpanded && (
-                <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto">
-                  {categorizedFiltered.TG.map(site => (
-                    <WebsiteRow key={site.id} site={site} rawStatus={engineStatuses[site.id]} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Group 3: CENTRAL GOVT */}
-          {categorizedFiltered.Central.length > 0 && (filterCategory === 'All' || filterCategory === 'Central') && (
-            <div className="border border-slate-150 rounded-lg overflow-hidden bg-white">
-              <button
-                onClick={() => setIsCentralExpanded(!isCentralExpanded)}
-                className="w-full flex items-center justify-between bg-slate-50 px-4 py-3 border-b border-slate-150 text-left font-black text-[11px] text-slate-700 uppercase tracking-wider"
-              >
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  Central Government Portals ({categorizedFiltered.Central.length} listed)
-                </span>
-                {isCentralExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
-              {isCentralExpanded && (
-                <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto">
-                  {categorizedFiltered.Central.map(site => (
-                    <WebsiteRow key={site.id} site={site} rawStatus={engineStatuses[site.id]} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            return (
+              <div key={categoryName} className="border border-slate-150 rounded-lg overflow-hidden bg-white">
+                <button
+                  onClick={() => toggleStateExpanded(categoryName)}
+                  className="w-full flex items-center justify-between bg-slate-50 px-4 py-3 border-b border-slate-150 text-left font-black text-[11px] text-slate-700 uppercase tracking-wider"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                    {categoryName} Portals ({sites.length} listed)
+                  </span>
+                  {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+                {isExpanded && (
+                  <div className="divide-y divide-slate-100 max-h-[350px] overflow-y-auto">
+                    {sites.map(site => (
+                      <WebsiteRow key={site.id} site={site} rawStatus={engineStatuses[site.id]} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {filteredWebsites.length === 0 && (
             <div className="text-center py-12 bg-slate-50 border border-dashed border-slate-200 rounded-xl">

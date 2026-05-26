@@ -133,6 +133,134 @@ export const DEPARTMENTS: Department[] = [
     verified: true,
     lastVerifiedOn: '2026-05-14',
     lastCheckedAt: '2026-05-14T05:42:00Z'
+  },
+  // --- KARNATAKA ---
+  {
+    id: 'ka-kpsc',
+    name: 'Karnataka Public Service Commission (KPSC)',
+    officialUrl: 'https://ksc.karnataka.gov.in',
+    state: 'Karnataka',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-24',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'ka-police',
+    name: 'Karnataka State Police (KSP)',
+    officialUrl: 'https://ksp.karnataka.gov.in',
+    state: 'Karnataka',
+    category: 'Police',
+    verified: true,
+    lastVerifiedOn: '2026-05-22',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- TAMIL NADU ---
+  {
+    id: 'tn-tnpsc',
+    name: 'Tamil Nadu Public Service Commission (TNPSC)',
+    officialUrl: 'https://tnpsc.gov.in',
+    state: 'Tamil Nadu',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-23',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'tn-trb',
+    name: 'Tamil Nadu Teacher Recruitment Board (TN TRB)',
+    officialUrl: 'https://www.trb.tn.gov.in',
+    state: 'Tamil Nadu',
+    category: 'Teaching',
+    verified: true,
+    lastVerifiedOn: '2026-05-21',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- UTTAR PRADESH ---
+  {
+    id: 'up-uppsc',
+    name: 'Uttar Pradesh Public Service Commission (UPPSC)',
+    officialUrl: 'https://uppsc.up.nic.in',
+    state: 'Uttar Pradesh',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-25',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'up-upsssc',
+    name: 'Uttar Pradesh Subordinate Services Selection Commission (UPSSSC)',
+    officialUrl: 'https://upsssc.gov.in',
+    state: 'Uttar Pradesh',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-24',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- MAHARASHTRA ---
+  {
+    id: 'mh-mpsc',
+    name: 'Maharashtra Public Service Commission (MPSC)',
+    officialUrl: 'https://mpsc.maharashtra.gov.in',
+    state: 'Maharashtra',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-24',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'mh-police',
+    name: 'Maharashtra Police Recruitment Board',
+    officialUrl: 'https://mahapolice.maharashtra.gov.in',
+    state: 'Maharashtra',
+    category: 'Police',
+    verified: true,
+    lastVerifiedOn: '2026-05-22',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- BIHAR ---
+  {
+    id: 'br-bpsc',
+    name: 'Bihar Public Service Commission (BPSC)',
+    officialUrl: 'https://bpsc.bih.nic.in',
+    state: 'Bihar',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-25',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- RAJASTHAN ---
+  {
+    id: 'rj-rpsc',
+    name: 'Rajasthan Public Service Commission (RPSC)',
+    officialUrl: 'https://rpsc.rajasthan.gov.in',
+    state: 'Rajasthan',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-23',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- WEST BENGAL ---
+  {
+    id: 'wb-wbpsc',
+    name: 'West Bengal Public Service Commission (WBPSC)',
+    officialUrl: 'https://wbpsc.gov.in',
+    state: 'West Bengal',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-24',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  // --- MADHYA PRADESH ---
+  {
+    id: 'mp-mppsc',
+    name: 'Madhya Pradesh Public Service Commission (MPPSC)',
+    officialUrl: 'https://mppsc.mp.gov.in',
+    state: 'Madhya Pradesh',
+    category: 'PSC',
+    verified: true,
+    lastVerifiedOn: '2026-05-24',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
   }
 ];
 
