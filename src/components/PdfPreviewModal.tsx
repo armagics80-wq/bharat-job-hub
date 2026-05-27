@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
-import { X, ExternalLink, RefreshCw, FileText, Download, ShieldAlert, MonitorCheck } from 'lucide-react';
-import { useState } from 'react';
+import { X, ExternalLink, RefreshCw, FileText, Download, ShieldAlert, MonitorCheck, Play, Pause, AlertTriangle } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 
 interface PdfPreviewModalProps {
   pdfUrl: string;
@@ -13,16 +13,65 @@ export default function PdfPreviewModal({ pdfUrl, jobTitle, onClose }: PdfPrevie
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
+  // Automatic fallback states
+  const [secondsRemaining, setSecondsRemaining] = useState(5);
+  const [isTimerPaused, setIsTimerPaused] = useState(false);
+  const [autoFallbackAttempted, setAutoFallbackAttempted] = useState(false);
+  const [manualOverride, setManualOverride] = useState(false);
+  
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
   // Generate Google Docs external PDF preview proxy URL
   const googleProxyUrl = `https://docs.google.com/viewer?url=${encodeURIComponent(pdfUrl || '')}&embedded=true`;
   const activeUrl = viewerMode === 'direct' ? pdfUrl : googleProxyUrl;
 
+  // Handle countdown for auto fallback
+  useEffect(() => {
+    if (viewerMode === 'direct' && !autoFallbackAttempted && !manualOverride) {
+      if (isTimerPaused) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        return;
+      }
+
+      setSecondsRemaining(5);
+      timerRef.current = setInterval(() => {
+        setSecondsRemaining((prev) => {
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setViewerMode('google-proxy');
+            setAutoFallbackAttempted(true);
+            setIsLoading(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => {
+        if (timerRef.current) clearInterval(timerRef.current);
+      };
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+  }, [viewerMode, isTimerPaused, autoFallbackAttempted, manualOverride]);
+
   const handleRefresh = () => {
     setIsLoading(true);
     setHasError(false);
-    // Temporary reset iframe to force reload
-    const currentMode = viewerMode;
-    setViewerMode(currentMode);
+    if (viewerMode === 'direct') {
+      setAutoFallbackAttempted(false);
+      setManualOverride(false);
+      setSecondsRemaining(5);
+      setIsTimerPaused(false);
+    }
+  };
+
+  const handleManualModeChange = (mode: 'direct' | 'google-proxy') => {
+    setViewerMode(mode);
+    setIsLoading(true);
+    setHasError(false);
+    setManualOverride(true); // Stop background timer permanently
+    if (timerRef.current) clearInterval(timerRef.current);
   };
 
   return (
@@ -63,7 +112,7 @@ export default function PdfPreviewModal({ pdfUrl, jobTitle, onClose }: PdfPrevie
             <div className="flex items-center gap-0.5 bg-slate-800 p-1 rounded-lg border border-slate-700">
               <button
                 id="btn-viewer-direct"
-                onClick={() => { setViewerMode('direct'); setIsLoading(true); }}
+                onClick={() => handleManualModeChange('direct')}
                 className={`px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-wider transition-all ${
                   viewerMode === 'direct'
                     ? 'bg-rose-600 text-white shadow'
@@ -74,7 +123,7 @@ export default function PdfPreviewModal({ pdfUrl, jobTitle, onClose }: PdfPrevie
               </button>
               <button
                 id="btn-viewer-proxy"
-                onClick={() => { setViewerMode('google-proxy'); setIsLoading(true); }}
+                onClick={() => handleManualModeChange('google-proxy')}
                 className={`px-2.5 py-1 text-[10px] font-bold rounded uppercase tracking-wider transition-all ${
                   viewerMode === 'google-proxy'
                     ? 'bg-rose-600 text-white shadow'
@@ -132,15 +181,38 @@ export default function PdfPreviewModal({ pdfUrl, jobTitle, onClose }: PdfPrevie
         </div>
 
         {/* Informative Guidance Bar */}
-        <div id="pdf-modal-notice" className="bg-amber-50 border-b border-amber-200 px-6 py-2 flex items-center justify-between text-[11px] text-amber-900 select-none">
+        <div id="pdf-modal-notice" className="bg-amber-50 border-b border-amber-200 px-6 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2 text-[11px] text-amber-900 select-none">
           <div className="flex items-center gap-2">
             <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
             <span>
               <strong>Notice:</strong> Some official state portals secure documents behind cross-origin policies. If the view is blank, switch to the <strong>Google Viewer Proxy</strong> option.
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-1 text-[10px] text-amber-700 bg-amber-100/65 border border-amber-200/50 px-2 py-0.5 rounded font-medium">
-            <MonitorCheck className="w-3.5 h-3.5 text-amber-600" /> Frame Connection Active
+
+          {/* Fallback notification indicator */}
+          <div className="flex items-center gap-1.5 self-start md:self-auto shrink-0">
+            {viewerMode === 'direct' && !autoFallbackAttempted && !manualOverride ? (
+              <div className="flex items-center gap-1.5 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded text-[10px] text-amber-800">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+                <span>Auto-Proxy switch in <strong>{secondsRemaining}s</strong></span>
+                <button
+                  onClick={() => setIsTimerPaused(!isTimerPaused)}
+                  className="p-0.5 hover:bg-amber-200 rounded text-amber-900 transition-all ml-1"
+                  title={isTimerPaused ? "Resume count" : "Pause count"}
+                >
+                  {isTimerPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+                </button>
+              </div>
+            ) : autoFallbackAttempted && viewerMode === 'google-proxy' ? (
+              <div className="flex items-center gap-1 bg-emerald-100 border border-emerald-200 px-2   py-0.5 rounded text-[10px] text-emerald-800 font-medium">
+                <AlertTriangle className="w-3 h-3 text-emerald-600" />
+                <span>Auto-switched to Google Proxy (Optimized)</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-[10px] text-amber-700 bg-amber-100/65 border border-amber-200/50 px-2 py-0.5 rounded font-medium">
+                <MonitorCheck className="w-3.5 h-3.5 text-amber-600" /> Connection override active
+              </div>
+            )}
           </div>
         </div>
 
@@ -169,7 +241,7 @@ export default function PdfPreviewModal({ pdfUrl, jobTitle, onClose }: PdfPrevie
               </p>
               <div className="mt-6 flex items-center gap-3">
                 <button
-                  onClick={() => setViewerMode(viewerMode === 'direct' ? 'google-proxy' : 'direct')}
+                  onClick={() => handleManualModeChange(viewerMode === 'direct' ? 'google-proxy' : 'direct')}
                   className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-[11px] font-bold uppercase rounded-lg shadow-md transition-all"
                 >
                   Switch Connection Protocol
