@@ -58,6 +58,8 @@ export interface Job {
   transferPolicy?: string;
   shiftNature?: string;
   location: string;
+  state?: string;
+  district?: string;
   howToApplySteps: string[];
   applicationFee?: string;
   documentRequired: string[];

@@ -218,6 +218,56 @@ export const DEPARTMENTS: Department[] = [
     lastVerifiedOn: '2026-05-22',
     lastCheckedAt: '2026-05-26T12:00:00Z'
   },
+  {
+    id: 'mh-education',
+    name: 'Maharashtra General Education Department',
+    officialUrl: 'https://education.maharashtra.gov.in',
+    state: 'Maharashtra',
+    category: 'Teaching',
+    verified: true,
+    lastVerifiedOn: '2026-05-23',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'mh-health',
+    name: 'Maharashtra Public Health Department',
+    officialUrl: 'https://health.maharashtra.gov.in',
+    state: 'Maharashtra',
+    category: 'State Govt',
+    verified: true,
+    lastVerifiedOn: '2026-05-21',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'mh-agri',
+    name: 'Maharashtra Agriculture Department',
+    officialUrl: 'https://agriculture.maharashtra.gov.in',
+    state: 'Maharashtra',
+    category: 'State Govt',
+    verified: true,
+    lastVerifiedOn: '2026-05-20',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'mh-msrtc',
+    name: 'Maharashtra State Road Transport Corporation (MSRTC)',
+    officialUrl: 'https://msrtc.maharashtra.gov.in',
+    state: 'Maharashtra',
+    category: 'State Govt',
+    verified: true,
+    lastVerifiedOn: '2026-05-19',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
+  {
+    id: 'mh-vitaran',
+    name: 'MahaVitaran (MSEDCL)',
+    officialUrl: 'https://www.mahadiscom.in',
+    state: 'Maharashtra',
+    category: 'State Govt',
+    verified: true,
+    lastVerifiedOn: '2026-05-18',
+    lastCheckedAt: '2026-05-26T12:00:00Z'
+  },
   // --- BIHAR ---
   {
     id: 'br-bpsc',

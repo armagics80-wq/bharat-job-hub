@@ -15,6 +15,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
 import { STATIC_JOBS } from './data/jobData';
+import { STATES_AND_DISTRICTS } from './data/statesAndDistricts';
 import { auth } from './lib/firebase';
 import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
@@ -32,6 +33,7 @@ export default function App() {
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRegion, setFilterRegion] = useState('All');
+  const [filterDistrict, setFilterDistrict] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [aiMatches, setAiMatches] = useState<{id: string, guidance: string}[]>([]);
   const [activeTab, setActiveTab] = useState<'all-jobs' | 'your-matches' | 'saved-jobs' | 'sync-status'>('all-jobs');
@@ -267,10 +269,15 @@ export default function App() {
                            dept?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            dept?.oldNames?.some(old => old.toLowerCase().includes(searchTerm.toLowerCase()));
       
-      const matchesRegion = filterRegion === 'All' || job.region === filterRegion;
+      const matchesRegion = filterRegion === 'All' || job.region === filterRegion || job.state === filterRegion;
+      
+      const matchesDistrict = filterDistrict === 'All' || 
+                              (job.district && job.district.toLowerCase() === filterDistrict.toLowerCase()) ||
+                              (job.location && job.location.toLowerCase().includes(filterDistrict.toLowerCase()));
+
       const matchesCategory = filterCategory === 'All' || dept?.category === filterCategory;
 
-      return matchesSearch && matchesRegion && matchesCategory;
+      return matchesSearch && matchesRegion && matchesDistrict && matchesCategory;
     });
 
     const results = {
@@ -279,7 +286,7 @@ export default function App() {
       totalMonitored: processed.length
     };
     return results;
-  }, [jobs, searchTerm, filterRegion, filterCategory]);
+  }, [jobs, searchTerm, filterRegion, filterDistrict, filterCategory]);
 
   const categorizedMatches = useMemo(() => {
     if (!profile) return { perfect: [], almost: [], future: [], needsPrep: [] };
@@ -608,9 +615,9 @@ export default function App() {
                       <h2 className="text-sm font-bold uppercase tracking-tight text-slate-700 flex items-center gap-2">
                         <Briefcase className="w-4 h-4 text-indigo-600" /> Aggregated Notifications
                       </h2>
-                      {(searchTerm || filterRegion !== 'All' || filterCategory !== 'All') && (
+                      {(searchTerm || filterRegion !== 'All' || filterDistrict !== 'All' || filterCategory !== 'All') && (
                         <button 
-                          onClick={() => { setSearchTerm(''); setFilterRegion('All'); setFilterCategory('All'); }}
+                          onClick={() => { setSearchTerm(''); setFilterRegion('All'); setFilterDistrict('All'); setFilterCategory('All'); }}
                           className="text-[9px] font-bold text-indigo-600 hover:text-indigo-800 uppercase flex items-center gap-1 border border-indigo-100 px-2 py-0.5 rounded-full bg-indigo-50"
                         >
                            Clear Filter <RefreshCw className="w-2.5 h-2.5" />
@@ -631,7 +638,10 @@ export default function App() {
                     </div>
                     <select 
                       value={filterRegion}
-                      onChange={(e) => setFilterRegion(e.target.value)}
+                      onChange={(e) => {
+                        setFilterRegion(e.target.value);
+                        setFilterDistrict('All');
+                      }}
                       className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none font-bold text-slate-600 bg-white"
                     >
                       <option value="All">All Regions 🇮🇳</option>
@@ -673,6 +683,20 @@ export default function App() {
                       <option value="Ladakh">Ladakh 🏔️</option>
                       <option value="Lakshadweep">Lakshadweep 🏝️</option>
                     </select>
+
+                    {filterRegion !== 'All' && filterRegion !== 'Central' && STATES_AND_DISTRICTS[filterRegion] && (
+                      <select 
+                        value={filterDistrict}
+                        onChange={(e) => setFilterDistrict(e.target.value)}
+                        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-[11px] outline-none font-bold text-slate-600 bg-white"
+                      >
+                        <option value="All">All Districts 📍</option>
+                        {STATES_AND_DISTRICTS[filterRegion].map(dist => (
+                          <option key={dist} value={dist}>{dist}</option>
+                        ))}
+                      </select>
+                    )}
+
                     <select 
                       value={filterCategory}
                       onChange={(e) => setFilterCategory(e.target.value)}

@@ -10,6 +10,7 @@ import https from 'https';
 // Initialize Firebase Admin
 import firebaseConfig from './firebase-applet-config.json';
 import { STATIC_JOBS } from './src/data/jobData';
+import { STATES_AND_DISTRICTS } from './src/data/statesAndDistricts';
 import { STATE_SCRAPER_SOURCES, scrapeStatePortal } from './server/scrapers';
 
 // Safe In-Memory database definitions to protect against disabled Firestore API
@@ -497,8 +498,24 @@ function validateJobData(job: any): any | null {
       return null;
     }
 
+    // Resolve state field
+    const resolvedState = job.state || job.region || 'Central';
+
+    // Resolve district field
+    let resolvedDistrict = job.district || 'All';
+    if (resolvedDistrict === 'All' && resolvedState && STATES_AND_DISTRICTS[resolvedState]) {
+      const districts = STATES_AND_DISTRICTS[resolvedState];
+      const textToSearch = `${job.title} ${job.location || ''} ${job.description || ''}`.toLowerCase();
+      const matchedDistrict = districts.find(d => textToSearch.includes(d.toLowerCase()));
+      if (matchedDistrict) {
+        resolvedDistrict = matchedDistrict;
+      }
+    }
+
     return {
       ...job,
+      state: resolvedState,
+      district: resolvedDistrict,
       verified: true,
       verificationStatus: 'Verified',
       lastVerifiedAt: job.lastVerifiedAt || new Date().toISOString(),

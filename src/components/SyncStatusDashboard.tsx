@@ -18,21 +18,21 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     'Andhra Pradesh': true,
     'Telangana': true,
     'Central': true,
-    'Karnataka': false,
-    'Tamil Nadu': false,
-    'Uttar Pradesh': false,
-    'Maharashtra': false,
+    'Karnataka': true,
+    'Tamil Nadu': true,
+    'Uttar Pradesh': true,
+    'Maharashtra': true,
     'Bihar': false,
     'West Bengal': false,
     'Madhya Pradesh': false,
     'Rajasthan': false,
     'Gujarat': false,
     'Odisha': false,
-    'Kerala': false,
+    'Kerala': true,
     'Punjab': false,
     'Haryana': false,
     'Jharkhand': false,
-    'Assam': false,
+    'Assam': true,
     'Chhattisgarh': false,
     'Uttarakhand': false,
     'Himachal Pradesh': false,
@@ -200,8 +200,8 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     const categoriesSet = new Set(MONITORED_WEBSITES.map(w => w.category));
     const sorted = Array.from(categoriesSet).sort();
     // Prioritize All, Andhra Pradesh, Telangana, Central, then others
-    const prioritized = ['All', 'Andhra Pradesh', 'Telangana', 'Central'];
-    const others = sorted.filter(c => c !== 'Andhra Pradesh' && c !== 'Telangana' && c !== 'Central');
+    const prioritized = ['All', 'Andhra Pradesh', 'Telangana', 'Central', 'Assam', 'Karnataka', 'Tamil Nadu', 'Kerala'];
+    const others = sorted.filter(c => c !== 'Andhra Pradesh' && c !== 'Telangana' && c !== 'Central' && c !== 'Assam' && c !== 'Karnataka' && c !== 'Tamil Nadu' && c !== 'Kerala');
     return [...prioritized, ...others];
   }, []);
 

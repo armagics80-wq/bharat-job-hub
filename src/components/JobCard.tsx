@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { Job, UserProfile } from '../types';
-import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark } from 'lucide-react';
+import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { getDepartmentById } from '../data/departments';
 import { isUserEligible } from '../lib/utils';
 import { getQualificationById } from '../data/qualifications';
+import PdfPreviewModal from './PdfPreviewModal';
 
 interface JobCardProps {
   job: Job;
@@ -19,6 +20,7 @@ interface JobCardProps {
 export default function JobCard({ job, guidance, isMatch, userProfile, isSaved = false, onToggleSave }: JobCardProps) {
   const [showHowToApply, setShowHowToApply] = useState(false);
   const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const [showPdfPreview, setShowPdfPreview] = useState(false);
 
   const eligibility = useMemo(() => {
     if (!userProfile) return null;
@@ -447,14 +449,27 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
                     </div>
                     <div className="flex gap-2">
                        {job.officialPdfUrl ? (
-                         <a 
-                          href={job.officialPdfUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2 bg-rose-600 text-white text-[10px] font-bold uppercase rounded shadow hover:bg-rose-700 transition flex items-center gap-2"
-                         >
-                            <BadgeInfo className="w-3 h-3" /> Official PDF
-                         </a>
+                         <>
+                           <button
+                             type="button"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setShowPdfPreview(true);
+                             }}
+                             className="px-4 py-2 bg-indigo-600 font-extrabold text-white text-[10px] uppercase rounded shadow hover:bg-indigo-700 transition flex items-center gap-2"
+                           >
+                             <Eye className="w-3.5 h-3.5" /> Preview PDF
+                           </button>
+                           <a 
+                            href={job.officialPdfUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="px-4 py-2 bg-rose-600 text-white text-[10px] font-bold uppercase rounded shadow hover:bg-rose-700 transition flex items-center gap-2"
+                           >
+                              <BadgeInfo className="w-3 h-3" /> Official PDF
+                           </a>
+                         </>
                        ) : (
                          <div className="px-4 py-2 bg-slate-200 text-slate-500 text-[10px] font-bold uppercase rounded cursor-not-allowed">
                             PDF Awaited
@@ -701,6 +716,17 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
           <span><span className="text-amber-400 font-bold">AI Note:</span> {guidance}</span>
         </div>
       )}
+
+      {/* PDF Action Preview Modal overlay */}
+      <AnimatePresence>
+        {showPdfPreview && job.officialPdfUrl && (
+          <PdfPreviewModal
+            pdfUrl={job.officialPdfUrl}
+            jobTitle={job.title}
+            onClose={() => setShowPdfPreview(false)}
+          />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }
