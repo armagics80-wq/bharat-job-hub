@@ -168,12 +168,20 @@ export default function EligibilityMatches({
               <span className="text-slate-200">{profile.age} Yrs</span>
             </div>
             <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
-              <span className="text-slate-400 text-[8px]">Category</span>
-              <span className="text-slate-200">{profile.category.replace('_', ' ')}</span>
-            </div>
-            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
               <span className="text-slate-400 text-[8px]">Local State</span>
               <span className="text-slate-200">{profile.state || 'All India'}</span>
+            </div>
+            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
+              <span className="text-indigo-400 text-[8px]">State Category</span>
+              <span className="text-indigo-200">
+                {profile.stateCategory 
+                  ? profile.stateCategory.replace('_', ' ').replace('TS ', '').replace('AP ', '').replace('PB ', '').replace('HR ', '') 
+                  : 'None'}
+              </span>
+            </div>
+            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
+              <span className="text-emerald-400 text-[8px]">National Category</span>
+              <span className="text-emerald-200">{(profile.nationalCategory || profile.category).replace('_', ' ')}</span>
             </div>
             {profile.isPWD && (
               <div className="px-3 py-1.5 bg-rose-950/40 border border-rose-800/60 rounded-lg text-rose-300 flex items-center gap-1">

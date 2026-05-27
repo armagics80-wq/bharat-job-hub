@@ -87,6 +87,8 @@ export interface UserProfile {
   phoneNumber?: string;
   age: number;
   category: ReservationCategory;
+  nationalCategory?: ReservationCategory;
+  stateCategory?: string;
   isExServiceman: boolean;
   qualifications: QualificationType[];
   state: string;

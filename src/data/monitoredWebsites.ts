@@ -894,91 +894,867 @@ export const MONITORED_WEBSITES: MonitoredWebsite[] = [
   { id: 'wb-planning', name: 'West Bengal State Planning Commission Unit', url: 'https://www.wbpspm.gov.in/', category: 'West Bengal', department: 'Administration' },
 
   // --- MADHYA PRADESH GOVERNMENT WEBSITES ---
-  { id: 'mp-portal', name: 'Madhya Pradesh State Government Portal', url: 'https://mp.gov.in', category: 'Madhya Pradesh', department: 'Main State Portal' },
-  { id: 'mp-peb', name: 'Madhya Pradesh Professional Board (MPPEB)', url: 'https://peb.mp.gov.in', category: 'Madhya Pradesh', department: 'Recruitment Board' },
-  { id: 'mp-psc', name: 'Madhya Pradesh Public Service Commission (MPPSC)', url: 'https://mppsc.mp.gov.in', category: 'Madhya Pradesh', department: 'Recruitment Board' },
-  { id: 'mp-police', name: 'Madhya Pradesh State Police', url: 'https://mpcowab.mp.gov.in', category: 'Madhya Pradesh', department: 'Police & Security' },
-  { id: 'mp-teachers', name: 'MP School Education Department', url: 'https://mpeducation.gov.in', category: 'Madhya Pradesh', department: 'Education Department' },
-  { id: 'mp-health', name: 'MP Public Health Department', url: 'https://health.mp.gov.in', category: 'Madhya Pradesh', department: 'Health Department' },
-  { id: 'mp-agri', name: 'MP Farmers Welfare & Land Department', url: 'https://agriculture.mp.gov.in', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+  // Main State Portals & Info
+  { id: 'mp-portal', name: 'Madhya Pradesh State Government Portal', url: 'https://mp.gov.in/', category: 'Madhya Pradesh', department: 'Main State Portal' },
+  { id: 'mp-portal-nic', name: 'NIC Madhya Pradesh State Portal Center', url: 'https://mp.nic.in/', category: 'Madhya Pradesh', department: 'Main State Portal' },
+  { id: 'mp-cmo', name: 'Madhya Pradesh Chief Minister Office (CMO)', url: 'https://cmo.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-cmo-releases', name: 'Madhya Pradesh CM Press Releases Desk', url: 'https://cmo.mp.gov.in/pressreleases', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-latest-news', name: 'Madhya Pradesh State Latest News Corner', url: 'https://mp.gov.in/news', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-mygov', name: 'MyGov Madhya Pradesh Citizen Engagement', url: 'https://mp.mygov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-info', name: 'Madhya Pradesh Directorate of Public Relations (MP Info)', url: 'https://www.mpinfo.org/', category: 'Madhya Pradesh', department: 'Administration' },
+
+  // MPPSC & Services
+  { id: 'mp-psc', name: 'Madhya Pradesh Public Service Commission (MPPSC)', url: 'https://mppsc.mp.gov.in/', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-psc-results', name: 'MPPSC Exam & Selection Results Center', url: 'https://mppsc.mp.gov.in/results', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-psc-calendar', name: 'MPPSC Main Competitive Exam Calendar', url: 'https://mppsc.mp.gov.in/exam-calendar', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-psc-app', name: 'MPPSC Interactive Online Applications', url: 'https://mppsc.mp.gov.in/application', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-psc-forest', name: 'MPPSC State Forest Services Recruitment', url: 'https://mppsc.mp.gov.in/forest-service', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+
+  // Vyapam / PEB
+  { id: 'mp-peb', name: 'Madhya Pradesh Professional Board (MPPEB / Vyapam)', url: 'https://peb.mp.gov.in/', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-peb-results', name: 'MPPEB Competitive Exam Results', url: 'https://peb.mp.gov.in/results', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-peb-app', name: 'MPPEB Direct Online Application Intake', url: 'https://peb.mp.gov.in/application', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+  { id: 'mp-peb-calendar', name: 'MPPEB Recruitment Test Calendar', url: 'https://peb.mp.gov.in/exam-calendar', category: 'Madhya Pradesh', department: 'Recruitment Board' },
+
+  // Police & Fire
+  { id: 'mp-police-cowab', name: 'Madhya Pradesh State Police Portal (Cowab)', url: 'https://mpcowab.mp.gov.in/', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-police', name: 'Madhya Pradesh Police Main Recruitment Cell', url: 'https://police.mp.gov.in/en/recruitment', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-police-constable', name: 'MP Police Constable Intake & Exams', url: 'https://police.mp.gov.in/en/recruitment', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-police-si', name: 'MP Police SI Competitive Advertisements', url: 'https://police.mp.gov.in/en/recruitment', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-police-head-const', name: 'MP Police Head Constable Openings', url: 'https://police.mp.gov.in/en/recruitment', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-fire', name: 'Madhya Pradesh Fire Force and Emergency Services', url: 'https://fire.mp.gov.in/', category: 'Madhya Pradesh', department: 'Police & Security' },
+
+  // Teachers / Education Recruitment
+  { id: 'mp-education', name: 'Madhya Pradesh Education Portal Office', url: 'https://education.mp.gov.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-tet', name: 'Madhya Pradesh Teacher Eligibility Test (TET)', url: 'https://mpedudisha.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-trb', name: 'Madhya Pradesh Teacher Recruitment Board (MPTRB)', url: 'https://mpedudisha.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-pgt-tgt', name: 'MP PGT/TGT Higher Secondary Deployments', url: 'https://mpedudisha.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-school-teachers', name: 'MP School Teachers District Allocation Desk', url: 'https://mpedudisha.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-bed', name: 'Madhya Pradesh Professional B.Ed Admissions', url: 'https://mpedudisha.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-samagra', name: 'Madhya Pradesh Samagra Social Security & ID', url: 'https://samagra.gov.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+
+  // Health
+  { id: 'mp-health', name: 'Madhya Pradesh Public Health & Family Welfare', url: 'https://health.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-health-medical', name: 'Madhya Pradesh Directorate of Health Services', url: 'https://healthservices.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-health-nursing', name: 'Madhya Pradesh Nursing and Midwives Registry', url: 'https://nursing.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-health-ayush', name: 'Madhya Pradesh State AYUSH Department Board', url: 'https://ayush.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-health-phc', name: 'Madhya Pradesh PHC / CHC Portal Directory', url: 'https://health.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-health-fw', name: 'Madhya Pradesh Family Welfare Services Division', url: 'https://fw.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+  { id: 'mp-health-med-edu', name: 'Madhya Pradesh Department of Medical Education', url: 'https://medicaleducation.mp.gov.in/', category: 'Madhya Pradesh', department: 'Health Department' },
+
+  // Agriculture & Forest
+  { id: 'mp-agri', name: 'Madhya Pradesh Farmers Welfare & Agriculture Progress', url: 'https://agriculture.mp.gov.in/', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+  { id: 'mp-horticulture', name: 'Madhya Pradesh Department of Horticulture', url: 'https://horticulture.mp.gov.in/', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+  { id: 'mp-forest', name: 'Madhya Pradesh Forest Department Admin Office', url: 'https://forest.mp.gov.in/', category: 'Madhya Pradesh', department: 'Forest & Environment' },
+  { id: 'mp-animal-husbandry', name: 'Madhya Pradesh Animal Husbandry Services Unit', url: 'https://ah.mp.gov.in/', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+  { id: 'mp-fisheries', name: 'Madhya Pradesh Fisheries Development Authority', url: 'https://fisheries.mp.gov.in/', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+  { id: 'mp-soil-conservation', name: 'Madhya Pradesh Soil & Water Conservation Office', url: 'https://soilconservation.mp.gov.in/', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+  { id: 'mp-marketing', name: 'Madhya Pradesh AgMarkNet Mandi Board System', url: 'https://agmarknet.mp.gov.in/', category: 'Madhya Pradesh', department: 'Agriculture Department' },
+
+  // Transport
+  { id: 'mp-transport', name: 'Madhya Pradesh Department of Transport Office', url: 'https://transport.mp.gov.in/', category: 'Madhya Pradesh', department: 'Transport & Infrastructure' },
+  { id: 'mp-srtc', name: 'Madhya Pradesh State Road Transport (MPSRTC)', url: 'https://mpsrtc.com/', category: 'Madhya Pradesh', department: 'Transport & Infrastructure' },
+
+  // Energy / Power
+  { id: 'mp-power', name: 'Madhya Pradesh Department of Power Office', url: 'https://power.mp.gov.in/', category: 'Madhya Pradesh', department: 'Power Sector' },
+  { id: 'mp-vun', name: 'Madhya Pradesh Urja Vikas Nigam (MPVUN) Board', url: 'https://mpvun.com/', category: 'Madhya Pradesh', department: 'Power Sector' },
+  { id: 'mp-dcl', name: 'Madhya Pradesh Power Distribution Corporation', url: 'https://mpdcl.co.in/', category: 'Madhya Pradesh', department: 'Power Sector' },
+  { id: 'mp-transco', name: 'Madhya Pradesh Power Transmission (MPTRANSCO)', url: 'https://mptransco.co.in/', category: 'Madhya Pradesh', department: 'Power Sector' },
+
+  // Panchayat / Rural Dev
+  { id: 'mp-panchayat', name: 'Madhya Pradesh Panchayat Raj Department Office', url: 'https://panchayat.mp.gov.in/', category: 'Madhya Pradesh', department: 'Rural Development' },
+  { id: 'mp-nrega', name: 'MGNREGA Madhya Pradesh Job Card Division', url: 'https://nrega.mp.gov.in/', category: 'Madhya Pradesh', department: 'Rural Development' },
+  { id: 'mp-rural-dev', name: 'Madhya Pradesh Rural Development Commission', url: 'https://rd.mp.gov.in/', category: 'Madhya Pradesh', department: 'Rural Development' },
+  { id: 'mp-gramin', name: 'Madhya Pradesh Gramin Unified Development System', url: 'https://gramin.mp.gov.in/', category: 'Madhya Pradesh', department: 'Rural Development' },
+
+  // Revenue & Land Records
+  { id: 'mp-revenue', name: 'Madhya Pradesh State Revenue and Reforms Office', url: 'https://revenue.mp.gov.in/', category: 'Madhya Pradesh', department: 'Revenue & Land Records' },
+  { id: 'mp-land-records', name: 'Madhya Pradesh Bhulekh Unified Lands System', url: 'https://bhulekh.mp.gov.in/', category: 'Madhya Pradesh', department: 'Revenue & Land Records' },
+  { id: 'mp-registration', name: 'Madhya Pradesh Stamp & Registration IGRIP', url: 'https://registration.mp.gov.in/', category: 'Madhya Pradesh', department: 'Revenue & Land Records' },
+  { id: 'mp-saara', name: 'Madhya Pradesh Crop Crop Survey Smart App SAARA', url: 'https://saara.mp.gov.in/', category: 'Madhya Pradesh', department: 'Revenue & Land Records' },
+  { id: 'mp-bhumi-abhilekh', name: 'Madhya Pradesh State Land Records Directorate', url: 'https://landrecords.mp.gov.in/', category: 'Madhya Pradesh', department: 'Revenue & Land Records' },
+
+  // Housing & Urban Development
+  { id: 'mp-housing', name: 'Madhya Pradesh State Housing Board (MPHB)', url: 'https://mphousing.mp.gov.in/', category: 'Madhya Pradesh', department: 'Housing & Urban Development' },
+  { id: 'mp-municipal', name: 'Madhya Pradesh Municipal Services Directorate', url: 'https://municipal.mp.gov.in/', category: 'Madhya Pradesh', department: 'Housing & Urban Development' },
+  { id: 'mp-urban-dev', name: 'Madhya Pradesh Urban Admin & Development (UDD)', url: 'https://udd.mp.gov.in/', category: 'Madhya Pradesh', department: 'Housing & Urban Development' },
+
+  // Finance & Taxes
+  { id: 'mp-finance', name: 'Madhya Pradesh State Finance Department Office', url: 'https://finance.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-commercial-tax', name: 'Madhya Pradesh Commercial Taxes (MPVAT Window)', url: 'https://mpvat.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-excise', name: 'Madhya Pradesh Excise & Prohibition Department', url: 'https://excise.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-food', name: 'Madhya Pradesh State Food & Supplies Department', url: 'https://mpfood.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+
+  // Welfare Schemes
+  { id: 'mp-scst-welfare', name: 'Madhya Pradesh Schedule Tribe & Caste Welfare', url: 'https://stwelfare.mp.gov.in/', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+  { id: 'mp-bc-welfare', name: 'Madhya Pradesh Backward Classes Kalyan Board', url: 'https://bcwelfare.mp.gov.in/', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+  { id: 'mp-minority-welfare', name: 'Madhya Pradesh Minority Development Department', url: 'https://minority.mp.gov.in/', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+  { id: 'mp-wcd', name: 'Madhya Pradesh Women & Child Development (MPWCD)', url: 'https://wcd.mp.gov.in/', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+  { id: 'mp-anganwadi', name: 'Madhya Pradesh Anganwadi Worker Careers Portal', url: 'https://wcd.mp.gov.in/anganwadi', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+  { id: 'mp-social-justice', name: 'Madhya Pradesh Social Justice & Disabled Welfare', url: 'https://socialjustice.mp.gov.in/', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+  { id: 'mp-disability', name: 'Madhya Pradesh Differently Abled Persons Welfare', url: 'https://disability.mp.gov.in/', category: 'Madhya Pradesh', department: 'Welfare Schemes' },
+
+  // Education Org
+  { id: 'mp-higher-education', name: 'Madhya Pradesh Department of Higher Education', url: 'https://he.mp.gov.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-technical-education', name: 'Madhya Pradesh Directorate of Technical Education', url: 'https://dte.mp.gov.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-board', name: 'Madhya Pradesh Board of Secondary Education (MPBSE)', url: 'https://mpbse.nic.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+  { id: 'mp-university-link', name: 'Madhya Pradesh State Universities (Amravati)', url: 'https://amravatiuniversity.ac.in/', category: 'Madhya Pradesh', department: 'Education Department' },
+
+  // Judicial
+  { id: 'mp-high-court', name: 'Madhya Pradesh High Court Judicial Career Cell', url: 'https://mphighcourt.nic.in/', category: 'Madhya Pradesh', department: 'Government Gazettes' },
+  { id: 'mp-district-courts', name: 'Madhya Pradesh Local District Courts Directory', url: 'https://districtcourts.nic.in/', category: 'Madhya Pradesh', department: 'Government Gazettes' },
+
+  // E-Services
+  { id: 'mp-online', name: 'MP Online Citizen Portal Services Hub', url: 'https://www.mponline.gov.in/portal/CitizenHome.aspx', category: 'Madhya Pradesh', department: 'E-Services' },
+  { id: 'mp-edistrict', name: 'Madhya Pradesh e-District Administration Portal', url: 'https://mpedistrict.gov.in/', category: 'Madhya Pradesh', department: 'E-Services' },
+  { id: 'mp-services', name: 'Madhya Pradesh Unified State Digital Services', url: 'https://mp.gov.in/services', category: 'Madhya Pradesh', department: 'E-Services' },
+  { id: 'mp-loksewa', name: 'Madhya Pradesh Lok Sewa Guarantee Portal Office', url: 'https://www.lokseva.gov.in/', category: 'Madhya Pradesh', department: 'E-Services' },
+
+  // Gazettes & Orders
+  { id: 'mp-egazette', name: 'Madhya Pradesh Official State e-Gazette Desk', url: 'https://mp.gov.in/gazette', category: 'Madhya Pradesh', department: 'Government Gazettes' },
+  { id: 'mp-go-portal', name: 'Madhya Pradesh Government Orders Database Portal', url: 'https://mp.gov.in/government-orders', category: 'Madhya Pradesh', department: 'Government Gazettes' },
+
+  // Cooperative
+  { id: 'mp-cooperative', name: 'Madhya Pradesh Commission of Cooperative Societies', url: 'https://cooperation.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administrative Units' },
+  { id: 'mp-cooperative-bank', name: 'Madhya Pradesh State Cooperative Apex Bank Hub', url: 'https://mpcooperativebank.in/', category: 'Madhya Pradesh', department: 'Administrative Units' },
+
+  // Industries & Trade
+  { id: 'mp-industries', name: 'Madhya Pradesh Directorate of Industries Commerce', url: 'https://industries.mp.gov.in/', category: 'Madhya Pradesh', department: 'Industries & IT' },
+  { id: 'mp-msme-board', name: 'Madhya Pradesh MSME Development Department Office', url: 'https://msme.mp.gov.in/', category: 'Madhya Pradesh', department: 'Industries & IT' },
+  { id: 'mp-trade-promo', name: 'Madhya Pradesh State Trade Promotion Board', url: 'https://trade.mp.gov.in/', category: 'Madhya Pradesh', department: 'Industries & IT' },
+  { id: 'mp-startup', name: 'Madhya Pradesh Startup & Innovation Center Window', url: 'https://startup.mp.gov.in/', category: 'Madhya Pradesh', department: 'Employment Services' },
+
+  // Important Portals & Helplines
+  { id: 'mp-tourism', name: 'Madhya Pradesh Tourism Development Board', url: 'https://mptourism.co.in/', category: 'Madhya Pradesh', department: 'Tourism & Culture' },
+  { id: 'mp-skill-dev', name: 'Madhya Pradesh Skill Development Center', url: 'https://mpskildev.org/', category: 'Madhya Pradesh', department: 'Employment Services' },
+  { id: 'mp-youth', name: 'Madhya Pradesh Youth Affairs Directorate', url: 'https://youth.mp.gov.in/', category: 'Madhya Pradesh', department: 'Tourism & Culture' },
+  { id: 'mp-sports', name: 'Madhya Pradesh Sports & Welfare Department', url: 'https://sports.mp.gov.in/', category: 'Madhya Pradesh', department: 'Tourism & Culture' },
+  { id: 'mp-environment', name: 'Madhya Pradesh State Environment Department', url: 'https://envcom.mp.gov.in/', category: 'Madhya Pradesh', department: 'Forest & Environment' },
+  { id: 'mp-disaster-mgmt', name: 'Madhya Pradesh State Disaster Management Agency', url: 'https://wbdmd.gov.in/', category: 'Madhya Pradesh', department: 'Police & Security' },
+  { id: 'mp-irrigation-dept', name: 'Madhya Pradesh Department of Irrigation Support', url: 'https://mp.gov.in/departments/irrigation', category: 'Madhya Pradesh', department: 'Transport & Infrastructure' },
+  { id: 'mp-food-supplies', name: 'Madhya Pradesh Food & Civil Supplies Corporation', url: 'https://fcsupp.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-water-resources', name: 'Madhya Pradesh Water Resources Department', url: 'https://irrigation.mp.gov.in/', category: 'Madhya Pradesh', department: 'Transport & Infrastructure' },
+  { id: 'mp-chamber-commerce', name: 'Madhya Pradesh Chamber of Commerce & Industry', url: 'https://mpcc.in/', category: 'Madhya Pradesh', department: 'Industries & IT' },
+  { id: 'mp-cm-helpline', name: 'Madhya Pradesh Chief Minister Helpline 181 Desk', url: 'https://cmhelpline.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
+  { id: 'mp-cm-dashboard', name: 'Madhya Pradesh State CM Interactive Dashboard', url: 'https://cmdashboard.mp.gov.in/', category: 'Madhya Pradesh', department: 'Administration' },
 
   // --- RAJASTHAN GOVERNMENT WEBSITES ---
-  { id: 'rj-portal', name: 'Rajasthan State Government Portal', url: 'https://rajasthan.gov.in', category: 'Rajasthan', department: 'Main State Portal' },
-  { id: 'rj-psc', name: 'Rajasthan Public Service Commission (RPSC)', url: 'https://rpsc.rajasthan.gov.in', category: 'Rajasthan', department: 'Recruitment Board' },
-  { id: 'rj-ssc', name: 'Rajasthan Staff Selection Board (RSSB)', url: 'https://rrb.jodhpur.gov.in', category: 'Rajasthan', department: 'Recruitment Board' },
-  { id: 'rj-police', name: 'Rajasthan State Police Department', url: 'https://police.rajasthan.gov.in', category: 'Rajasthan', department: 'Police & Security' },
-  { id: 'rj-teachers', name: 'Rajasthan Board of Secondary Education', url: 'https://rajeduboard.rajasthan.gov.in', category: 'Rajasthan', department: 'Education Department' },
-  { id: 'rj-health', name: 'Rajasthan Medical & Health Services', url: 'https://health.rajasthan.gov.in', category: 'Rajasthan', department: 'Health Department' },
+  // Main State Portals & Info
+  { id: 'rj-portal', name: 'Rajasthan State Government Portal', url: 'https://rajasthan.gov.in/', category: 'Rajasthan', department: 'Main State Portal' },
+  { id: 'rj-portal-alt', name: 'NIC Rajasthan Government Center', url: 'https://raj.nic.in/', category: 'Rajasthan', department: 'Main State Portal' },
+  { id: 'rj-cmo', name: 'Rajasthan Chief Minister Office (CMO)', url: 'https://cmo.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administration' },
+  { id: 'rj-cmo-releases', name: 'Rajasthan CM Press Releases Desk', url: 'https://cmo.rajasthan.gov.in/press-releases', category: 'Rajasthan', department: 'Administration' },
+  { id: 'rj-latest-news', name: 'Rajasthan State Latest News Desk', url: 'https://rajasthan.gov.in/news', category: 'Rajasthan', department: 'Administration' },
+  { id: 'rj-jan-soochna', name: 'Rajasthan Jan Soochna Portal (Citizen Transparency)', url: 'https://jansoochna.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administration' },
+
+  // RPSC
+  { id: 'rj-psc', name: 'Rajasthan Public Service Commission (RPSC)', url: 'https://rpsc.rajasthan.gov.in/', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-psc-results', name: 'RPSC Exam Results & Declarations Desk', url: 'https://rpsc.rajasthan.gov.in/results', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-psc-calendar', name: 'RPSC Recruitment Official Exam Calendar', url: 'https://rpsc.rajasthan.gov.in/exam-calendar', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-psc-app', name: 'RPSC Interactive Application Intake Portal', url: 'https://rpsc.rajasthan.gov.in/application', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-ppm', name: 'Rajasthan Government RajPTM Portal (RPPM)', url: 'https://rppm.rajasthan.gov.in/', category: 'Rajasthan', department: 'Recruitment Board' },
+
+  // RSMSSB
+  { id: 'rj-ssc', name: 'Rajasthan Staff Selection Board (RSMSSB)', url: 'https://rsmssb.rajasthan.gov.in/', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-ssc-results', name: 'RSMSSB Selectees & Final Results Desk', url: 'https://rsmssb.rajasthan.gov.in/results', category: 'Rajasthan', department: 'Recruitment Board' },
+  { id: 'rj-ssc-app', name: 'RSMSSB Interactive Application System', url: 'https://rsmssb.rajasthan.gov.in/application', category: 'Rajasthan', department: 'Recruitment Board' },
+
+  // Police & Fire
+  { id: 'rj-police-main', name: 'Rajasthan State Police Headquarters', url: 'https://police.rajasthan.gov.in/', category: 'Rajasthan', department: 'Police & Security' },
+  { id: 'rj-police', name: 'Rajasthan Police Official Recruitment Cell', url: 'https://police.rajasthan.gov.in/en/recruitment', category: 'Rajasthan', department: 'Police & Security' },
+  { id: 'rj-police-constable', name: 'Rajasthan Police Constable Active Careers', url: 'https://police.rajasthan.gov.in/en/recruitment', category: 'Rajasthan', department: 'Police & Security' },
+  { id: 'rj-police-si', name: 'Rajasthan Police Sub-Inspector Openings', url: 'https://police.rajasthan.gov.in/en/recruitment', category: 'Rajasthan', department: 'Police & Security' },
+  { id: 'rj-fire-force', name: 'Rajasthan Fire Force & Emergency Services', url: 'https://fire.rajasthan.gov.in/', category: 'Rajasthan', department: 'Police & Security' },
+
+  // Teachers / Education
+  { id: 'rj-education', name: 'Rajasthan School Education Department (Edureni)', url: 'https://edureni.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-teachers', name: 'Rajasthan Teacher Eligibility Test (TET)', url: 'https://rajeduboard.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-trb', name: 'Rajasthan Teacher Recruitment Board Cell', url: 'https://edureni.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-pgt-tgt', name: 'Rajasthan PGT/TGT Deployments System', url: 'https://edureni.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-school-teachers', name: 'Rajasthan School Teachers Allocation Desk', url: 'https://edureni.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-education-sec', name: 'Rajasthan Secondary Education Board Office', url: 'https://rajeduboard.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-bed', name: 'Rajasthan Professional B.Ed Admissions Office', url: 'https://dte.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+
+  // Health
+  { id: 'rj-health', name: 'Rajasthan Medical & Health (Rajswasthya)', url: 'https://rajswasthya.nic.in/', category: 'Rajasthan', department: 'Health Department' },
+  { id: 'rj-health-medical', name: 'Rajasthan Directorate of Health Services', url: 'https://healthservices.rajasthan.gov.in/', category: 'Rajasthan', department: 'Health Department' },
+  { id: 'rj-health-nursing', name: 'Rajasthan Nursing and Midwives Council', url: 'https://nursing.rajasthan.gov.in/', category: 'Rajasthan', department: 'Health Department' },
+  { id: 'rj-health-ayush', name: 'Rajasthan State AYUSH Admissions Board', url: 'https://ayush.rajasthan.gov.in/', category: 'Rajasthan', department: 'Health Department' },
+  { id: 'rj-health-med-edu', name: 'Rajasthan Directorate of Medical Education', url: 'https://medicaleducation.rajasthan.gov.in/', category: 'Rajasthan', department: 'Health Department' },
+
+  // Agriculture & Forest
+  { id: 'rj-agri', name: 'Rajasthan Agriculture Department (Krishi Portal)', url: 'https://krishi.rajasthan.gov.in/', category: 'Rajasthan', department: 'Agriculture Department' },
+  { id: 'rj-horticulture', name: 'Rajasthan Directorate of Horticulture Food', url: 'https://horticulture.rajasthan.gov.in/', category: 'Rajasthan', department: 'Agriculture Department' },
+  { id: 'rj-forest', name: 'Rajasthan Forest Environment & Wildlife Agency', url: 'https://forest.rajasthan.gov.in/', category: 'Rajasthan', department: 'Forest & Environment' },
+  { id: 'rj-animal-husbandry', name: 'Rajasthan Animal Husbandry Services Unit', url: 'https://ah.rajasthan.gov.in/', category: 'Rajasthan', department: 'Agriculture Department' },
+  { id: 'rj-fisheries', name: 'Rajasthan Fisheries Development Authority', url: 'https://fisheries.rajasthan.gov.in/', category: 'Rajasthan', department: 'Agriculture Department' },
+
+  // Transport
+  { id: 'rj-transport', name: 'Rajasthan State Transport Department Office', url: 'https://transport.rajasthan.gov.in/', category: 'Rajasthan', department: 'Transport & Infrastructure' },
+  { id: 'rj-srtc', name: 'Rajasthan State Road Transport (RSRTC)', url: 'https://rsrtc.rajasthan.gov.in/', category: 'Rajasthan', department: 'Transport & Infrastructure' },
+
+  // Power & Electricity
+  { id: 'rj-power', name: 'Rajasthan State Department of Power Office', url: 'https://power.rajasthan.gov.in/', category: 'Rajasthan', department: 'Power Sector' },
+  { id: 'rj-gcl', name: 'Rajasthan Power General Corp (RPGCL)', url: 'https://rpgcl.rajasthan.gov.in/', category: 'Rajasthan', department: 'Power Sector' },
+  { id: 'rj-vidyut', name: 'Rajasthan Vidyut Prasaran & Distribution Hub', url: 'https://rajasthanvidyut.com/', category: 'Rajasthan', department: 'Power Sector' },
+
+  // Panchayat / Rural Dev
+  { id: 'rj-panchayat', name: 'Rajasthan Panchayat Raj Department Office', url: 'https://panchayat.rajasthan.gov.in/', category: 'Rajasthan', department: 'Rural Development' },
+  { id: 'rj-gramin', name: 'Rajasthan Gramin Unified Rural Department', url: 'https://gramin.rajasthan.gov.in/', category: 'Rajasthan', department: 'Rural Development' },
+  { id: 'rj-nrega', name: 'MGNREGA Rajasthan Job Card Information Desk', url: 'https://nrega.rajasthan.gov.in/', category: 'Rajasthan', department: 'Rural Development' },
+
+  // Revenue & Land
+  { id: 'rj-revenue', name: 'Rajasthan Revenue & Reforms Department', url: 'https://revenue.rajasthan.gov.in/', category: 'Rajasthan', department: 'Revenue & Land Records' },
+  { id: 'rj-revenue-board', name: 'Rajasthan State Board of Revenue (BOR)', url: 'https://bor.rajasthan.gov.in/', category: 'Rajasthan', department: 'Revenue & Land Records' },
+  { id: 'rj-land-records', name: 'Rajasthan Bhulekh Lands Unified System', url: 'https://bhulekh.rajasthan.gov.in/', category: 'Rajasthan', department: 'Revenue & Land Records' },
+  { id: 'rj-bhunaksha', name: 'Rajasthan Bhunaksha Interactive Cadastral Maps', url: 'https://bhunaksha.rajasthan.gov.in/', category: 'Rajasthan', department: 'Revenue & Land Records' },
+  { id: 'rj-registration', name: 'Rajasthan Stamp and Registration Service', url: 'https://registration.rajasthan.gov.in/', category: 'Rajasthan', department: 'Revenue & Land Records' },
+
+  // Housing & Urban
+  { id: 'rj-housing', name: 'Rajasthan State Housing Board Office', url: 'https://housing.rajasthan.gov.in/', category: 'Rajasthan', department: 'Housing & Urban Development' },
+  { id: 'rj-lmws', name: 'Rajasthan Lands & Municipal Work Services (LMWS)', url: 'https://lmws.rajasthan.gov.in/', category: 'Rajasthan', department: 'Housing & Urban Development' },
+  { id: 'rj-municipal', name: 'Rajasthan Municipal Administration System', url: 'https://municipal.rajasthan.gov.in/', category: 'Rajasthan', department: 'Housing & Urban Development' },
+  { id: 'rj-urban-dev', name: 'Rajasthan Urban Development Department (UDD)', url: 'https://udd.rajasthan.gov.in/', category: 'Rajasthan', department: 'Housing & Urban Development' },
+
+  // Finance & Taxes
+  { id: 'rj-finance', name: 'Rajasthan State Finance Department Office', url: 'https://finance.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administration' },
+  { id: 'rj-commercial-tax', name: 'Rajasthan Commercial Taxes (Mahavat Console)', url: 'https://mahavat.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administration' },
+  { id: 'rj-excise', name: 'Rajasthan State Prohibition & Excise Office', url: 'https://excise.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administration' },
+  { id: 'rj-tax-board', name: 'Rajasthan State Tax Board Administration', url: 'https://rajtaxboard.gov.in/', category: 'Rajasthan', department: 'Administration' },
+
+  // Welfare Schemes
+  { id: 'rj-scst-welfare', name: 'Rajasthan Caste & Tribe Integration Board', url: 'https://stwelfare.rajasthan.gov.in/', category: 'Rajasthan', department: 'Welfare Schemes' },
+  { id: 'rj-bc-welfare', name: 'Rajasthan Backward Classes Development Desk', url: 'https://bcwelfare.rajasthan.gov.in/', category: 'Rajasthan', department: 'Welfare Schemes' },
+  { id: 'rj-minority-welfare', name: 'Rajasthan Minority Development Department', url: 'https://minority.rajasthan.gov.in/', category: 'Rajasthan', department: 'Welfare Schemes' },
+  { id: 'rj-wcd', name: 'Rajasthan Women and Child Development (WCD)', url: 'https://wcd.rajasthan.gov.in/', category: 'Rajasthan', department: 'Welfare Schemes' },
+  { id: 'rj-social-justice', name: 'Rajasthan Social Justice & Disability Integration', url: 'https://socialjustice.rajasthan.gov.in/', category: 'Rajasthan', department: 'Welfare Schemes' },
+  { id: 'rj-disability', name: 'Rajasthan Differently Abled Persons Welfare', url: 'https://disability.rajasthan.gov.in/', category: 'Rajasthan', department: 'Welfare Schemes' },
+
+  // Education Higher
+  { id: 'rj-higher-education', name: 'Rajasthan Higher Education Directorate', url: 'https://he.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-technical-education', name: 'Rajasthan Directorate of Technical Education', url: 'https://dte.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-school-board', name: 'Rajasthan Board of Secondary Education Secondary', url: 'https://rajeduboard.rajasthan.gov.in/', category: 'Rajasthan', department: 'Education Department' },
+  { id: 'rj-university', name: 'University of Rajasthan Main Campus (Uniraj)', url: 'https://uniraj.ac.in/', category: 'Rajasthan', department: 'Education Department' },
+
+  // Law & High Court
+  { id: 'rj-high-court', name: 'Rajasthan High Court Judicial Recruitment Office', url: 'https://rajhighcourt.gov.in/', category: 'Rajasthan', department: 'Government Gazettes' },
+  { id: 'rj-acb', name: 'Rajasthan Anti Corruption Bureau (ACB)', url: 'https://acb.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administration' },
+
+  // E-Services
+  { id: 'rj-online', name: 'RajComp Info Services (Online Systems Desk)', url: 'https://rajcomp.rajasthan.gov.in/', category: 'Rajasthan', department: 'E-Services' },
+  { id: 'rj-sso', name: 'Rajasthan SSO Single Sign On Identity Hub', url: 'https://sso.rajasthan.gov.in/', category: 'Rajasthan', department: 'E-Services' },
+  { id: 'rj-edistrict', name: 'Rajasthan e-District Citizen Services Office', url: 'https://edistrict.rajasthan.gov.in/', category: 'Rajasthan', department: 'E-Services' },
+  { id: 'rj-services', name: 'Rajasthan Unified State Digital Services', url: 'https://rajasthan.gov.in/services', category: 'Rajasthan', department: 'E-Services' },
+
+  // Other Portals
+  { id: 'rj-tourism', name: 'Rajasthan Tourism Development Corporation (RTDC)', url: 'https://tourism.rajasthan.gov.in/', category: 'Rajasthan', department: 'Tourism & Culture' },
+  { id: 'rj-skill-dev', name: 'Rajasthan Skill Development Mission Office', url: 'https://skil.rajasthan.gov.in/', category: 'Rajasthan', department: 'Employment Services' },
+  { id: 'rj-youth', name: 'Rajasthan Directorate of Youth Affairs', url: 'https://youth.rajasthan.gov.in/', category: 'Rajasthan', department: 'Tourism & Culture' },
+  { id: 'rj-sports', name: 'Rajasthan Sports Council and Welfare Department', url: 'https://sports.rajasthan.gov.in/', category: 'Rajasthan', department: 'Tourism & Culture' },
+  { id: 'rj-mines', name: 'Rajasthan Mines & Geological Survey Directorate', url: 'https://mines.rajasthan.gov.in/', category: 'Rajasthan', department: 'Industries & IT' },
+  { id: 'rj-industries', name: 'Rajasthan Directorate of Industries & Commerce', url: 'https://industries.rajasthan.gov.in/', category: 'Rajasthan', department: 'Industries & IT' },
+  { id: 'rj-msme', name: 'Rajasthan MSME Business Incubation Center', url: 'https://msme.rajasthan.gov.in/', category: 'Rajasthan', department: 'Employment Services' },
+  { id: 'rj-cooperative', name: 'Rajasthan Commission of Cooperative Societies', url: 'https://cooperation.rajasthan.gov.in/', category: 'Rajasthan', department: 'Administrative Units' },
+
 
   // --- GUJARAT GOVERNMENT WEBSITES ---
-  { id: 'gj-portal', name: 'Gujarat State Government Portal', url: 'https://guj.nic.in/', category: 'Gujarat', department: 'Main State Portal' },
-  { id: 'gj-cmo', name: 'Gujarat Chief Minister Office', url: 'https://cm.gujarat.gov.in', category: 'Gujarat', department: 'Administration' },
+  // Main State Portals & Info
+  { id: 'gj-portal', name: 'Gujarat State Government Portal (Main)', url: 'https://gujarat.gov.in/', category: 'Gujarat', department: 'Main State Portal' },
+  { id: 'gj-portal-alt', name: 'Gujarat India National Portal Center', url: 'https://gujaratindia.gov.in/', category: 'Gujarat', department: 'Main State Portal' },
+  { id: 'gj-cmo', name: 'Gujarat Chief Minister Office (CMO)', url: 'https://cmo.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-cmo-releases', name: 'Gujarat State Press Releases Desk', url: 'https://gujarat.gov.in/press-releases', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-latest-news', name: 'Gujarat Government Latest News Grid', url: 'https://gujarat.gov.in/news', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-mygov', name: 'MyGov Gujarat Citizen Discussion Board', url: 'https://gujarat.mygov.in/', category: 'Gujarat', department: 'Administration' },
+
+  // GPSC
   { id: 'gj-psc', name: 'Gujarat Public Service Commission (GPSC)', url: 'https://gpsc.gujarat.gov.in/', category: 'Gujarat', department: 'Recruitment Board' },
+  { id: 'gj-psc-results', name: 'GPSC Exam & Recruitment Selection Results', url: 'https://gpsc.gujarat.gov.in/results', category: 'Gujarat', department: 'Recruitment Board' },
+  { id: 'gj-psc-calendar', name: 'GPSC Official Recruitment Exam Calendar', url: 'https://gpsc.gujarat.gov.in/exam-calendar', category: 'Gujarat', department: 'Recruitment Board' },
+  { id: 'gj-psc-app', name: 'GPSC Interactive Online Application Portal', url: 'https://gpsc.gujarat.gov.in/application', category: 'Gujarat', department: 'Recruitment Board' },
+
+  // GSSSB
   { id: 'gj-sssb', name: 'Gujarat Subordinate Service Selection Board (GSSSB)', url: 'https://gsssb.gujarat.gov.in/', category: 'Gujarat', department: 'Recruitment Board' },
-  { id: 'gj-police', name: 'Gujarat Police Department', url: 'https://police.gujarat.gov.in/', category: 'Gujarat', department: 'Police & Security' },
-  { id: 'gj-teachers', name: 'Gujarat Education Board', url: 'https://edugujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
-  { id: 'gj-health', name: 'Gujarat Health Department', url: 'https://health.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-sssb-results', name: 'GSSSB Competitive Exam Results Selection', url: 'https://gsssb.gujarat.gov.in/results', category: 'Gujarat', department: 'Recruitment Board' },
+  { id: 'gj-sssb-app', name: 'GSSSB Direct Application Intake System', url: 'https://gsssb.gujarat.gov.in/application', category: 'Gujarat', department: 'Recruitment Board' },
+
+  // Police & Fire
+  { id: 'gj-police-main', name: 'Gujarat Police Headquarters Portal', url: 'https://police.gujarat.gov.in/', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-police', name: 'Gujarat Police Recruitment Bureau (En/Rec)', url: 'https://police.gujarat.gov.in/en/recruitment', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-police-constable', name: 'Gujarat Police Constable Careers Center', url: 'https://police.gujarat.gov.in/en/recruitment', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-police-si', name: 'Gujarat Police Sub-Inspector Openings', url: 'https://police.gujarat.gov.in/en/recruitment', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-fire-force', name: 'Gujarat State Fire & Rescue Services Board', url: 'https://fireandrescue.gujarat.gov.in/', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-acb', name: 'Gujarat Anti Corruption Bureau (ACB)', url: 'https://acb.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+
+  // Teachers / Education Recruitment
+  { id: 'gj-education', name: 'Gujarat Education Department Office', url: 'https://education.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-teachers', name: 'Gujarat Teacher Eligibility Test (TET)', url: 'https://tet.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-trb', name: 'Gujarat Teacher Recruitment Board Office', url: 'https://education.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-pgt-tgt', name: 'Gujarat PGT/TGT Teacher Placements Office', url: 'https://education.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-school-teachers', name: 'Gujarat School Teachers District Allocation', url: 'https://education.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-secondary-board', name: 'Gujarat Secondary & Higher Exam Council (SEB)', url: 'https://sebexam.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-bed', name: 'Gujarat Professional B.Ed Admissions Office', url: 'https://dte.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-hse', name: 'Gujarat Higher Secondary Board Office', url: 'https://hse.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+
+  // Health
+  { id: 'gj-health', name: 'Gujarat Public Health & Family Welfare Office', url: 'https://health.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-health-medical', name: 'Gujarat Directorate of Health Services', url: 'https://healthservices.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-health-nursing', name: 'Gujarat Nursing and Midwives Council Office', url: 'https://nursing.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-health-ayush', name: 'Gujarat State AYUSH Admissions Board', url: 'https://ayush.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-health-phc', name: 'Gujarat Community & Primary Health Directory', url: 'https://health.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-health-fw', name: 'Gujarat Family Welfare Services Division', url: 'https://fw.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+  { id: 'gj-health-med-edu', name: 'Gujarat Directorate of Medical Education', url: 'https://medicaleducation.gujarat.gov.in/', category: 'Gujarat', department: 'Health Department' },
+
+  // Agriculture & Forest
+  { id: 'gj-agri', name: 'Gujarat Agriculture Progress Department', url: 'https://agriculture.gujarat.gov.in/', category: 'Gujarat', department: 'Agriculture Department' },
+  { id: 'gj-horticulture', name: 'Gujarat Directorate of Horticulture', url: 'https://horticulture.gujarat.gov.in/', category: 'Gujarat', department: 'Agriculture Department' },
+  { id: 'gj-forest', name: 'Gujarat Environment, Forests & Wildlife office', url: 'https://forest.gujarat.gov.in/', category: 'Gujarat', department: 'Forest & Environment' },
+  { id: 'gj-animal-husbandry', name: 'Gujarat Animal Husbandry Commission Unit', url: 'https://ah.gujarat.gov.in/', category: 'Gujarat', department: 'Agriculture Department' },
+  { id: 'gj-fisheries', name: 'Gujarat State Fisheries Development Authority', url: 'https://fisheries.gujarat.gov.in/', category: 'Gujarat', department: 'Agriculture Department' },
+  { id: 'gj-soil-conservation', name: 'Gujarat Soil & Water Conservation Directorate', url: 'https://soilconservation.gujarat.gov.in/', category: 'Gujarat', department: 'Agriculture Department' },
+  { id: 'gj-dairy', name: 'Gujarat Dairy Cooperatives Development Board', url: 'https://www.gujarstdairy.com/', category: 'Gujarat', department: 'Agriculture Department' },
+
+  // Transport
+  { id: 'gj-transport', name: 'Gujarat State Port & Transport Department', url: 'https://transport.gujarat.gov.in/', category: 'Gujarat', department: 'Transport & Infrastructure' },
+  { id: 'gj-srtc', name: 'Gujarat State Road Transport (GSRTC)', url: 'https://gsrtc.gujarat.gov.in/', category: 'Gujarat', department: 'Transport & Infrastructure' },
+
+  // Power / Water Engineering
+  { id: 'gj-power', name: 'Gujarat Department of Power and Energy Office', url: 'https://power.gujarat.gov.in/', category: 'Gujarat', department: 'Power Sector' },
+  { id: 'gj-uhbvn', name: 'Gujarat Uttar Haryana Bijli Vitran (UHBVN) Agency', url: 'https://uhbvn.gujarat.gov.in/', category: 'Gujarat', department: 'Power Sector' },
+  { id: 'gj-ggsec', name: 'Guru Gobind Singh Energy Centre (GGSEC)', url: 'https://ggsec.gujarat.gov.in/', category: 'Gujarat', department: 'Power Sector' },
+  { id: 'gj-vidyut', name: 'Gujarat Urja Vidyut Parasaran Corporation', url: 'https://gujaratvidyut.com/', category: 'Gujarat', department: 'Power Sector' },
+
+  // Panchayat / Rural Dev
+  { id: 'gj-panchayat', name: 'Gujarat Panchayat Raj Development Department', url: 'https://panchayat.gujarat.gov.in/', category: 'Gujarat', department: 'Rural Development' },
+  { id: 'gj-rural-dev', name: 'Gujarat Rural Development Commission', url: 'https://rd.gujarat.gov.in/', category: 'Gujarat', department: 'Rural Development' },
+  { id: 'gj-nrega', name: 'MGNREGA Gujarat Job Card Information System', url: 'https://nrega.gujarat.gov.in/', category: 'Gujarat', department: 'Rural Development' },
+
+  // Revenue & Lands
+  { id: 'gj-revenue', name: 'Gujarat State Revenue and Reforms Office', url: 'https://revenue.gujarat.gov.in/', category: 'Gujarat', department: 'Revenue & Land Records' },
+  { id: 'gj-land-records', name: 'Gujarat AnyTimeProperty Land Records System', url: 'https://anytimeproperty.gujarat.gov.in/', category: 'Gujarat', department: 'Revenue & Land Records' },
+  { id: 'gj-registration', name: 'Gujarat Stamp Registration (IGRIP Portal)', url: 'https://anytimeproperty.gujarat.gov.in/', category: 'Gujarat', department: 'Revenue & Land Records' },
+  { id: 'gj-revenue-board', name: 'Gujarat State Board of Revenue Administration', url: 'https://revenue.gujarat.gov.in/', category: 'Gujarat', department: 'Revenue & Land Records' },
+
+  // Housing & Urban
+  { id: 'gj-housing', name: 'Gujarat State Housing Board Office', url: 'https://housing.gujarat.gov.in/', category: 'Gujarat', department: 'Housing & Urban Development' },
+  { id: 'gj-municipal', name: 'Gujarat Municipal Affairs Administration', url: 'https://municipal.gujarat.gov.in/', category: 'Gujarat', department: 'Housing & Urban Development' },
+  { id: 'gj-urban-dev', name: 'Gujarat Urban Administration & Development', url: 'https://udd.gujarat.gov.in/', category: 'Gujarat', department: 'Housing & Urban Development' },
+  { id: 'gj-amc', name: 'Ahmedabad Municipal Corporation (AMC)', url: 'https://amd.gujarat.gov.in/', category: 'Gujarat', department: 'Housing & Urban Development' },
+
+  // Finance & Taxes
+  { id: 'gj-finance', name: 'Gujarat State Finance Department Office', url: 'https://finance.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-commercial-tax', name: 'Gujarat Excise & Commercial Tax Portal', url: 'https://tax.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-excise', name: 'Gujarat State Prohibition and Excise Desk', url: 'https://excise.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-entertainment-tax', name: 'Gujarat State Entertainment Tax Division', url: 'https://etax.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+
+  // Welfare Schemes
+  { id: 'gj-scst-welfare', name: 'Gujarat Schedule Tribe & Caste Development', url: 'https://stwelfare.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+  { id: 'gj-bc-welfare', name: 'Gujarat Backward Classes Kalyan Board Office', url: 'https://bcwelfare.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+  { id: 'gj-minority-welfare', name: 'Gujarat Minority Development Department Office', url: 'https://minority.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+  { id: 'gj-wcd', name: 'Gujarat Women & Child Development Directorate', url: 'https://wcd.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+  { id: 'gj-social-justice', name: 'Gujarat Social Justice and Empowerment Office', url: 'https://socialjustice.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+  { id: 'gj-tribal-dev', name: 'Gujarat Adibasi Tribal Development Commission', url: 'https://tribal.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+  { id: 'gj-disability', name: 'Gujarat Differently Abled Persons Welfare Board', url: 'https://disability.gujarat.gov.in/', category: 'Gujarat', department: 'Welfare Schemes' },
+
+  // Higher Ed
+  { id: 'gj-higher-education', name: 'Gujarat Department of Higher Education Office', url: 'https://he.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-technical-education', name: 'Gujarat Directorate of Technical Education', url: 'https://dte.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-seb-exam', name: 'Gujarat Secondary Examination Board Portal', url: 'https://sebexam.gujarat.gov.in/', category: 'Gujarat', department: 'Education Department' },
+  { id: 'gj-university', name: 'Gujarat State Central University (Ahmedabad)', url: 'https://gujaratuniversity.ac.in/', category: 'Gujarat', department: 'Education Department' },
+
+  // Legal
+  { id: 'gj-high-court', name: 'Gujarat High Court Judicial Recruitment office', url: 'https://gujarathighcourt.nic.in/', category: 'Gujarat', department: 'Government Gazettes' },
+  { id: 'gj-prisons', name: 'Gujarat Directorate of Corrections & Prisons', url: 'https://prisons.gujarat.gov.in/', category: 'Gujarat', department: 'Police & Security' },
+
+  // E-Services
+  { id: 'gj-edistrict', name: 'Gujarat e-District Unified Administration', url: 'https://edistrict.gujarat.gov.in/', category: 'Gujarat', department: 'E-Services' },
+  { id: 'gj-online', name: 'Maha Online Gujarat Digital Services Console', url: 'https://mahaonline.gujarat.gov.in/', category: 'Gujarat', department: 'E-Services' },
+  { id: 'gj-services', name: 'Gujarat Unified State Digital Services Hub', url: 'https://gujarat.gov.in/services', category: 'Gujarat', department: 'E-Services' },
+  { id: 'gj-seva', name: 'Gujarat Seva Unified Citizen Services Gateway', url: 'https://seva.gujarat.gov.in/', category: 'Gujarat', department: 'E-Services' },
+
+  // Other Portals
+  { id: 'gj-tourism', name: 'Gujarat Tourism Development Corporation Office', url: 'https://gujarattourism.gov.in/', category: 'Gujarat', department: 'Tourism & Culture' },
+  { id: 'gj-skill-dev', name: 'Paschim Banga Gujarat Skill Development', url: 'https://skil.gujarat.gov.in/', category: 'Gujarat', department: 'Employment Services' },
+  { id: 'gj-youth', name: 'Gujarat Youth Affairs Directorate Office', url: 'https://youth.gujarat.gov.in/', category: 'Gujarat', department: 'Tourism & Culture' },
+  { id: 'gj-sports', name: 'Gujarat Sports Authority and Welfare Department', url: 'https://sports.gujarat.gov.in/', category: 'Gujarat', department: 'Tourism & Culture' },
+  { id: 'gj-industries', name: 'Gujarat Directorate of Industries and Commerce', url: 'https://industries.gujarat.gov.in/', category: 'Gujarat', department: 'Industries & IT' },
+  { id: 'gj-msme', name: 'Gujarat MSME Business Incubation Program Desk', url: 'https://msme.gujarat.gov.in/', category: 'Gujarat', department: 'Employment Services' },
+  { id: 'gj-startup', name: 'Gujarat Startup Incubation Centers Network', url: 'https://startupindia.gujarat.gov.in/', category: 'Gujarat', department: 'Employment Services' },
+  { id: 'gj-trade', name: 'Gujarat State Trade Promotion Corporation Office', url: 'https://trade.gujarat.gov.in/', category: 'Gujarat', department: 'Industries & IT' },
+  { id: 'gj-maritime', name: 'Gujarat Maritime Board & Port Division Office', url: 'https://maritime.gujarat.gov.in/', category: 'Gujarat', department: 'Transport & Infrastructure' },
+  { id: 'gj-ports', name: 'Gujarat Commerce & Ports Department Agency', url: 'https://ports.gujarat.gov.in/', category: 'Gujarat', department: 'Transport & Infrastructure' },
+  { id: 'gj-environment', name: 'Gujarat State Environmental Quality Office', url: 'https://environment.gujarat.gov.in/', category: 'Gujarat', department: 'Forest & Environment' },
+  { id: 'gj-disaster', name: 'Gujarat State Disaster Management Agency (GMDMA)', url: 'https://gmdma.gujarat.gov.in/', category: 'Gujarat', department: 'Police & Security' },
+  { id: 'gj-food', name: 'Gujarat Food, Supplies & Civil Distribution Desk', url: 'https://food.gujarat.gov.in/', category: 'Gujarat', department: 'Administration' },
+  { id: 'gj-water', name: 'Gujarat Water Resources Development Council', url: 'https://waterresources.gujarat.gov.in/', category: 'Gujarat', department: 'Transport & Infrastructure' },
+  { id: 'gj-irrigation', name: 'Gujarat Department of Integrated Irrigation', url: 'https://irrigation.gujarat.gov.in/', category: 'Gujarat', department: 'Transport & Infrastructure' },
 
   // --- ODISHA GOVERNMENT WEBSITES ---
-  { id: 'od-portal', name: 'Odisha State Government Portal', url: 'https://odisha.gov.in/', category: 'Odisha', department: 'Main State Portal' },
+  // Main State Portals & Info
+  { id: 'od-portal', name: 'Odisha State Government Portal (Official)', url: 'https://odisha.gov.in/', category: 'Odisha', department: 'Main State Portal' },
+  { id: 'od-portal-alt', name: 'NIC Odisha National Informatics Center', url: 'https://odisha.nic.in/', category: 'Odisha', department: 'Main State Portal' },
+  { id: 'od-cmo', name: 'Odisha Chief Minister Office (CMO)', url: 'https://cmo.odisha.gov.in/', category: 'Odisha', department: 'Administration' },
+  { id: 'od-cmo-releases', name: 'Odisha CM Press Releases Desk', url: 'https://cmo.odisha.gov.in/press-releases', category: 'Odisha', department: 'Administration' },
+  { id: 'od-latest-news', name: 'Odisha State Latest News & Events Desk', url: 'https://odisha.gov.in/news-and-events', category: 'Odisha', department: 'Administration' },
+  { id: 'od-one-portal', name: 'Odisha One Portal Citizen Gateway', url: 'https://www.odishaone.gov.in/', category: 'Odisha', department: 'Administration' },
+
+  // OPSC
   { id: 'od-psc', name: 'Odisha Public Service Commission (OPSC)', url: 'https://opsc.gov.in/', category: 'Odisha', department: 'Recruitment Board' },
+  { id: 'od-psc-online', name: 'OPSC Online Application Intake Page (OSSE)', url: 'https://osse.odisha.gov.in/', category: 'Odisha', department: 'Recruitment Board' },
+  { id: 'od-psc-results', name: 'OPSC Exam Results & Selectees Desk', url: 'https://opsc.gov.in/results', category: 'Odisha', department: 'Recruitment Board' },
+  { id: 'od-psc-calendar', name: 'OPSC Recruitment Official Exam Calendar', url: 'https://opsc.getjobs.com/exam-calendar', category: 'Odisha', department: 'Recruitment Board' },
+
+  // OSSC
   { id: 'od-ssc', name: 'Odisha Staff Selection Commission (OSSC)', url: 'https://ossc.gov.in/', category: 'Odisha', department: 'Recruitment Board' },
-  { id: 'od-police', name: 'Odisha State Police', url: 'https://police.odisha.gov.in/', category: 'Odisha', department: 'Police & Security' },
-  { id: 'od-teachers', name: 'Odisha Department of School Education', url: 'https://odisha.gov.in/departments/education', category: 'Odisha', department: 'Education Department' },
-  { id: 'od-health', name: 'Odisha Health & Family Welfare', url: 'https://health.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+  { id: 'od-ssc-results', name: 'OSSC Competitive Exam Results List', url: 'https://ossc.gov.in/results', category: 'Odisha', department: 'Recruitment Board' },
+  { id: 'od-ssc-app', name: 'OSSC Online Application Admissions Hub', url: 'https://ossc.gov.in/application', category: 'Odisha', department: 'Recruitment Board' },
+
+  // Police & Fire
+  { id: 'od-police', name: 'Odisha Police Headquarters Portal', url: 'https://police.odisha.gov.in/', category: 'Odisha', department: 'Police & Security' },
+  { id: 'od-police-rec', name: 'Odisha Police Official Recruitment Bureau', url: 'https://police.odisha.gov.in/en/recruitment', category: 'Odisha', department: 'Police & Security' },
+  { id: 'od-police-constable', name: 'Odisha Police Constable Active Careers', url: 'https://police.odisha.gov.in/en/recruitment', category: 'Odisha', department: 'Police & Security' },
+  { id: 'od-police-si', name: 'Odisha Police Sub-Inspector Job Openings', url: 'https://police.odisha.gov.in/en/recruitment', category: 'Odisha', department: 'Police & Security' },
+  { id: 'od-fire-force', name: 'Odisha Fire Force and Disaster Services', url: 'https://fire.odisha.gov.in/', category: 'Odisha', department: 'Police & Security' },
+
+  // Education / Teachers Recruitment
+  { id: 'od-education', name: 'Odisha School & Mass Education Department', url: 'https://education.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-teachers', name: 'Odisha Teacher Eligibility Test (OTET)', url: 'https://odshs.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-tre', name: 'Odisha Teacher Recruitment Exam (TRE) Council', url: 'https://odsha.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-pgt-tgt', name: 'Odisha PGT/TGT Teacher Deployment Portal', url: 'https://education.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-school-teachers', name: 'Odisha School Teachers Cadre Allocation', url: 'https://education.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-secondary-board', name: 'Board of Secondary Education Odisha (BSE)', url: 'https://bseodisha.ac.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-bed', name: 'Odisha Professional B.Ed Admissions Office', url: 'https://dte.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+
+  // Health
+  { id: 'od-health', name: 'Odisha Health & Family Welfare Department', url: 'https://health.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+  { id: 'od-health-medical', name: 'Odisha Directorate of Health Services Office', url: 'https://healthservices.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+  { id: 'od-health-nursing', name: 'Odisha Nursing and Midwives Council Office', url: 'https://nursing.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+  { id: 'od-health-ayush', name: 'Odisha State Directorate of AYUSH Systems', url: 'https://ayush.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+  { id: 'od-health-med-edu', name: 'Odisha Directorate of Medical Education (DMET)', url: 'https://medicaleducation.odisha.gov.in/', category: 'Odisha', department: 'Health Department' },
+
+  // Agriculture & Forest
+  { id: 'od-agri', name: 'Odisha Agriculture & Farmers Empowerment Office', url: 'https://agriculture.odisha.gov.in/', category: 'Odisha', department: 'Agriculture Department' },
+  { id: 'od-horticulture', name: 'Odisha Directorate of Horticulture Progress', url: 'https://horticulture.odisha.gov.in/', category: 'Odisha', department: 'Agriculture Department' },
+  { id: 'od-forest', name: 'Odisha Forest, Environment & Climate Change', url: 'https://forest.odisha.gov.in/', category: 'Odisha', department: 'Forest & Environment' },
+  { id: 'od-animal-husbandry', name: 'Odisha Fisheries & Animal Resources Dep', url: 'https://ah.odisha.gov.in/', category: 'Odisha', department: 'Agriculture Department' },
+  { id: 'od-fisheries', name: 'Odisha Director of Fisheries Inland & Marine', url: 'https://fisheries.odisha.gov.in/', category: 'Odisha', department: 'Agriculture Department' },
+
+  // Transport
+  { id: 'od-transport', name: 'Odisha Commerce & Transport Department Office', url: 'https://transport.odisha.gov.in/', category: 'Odisha', department: 'Transport & Infrastructure' },
+  { id: 'od-srtc', name: 'Odisha State Road Transport Corporation (OSRTC)', url: 'https://osrtc.odisha.gov.in/', category: 'Odisha', department: 'Transport & Infrastructure' },
+
+  // Power & Electricity
+  { id: 'od-power', name: 'Odisha Department of Energy grid and Power', url: 'https://power.odisha.gov.in/', category: 'Odisha', department: 'Power Sector' },
+  { id: 'od-gridco', name: 'Grid Corporation of Odisha (GRIDCO Ltd)', url: 'https://gridco.odisha.gov.in/', category: 'Odisha', department: 'Power Sector' },
+  { id: 'od-discom', name: 'Odisha Utility Joint Electricity Distribution (DISCOM)', url: 'https://discom.odisha.gov.in/', category: 'Odisha', department: 'Power Sector' },
+  { id: 'od-vidyut', name: 'Odisha Vidyut Prasaran & Generation Hub', url: 'https://odishapower.com/', category: 'Odisha', department: 'Power Sector' },
+
+  // Panchayat / Rural Dev
+  { id: 'od-panchayat', name: 'Odisha Panchayati Raj & Drinking Water', url: 'https://panchayat.odisha.gov.in/', category: 'Odisha', department: 'Rural Development' },
+  { id: 'od-rural-dev', name: 'Odisha Department of Rural Development Office', url: 'https://rd.odisha.gov.in/', category: 'Odisha', department: 'Rural Development' },
+  { id: 'od-nrega', name: 'MGNREGA Odisha Job Card Information System', url: 'https://nrega.odisha.gov.in/', category: 'Odisha', department: 'Rural Development' },
+
+  // Revenue & Lands
+  { id: 'od-revenue', name: 'Odisha Revenue & Disaster Management Department', url: 'https://revenue.odisha.gov.in/', category: 'Odisha', department: 'Revenue & Land Records' },
+  { id: 'od-land-records', name: 'Odisha Bhulekh Online Land Records Portal', url: 'https://bhulekh.odisha.gov.in/', category: 'Odisha', department: 'Revenue & Land Records' },
+  { id: 'od-registration', name: 'Odisha Inspector General of Registration (IGR)', url: 'https://registration.odisha.gov.in/', category: 'Odisha', department: 'Revenue & Land Records' },
+  { id: 'od-revenue-board', name: 'Odisha State Board of Revenue Administration', url: 'https://revenue.odisha.gov.in/', category: 'Odisha', department: 'Revenue & Land Records' },
+  { id: 'od-milaap', name: 'Odisha Milaap Land Consolidation & Records', url: 'https://milaap.odisha.gov.in/', category: 'Odisha', department: 'Revenue & Land Records' },
+
+  // Housing & Urban
+  { id: 'od-housing', name: 'Odisha Housing & Urban Development Department', url: 'https://housing.odisha.gov.in/', category: 'Odisha', department: 'Housing & Urban Development' },
+  { id: 'od-municipal', name: 'Odisha Municipal Administration Services Hub', url: 'https://municipal.odisha.gov.in/', category: 'Odisha', department: 'Housing & Urban Development' },
+  { id: 'od-urban-dev', name: 'Odisha Urban Development & Land Authority', url: 'https://udd.odisha.gov.in/', category: 'Odisha', department: 'Housing & Urban Development' },
+
+  // Finance & Taxes
+  { id: 'od-finance', name: 'Odisha State Department of Finance', url: 'https://finance.odisha.gov.in/', category: 'Odisha', department: 'Administration' },
+  { id: 'od-commercial-tax', name: 'Odisha Commercial Taxes and GST Division', url: 'https://tax.odisha.gov.in/', category: 'Odisha', department: 'Administration' },
+  { id: 'od-excise', name: 'Odisha State Excise Department Console', url: 'https://excise.odisha.gov.in/', category: 'Odisha', department: 'Administration' },
+
+  // Welfare Schemes
+  { id: 'od-scst-welfare', name: 'Odisha SC & ST Development Department', url: 'https://stwelfare.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+  { id: 'od-bc-welfare', name: 'Odisha Backward Classes Welfare Commission', url: 'https://bcwelfare.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+  { id: 'od-minority-welfare', name: 'Odisha Minorities & Backward Classes Dev', url: 'https://minority.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+  { id: 'od-wcd', name: 'Odisha Women and Child Development (WCD)', url: 'https://wcd.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+  { id: 'od-social-justice', name: 'Odisha Social Security & Empowerment (SSEPD)', url: 'https://socialjustice.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+  { id: 'od-disability', name: 'Odisha Differently Abled Persons Welfare Desk', url: 'https://disability.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+  { id: 'od-tribal', name: 'Odisha Scheduled Tribe Development Council', url: 'https://tribal.odisha.gov.in/', category: 'Odisha', department: 'Welfare Schemes' },
+
+  // Education Higher
+  { id: 'od-higher-education', name: 'Odisha Higher Education Department Office', url: 'https://he.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-technical-education', name: 'Odisha Directorate of Technical Education', url: 'https://dte.odisha.gov.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-school-board', name: 'Board of Secondary Education (BSE Odisha)', url: 'https://bseodisha.ac.in/', category: 'Odisha', department: 'Education Department' },
+  { id: 'od-university', name: 'Utkal University Main Campus Bhubaneswar', url: 'https://ouofbbsr.ac.in/', category: 'Odisha', department: 'Education Department' },
+
+  // Legal
+  { id: 'od-high-court', name: 'Odisha High Court Judicial Recruitment Office', url: 'https://odishahighcourt.gov.in/', category: 'Odisha', department: 'Government Gazettes' },
+  { id: 'od-acb', name: 'Odisha Anti-Corruption Vigilance Bureau', url: 'https://acb.odisha.gov.in/', category: 'Odisha', department: 'Administration' },
+
+  // E-Services
+  { id: 'od-edistrict', name: 'Odisha e-District Portal Citizen Service', url: 'https://edistrict.odisha.gov.in/', category: 'Odisha', department: 'E-Services' },
+  { id: 'od-online-services', name: 'Odisha Unified State Services Desk (Odisha.gov)', url: 'https://odisha.gov.in/services', category: 'Odisha', department: 'E-Services' },
+  { id: 'od-seva', name: 'Odisha Seva Citizen Services Delivery Gateway', url: 'https://seva.odisha.gov.in/', category: 'Odisha', department: 'E-Services' },
+
+  // Other Portals
+  { id: 'od-tourism', name: 'Odisha Tourism Development Corporation (OTDC)', url: 'https://odishatourism.gov.in/', category: 'Odisha', department: 'Tourism & Culture' },
+  { id: 'od-skill-dev', name: 'Skill Development & Technical Education', url: 'https://skillodisha.gov.in/', category: 'Odisha', department: 'Employment Services' },
+  { id: 'od-sjis-jobs', name: 'Odisha State Skill & Job Intake Portal (SJIS)', url: 'https://jobs.skillodisha.gov.in/', category: 'Odisha', department: 'Employment Services' },
+  { id: 'od-youth', name: 'Odisha Youth Welfare and Sports Affairs', url: 'https://youth.odisha.gov.in/', category: 'Odisha', department: 'Tourism & Culture' },
+  { id: 'od-sports', name: 'Odisha Sports and Youth Services Department', url: 'https://sports.odisha.gov.in/', category: 'Odisha', department: 'Tourism & Culture' },
+  { id: 'od-industries', name: 'Odisha Industrial Development Corporation IDCO', url: 'https://industries.odisha.gov.in/', category: 'Odisha', department: 'Industries & IT' },
+  { id: 'od-msme', name: 'Odisha MSME Development Commission Unit', url: 'https://msme.odisha.gov.in/', category: 'Odisha', department: 'Employment Services' },
+  { id: 'od-cooperative', name: 'Odisha Registrar of Cooperative Societies', url: 'https://cooperation.odisha.gov.in/', category: 'Odisha', department: 'Administrative Units' },
+  { id: 'od-food', name: 'Odisha Food Supplies & Consumer Welfare Desk', url: 'https://food.odisha.gov.in/', category: 'Odisha', department: 'Administration' },
 
   // --- PUNJAB GOVERNMENT WEBSITES ---
-  { id: 'pb-portal', name: 'Punjab State Government Portal', url: 'https://punjab.gov.in/', category: 'Punjab', department: 'Main State Portal' },
-  { id: 'pb-psc', name: 'Punjab Public Service Commission (PPSC)', url: 'https://ppsc.punjab.gov.in/', category: 'Punjab', department: 'Recruitment Board' },
-  { id: 'pb-police', name: 'Punjab Police Department', url: 'https://punjabpolice.gov.in/', category: 'Punjab', department: 'Police & Security' },
-  { id: 'pb-teachers', name: 'Punjab School Education Board', url: 'https://education.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
-  { id: 'pb-health', name: 'Punjab Health & Family Welfare', url: 'https://health.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+  // Main State Portals & Info
+  { id: 'pb-portal', name: 'Punjab State Government Portal (Official)', url: 'https://punjab.gov.in/', category: 'Punjab', department: 'Main State Portal' },
+  { id: 'pb-cmo', name: 'Punjab Chief Minister Office (CMO)', url: 'https://cmo.punjab.gov.in/', category: 'Punjab', department: 'Administration' },
+  { id: 'pb-cmo-releases', name: 'Punjab CM Press Releases Desk', url: 'https://cmo.punjab.gov.in/press', category: 'Punjab', department: 'Administration' },
+  { id: 'pb-latest-news', name: 'Punjab State Latest News Desk', url: 'https://punjab.gov.in/news', category: 'Punjab', department: 'Administration' },
+  { id: 'pb-services-eserv', name: 'eServices Punjab Unified Citizen Intake', url: 'https://eservices.punjab.gov.in/', category: 'Punjab', department: 'E-Services' },
+
+  // PPSC
+  { id: 'pb-psc', name: 'Punjab Public Service Commission (PPSC)', url: 'https://ppsc.gov.in/', category: 'Punjab', department: 'Recruitment Board' },
+  { id: 'pb-psc-results', name: 'PPSC Competitive Exam Results Desk', url: 'https://ppsc.gov.in/results', category: 'Punjab', department: 'Recruitment Board' },
+  { id: 'pb-psc-calendar', name: 'PPSC Recruitment Official Exam Calendar', url: 'https://ppsc.gov.in/exam-calendar', category: 'Punjab', department: 'Recruitment Board' },
+
+  // Police & Fire
+  { id: 'pb-police-main', name: 'Punjab State Police Headquarters Portal', url: 'https://punjabpolice.gov.in/', category: 'Punjab', department: 'Police & Security' },
+  { id: 'pb-police', name: 'Punjab Police Official Recruitment Cell (En/Rec)', url: 'https://punjabpolice.gov.in/en/recruitment', category: 'Punjab', department: 'Police & Security' },
+  { id: 'pb-police-constable', name: 'Punjab Police Constable Active Careers', url: 'https://punjabpolice.gov.in/en/recruitment', category: 'Punjab', department: 'Police & Security' },
+  { id: 'pb-police-si', name: 'Punjab Police Sub-Inspector Job Openings', url: 'https://punjabpolice.gov.in/en/recruitment', category: 'Punjab', department: 'Police & Security' },
+  { id: 'pb-fire-force', name: 'Punjab State Fire Force Unit Portal', url: 'https://fire.punjab.gov.in/', category: 'Punjab', department: 'Police & Security' },
+
+  // Teachers / Education Recruitment
+  { id: 'pb-education', name: 'Punjab School Education Department Portal', url: 'https://education.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-teachers', name: 'Punjab Teacher Eligibility Test Board (TET)', url: 'https://punjabtet.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-trb', name: 'Punjab Teacher Recruitment Board Office', url: 'https://education.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-pgt-tgt', name: 'Punjab PGT/TGT Teacher Deployment Console', url: 'https://education.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-school-teachers', name: 'Punjab School Teachers District Allocation', url: 'https://education.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-secondary-board', name: 'Punjab School Education Board Academic (PSEB)', url: 'https://bseply.edu.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-bed', name: 'Punjab Professional B.Ed Admissions Cell', url: 'https://dte.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+
+  // Health
+  { id: 'pb-health', name: 'Punjab Health & Family Welfare Department', url: 'https://health.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+  { id: 'pb-health-medical', name: 'Punjab Directorate of Health Services Office', url: 'https://healthservices.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+  { id: 'pb-health-nursing', name: 'Punjab Nursing Training and Registration Council', url: 'https://nursing.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+  { id: 'pb-health-ayush', name: 'Punjab State AYUSH Education Systems', url: 'https://ayush.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+  { id: 'pb-health-med-edu', name: 'Punjab Directorate of Medical Education (DRME)', url: 'https://medicaleducation.punjab.gov.in/', category: 'Punjab', department: 'Health Department' },
+
+  // Agriculture & Forest
+  { id: 'pb-agri', name: 'Punjab Department of Agriculture Development', url: 'https://agriculture.punjab.gov.in/', category: 'Punjab', department: 'Agriculture Department' },
+  { id: 'pb-horticulture', name: 'Punjab Directorate of Horticulture Board', url: 'https://horticulture.punjab.gov.in/', category: 'Punjab', department: 'Agriculture Department' },
+  { id: 'pb-forest', name: 'Punjab Forest, Ecology & Wildlife Agency', url: 'https://forest.punjab.gov.in/', category: 'Punjab', department: 'Forest & Environment' },
+  { id: 'pb-animal-husbandry', name: 'Punjab Animal Husbandry Commission Unit', url: 'https://ah.punjab.gov.in/', category: 'Punjab', department: 'Agriculture Department' },
+  { id: 'pb-fisheries', name: 'Punjab Fisheries Development Corporation', url: 'https://fisheries.punjab.gov.in/', category: 'Punjab', department: 'Agriculture Department' },
+
+  // Transport
+  { id: 'pb-transport', name: 'Punjab Transport & Vehicle Management', url: 'https://transport.punjab.gov.in/', category: 'Punjab', department: 'Transport & Infrastructure' },
+  { id: 'pb-stc', name: 'Punjab State Transmission Corporation (PSTC)', url: 'https://pstc.punjab.gov.in/', category: 'Punjab', department: 'Transport & Infrastructure' },
+
+  // Power
+  { id: 'pb-power', name: 'Punjab State Power Corporation Limited Portal', url: 'https://power.punjab.gov.in/', category: 'Punjab', department: 'Power Sector' },
+  { id: 'pb-vidyut', name: 'Punjab Vidyut Generation & Transverse Hub', url: 'https://punjabpower.com/', category: 'Punjab', department: 'Power Sector' },
+
+  // Panchayat / Rural Dev
+  { id: 'pb-panchayat', name: 'Punjab Panchayat Raj & Rural Dev Office', url: 'https://panchayat.punjab.gov.in/', category: 'Punjab', department: 'Rural Development' },
+  { id: 'pb-rural-dev', name: 'Punjab Unified Rural Development Councils', url: 'https://rd.punjab.gov.in/', category: 'Punjab', department: 'Rural Development' },
+  { id: 'pb-nrega', name: 'MGNREGA Punjab Labor & Job Card Information', url: 'https://nrega.punjab.gov.in/', category: 'Punjab', department: 'Rural Development' },
+
+  // Revenue & Land
+  { id: 'pb-revenue', name: 'Punjab Revenue & Rehabilitation Department', url: 'https://revenue.punjab.gov.in/', category: 'Punjab', department: 'Revenue & Land Records' },
+  { id: 'pb-land-records', name: 'Punjab Jamabandi Online Lands Record Portal', url: 'https://jamabandi.punjab.gov.in/', category: 'Punjab', department: 'Revenue & Land Records' },
+  { id: 'pb-registration', name: 'Punjab Stamp Inspector of Registration', url: 'https://registration.punjab.gov.in/', category: 'Punjab', department: 'Revenue & Land Records' },
+
+  // Housing & Urban
+  { id: 'pb-housing', name: 'Punjab State Housing & Urban Development Office', url: 'https://housing.punjab.gov.in/', category: 'Punjab', department: 'Housing & Urban Development' },
+  { id: 'pb-municipal', name: 'Punjab Municipal Governance & Work Service', url: 'https://municipal.punjab.gov.in/', category: 'Punjab', department: 'Housing & Urban Development' },
+  { id: 'pb-urban-dev', name: 'Punjab Urban Development Authority (PUDA)', url: 'https://udd.punjab.gov.in/', category: 'Punjab', department: 'Housing & Urban Development' },
+
+  // Finance & Taxes
+  { id: 'pb-finance', name: 'Punjab State Treasury & Finance Department', url: 'https://finance.punjab.gov.in/', category: 'Punjab', department: 'Administration' },
+  { id: 'pb-commercial-tax', name: 'Punjab Excise Commerce Taxes and GST', url: 'https://tax.punjab.gov.in/', category: 'Punjab', department: 'Administration' },
+  { id: 'pb-excise', name: 'Punjab State Prohibition and Excise Directorate', url: 'https://excise.punjab.gov.in/', category: 'Punjab', department: 'Administration' },
+
+  // Welfare Schemes
+  { id: 'pb-scst-welfare', name: 'Punjab Schedule Castes & Tribe Welfare Office', url: 'https://stwelfare.punjab.gov.in/', category: 'Punjab', department: 'Welfare Schemes' },
+  { id: 'pb-bc-welfare', name: 'Punjab Backward Classes Welfare Division', url: 'https://bcwelfare.punjab.gov.in/', category: 'Punjab', department: 'Welfare Schemes' },
+  { id: 'pb-minority-welfare', name: 'Punjab Minority Development Department', url: 'https://minority.punjab.gov.in/', category: 'Punjab', department: 'Welfare Schemes' },
+  { id: 'pb-wcd', name: 'Punjab Women and Children Development (WCD)', url: 'https://wcd.punjab.gov.in/', category: 'Punjab', department: 'Welfare Schemes' },
+  { id: 'pb-social-justice', name: 'Punjab Social Security & Empowerment Board', url: 'https://socialjustice.punjab.gov.in/', category: 'Punjab', department: 'Welfare Schemes' },
+
+  // Education Higher/Technical
+  { id: 'pb-higher-education', name: 'Punjab Higher Education Commission Unit', url: 'https://he.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-technical-education', name: 'Punjab Directorate of Technical Education', url: 'https://dte.punjab.gov.in/', category: 'Punjab', department: 'Education Department' },
+  { id: 'pb-board', name: 'Punjab Board of School Education (PSEB Council)', url: 'https://bseply.edu.in/', category: 'Punjab', department: 'Education Department' },
+
+  // Legal
+  { id: 'pb-high-court', name: 'Punjab portion of High Court Judicial Careers', url: 'https://chandigarhhighcourt.gov.in/', category: 'Punjab', department: 'Government Gazettes' },
+
+  // E-Services
+  { id: 'pb-eservices', name: 'Punjab eServices Unified Official Portal', url: 'https://eservices.punjab.gov.in/', category: 'Punjab', department: 'E-Services' },
+  { id: 'pb-online-services', name: 'Punjab Unified Digital Services Platform', url: 'https://punjab.gov.in/services', category: 'Punjab', department: 'E-Services' },
+
+  // Other Portals
+  { id: 'pb-tourism', name: 'Punjab Tourism Development Corp Office (PTDC)', url: 'https://tourism.punjab.gov.in/', category: 'Punjab', department: 'Tourism & Culture' },
+  { id: 'pb-skill-dev', name: 'Punjab Skill Development Mission Office', url: 'https://skil.punjab.gov.in/', category: 'Punjab', department: 'Employment Services' },
+  { id: 'pb-youth', name: 'Punjab Directorate of Sports and Youth Services', url: 'https://youth.punjab.gov.in/', category: 'Punjab', department: 'Tourism & Culture' },
+  { id: 'pb-sports', name: 'Punjab Sports Council Administration', url: 'https://sports.punjab.gov.in/', category: 'Punjab', department: 'Tourism & Culture' },
+  { id: 'pb-industries', name: 'Punjab Industrial Development Corporation Unit', url: 'https://industries.punjab.gov.in/', category: 'Punjab', department: 'Industries & IT' },
+  { id: 'pb-msme', name: 'Punjab MSME Business Incubation Program Desk', url: 'https://msme.punjab.gov.in/', category: 'Punjab', department: 'Employment Services' },
+
 
   // --- HARYANA GOVERNMENT WEBSITES ---
-  { id: 'hr-portal', name: 'Haryana State Government Portal', url: 'https://haryana.gov.in/', category: 'Haryana', department: 'Main State Portal' },
-  { id: 'hr-psc', name: 'Haryana Public Service Commission (HPPSC)', url: 'https://haryanapsc.gov.in', category: 'Haryana', department: 'Recruitment Board' },
+  // Main State Portals & Info
+  { id: 'hr-portal', name: 'Haryana State Government Portal (Official)', url: 'https://www.haryana.gov.in/', category: 'Haryana', department: 'Main State Portal' },
+  { id: 'hr-cmo', name: 'Haryana Chief Minister Office (CMO)', url: 'https://cmo.haryana.gov.in/', category: 'Haryana', department: 'Administration' },
+  { id: 'hr-cmo-releases', name: 'Haryana CM Press Releases Desk', url: 'https://cmo.haryana.gov.in/press-releases', category: 'Haryana', department: 'Administration' },
+  { id: 'hr-latest-news', name: 'Haryana Government Latest News Portal', url: 'https://www.haryana.gov.in/news', category: 'Haryana', department: 'Administration' },
+  { id: 'hr-saral', name: 'Saral Haryana Single Window Citizen Service', url: 'https://saral.haryana.gov.in/', category: 'Haryana', department: 'E-Services' },
+  { id: 'hr-intra', name: 'Intra Haryana Government Internal Console', url: 'https://intrahry.gov.in/', category: 'Haryana', department: 'E-Services' },
+
+  // HPPSC
+  { id: 'hr-psc', name: 'Haryana Public Service Commission (HPPSC)', url: 'https://hppsc.haryana.gov.in/', category: 'Haryana', department: 'Recruitment Board' },
+  { id: 'hr-psc-results', name: 'HPPSC Exam Merit Lists & Selection Desk', url: 'https://hppsc.haryana.gov.in/results', category: 'Haryana', department: 'Recruitment Board' },
+  { id: 'hr-psc-calendar', name: 'HPPSC Recruitment Official Exam Calendar', url: 'https://hppsc.haryana.gov.in/exam-calendar', category: 'Haryana', department: 'Recruitment Board' },
+
+  // HSSC
   { id: 'hr-ssc', name: 'Haryana Staff Selection Commission (HSSC)', url: 'https://hssc.haryana.gov.in/', category: 'Haryana', department: 'Recruitment Board' },
-  { id: 'hr-police', name: 'Haryana State Police', url: 'https://haryanapolice.gov.in/', category: 'Haryana', department: 'Police & Security' },
-  { id: 'hr-teachers', name: 'Haryana Department of School Education', url: 'https://educationhry.nic.in/', category: 'Haryana', department: 'Education Department' },
-  { id: 'hr-health', name: 'Haryana Health Department Division', url: 'https://healthhry.nic.in/', category: 'Haryana', department: 'Health Department' },
+  { id: 'hr-ssc-results', name: 'HSSC Competitive Selection Final Results', url: 'https://hssc.haryana.gov.in/results', category: 'Haryana', department: 'Recruitment Board' },
+  { id: 'hr-ssc-app', name: 'HSSC Online Application Direct Intake', url: 'https://hssc.haryana.gov.in/application', category: 'Haryana', department: 'Recruitment Board' },
+
+  // Police & Fire
+  { id: 'hr-police-main', name: 'Haryana State Police Headquarters Portal', url: 'https://haryanapolice.gov.in/', category: 'Haryana', department: 'Police & Security' },
+  { id: 'hr-police', name: 'Haryana Police Official Recruitment Bureau', url: 'https://haryanapolice.gov.in/en/recruitment', category: 'Haryana', department: 'Police & Security' },
+  { id: 'hr-police-constable', name: 'Haryana Police Constable Service Openings', url: 'https://haryanapolice.gov.in/en/recruitment', category: 'Haryana', department: 'Police & Security' },
+  { id: 'hr-police-si', name: 'Haryana Police Sub-Inspector Open Careers', url: 'https://haryanapolice.gov.in/en/recruitment', category: 'Haryana', department: 'Police & Security' },
+  { id: 'hr-fire-force', name: 'Haryana Fire Service and Emergency Board', url: 'https://firehry.gov.in/', category: 'Haryana', department: 'Police & Security' },
+
+  // Teachers / Education Recruitment
+  { id: 'hr-education', name: 'Haryana School Education Department System', url: 'https://educationhry.nic.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-teachers', name: 'Haryana Teacher Eligibility Test Board (HTET)', url: 'https://haryanatet.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-trb', name: 'Haryana Teacher Recruitment Board Core Desk', url: 'https://educationhry.nic.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-pgt-tgt', name: 'Haryana PGT/TGT Teacher Deployment System', url: 'https://educationhry.nic.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-school-teachers', name: 'Haryana School Teachers District Allotment', url: 'https://educationhry.nic.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-secondary-board', name: 'Board of School Education Haryana (BSEH)', url: 'https://bseh.org.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-bed', name: 'Haryana Professional B.Ed Admissions Office', url: 'https://dtehry.nic.in/', category: 'Haryana', department: 'Education Department' },
+
+  // Health
+  { id: 'hr-health', name: 'Haryana Health Department (Official Board)', url: 'https://haryanahealth.gov.in/', category: 'Haryana', department: 'Health Department' },
+  { id: 'hr-health-medical', name: 'Haryana Directorate of Health Services Office', url: 'https://healthserviceshry.nic.in/', category: 'Haryana', department: 'Health Department' },
+  { id: 'hr-health-nursing', name: 'Haryana Nurses and Nurse Midwives Council', url: 'https://nursinghry.nic.in/', category: 'Haryana', department: 'Health Department' },
+  { id: 'hr-health-ayush', name: 'Haryana State Directorate of AYUSH Systems', url: 'https://ayushhry.nic.in/', category: 'Haryana', department: 'Health Department' },
+  { id: 'hr-health-med-edu', name: 'Haryana Directorate of Medical Education Services', url: 'https://medicaleducationhry.nic.in/', category: 'Haryana', department: 'Health Department' },
+
+  // Agriculture & Forest
+  { id: 'hr-agri', name: 'Haryana Agriculture & Farmers Welfare Unit', url: 'https://agriculturehry.nic.in/', category: 'Haryana', department: 'Agriculture Department' },
+  { id: 'hr-horticulture', name: 'Haryana Directorate of Horticulture Portal', url: 'https://horticulturehry.nic.in/', category: 'Haryana', department: 'Agriculture Department' },
+  { id: 'hr-forest', name: 'Haryana Environment, Forest & Climate Office', url: 'https://foresthry.nic.in/', category: 'Haryana', department: 'Forest & Environment' },
+  { id: 'hr-animal-husbandry', name: 'Haryana Animal Husbandry & Dairying Unit', url: 'https://ahhry.nic.in/', category: 'Haryana', department: 'Agriculture Department' },
+  { id: 'hr-fisheries', name: 'Haryana State Fisheries Development Agency', url: 'https://fisherieshry.nic.in/', category: 'Haryana', department: 'Agriculture Department' },
+
+  // Transport
+  { id: 'hr-transport', name: 'Haryana Transport and State Vehicles Division', url: 'https://transporthry.nic.in/', category: 'Haryana', department: 'Transport & Infrastructure' },
+  { id: 'hr-stc', name: 'Haryana State Transmission Corp (HSTC)', url: 'https://hstc.hry.nic.in/', category: 'Haryana', department: 'Transport & Infrastructure' },
+
+  // Power
+  { id: 'hr-power', name: 'Haryana Department of Power & Electricity', url: 'https://powerhry.nic.in/', category: 'Haryana', department: 'Power Sector' },
+  { id: 'hr-hvpnl', name: 'Haryana Vidyut Prasaran Nigam Limited (HVPNL)', url: 'https://hvpnl.com/', category: 'Haryana', department: 'Power Sector' },
+  { id: 'hr-vidyut', name: 'Haryana Urja Vidyut Distribution & Grid', url: 'https://haryanapower.com/', category: 'Haryana', department: 'Power Sector' },
+
+  // Panchayat / Rural Dev
+  { id: 'hr-panchayat', name: 'Haryana Panchayat Raj & Rural Dev Council', url: 'https://panchayathry.nic.in/', category: 'Haryana', department: 'Rural Development' },
+  { id: 'hr-rural-dev', name: 'Haryana Department of Rural Development Board', url: 'https://rdhry.nic.in/', category: 'Haryana', department: 'Rural Development' },
+  { id: 'hr-nrega', name: 'MGNREGA Haryana Employment & Job Card Console', url: 'https://nhry.nic.in/', category: 'Haryana', department: 'Rural Development' },
+
+  // Revenue & Lands
+  { id: 'hr-revenue', name: 'Haryana Revenue & Disaster Management Office', url: 'https://revenuehry.nic.in/', category: 'Haryana', department: 'Revenue & Land Records' },
+  { id: 'hr-land-records', name: 'Haryana Jamabandi Online Record of Land Rights', url: 'https://jamabandi.nic.in/', category: 'Haryana', department: 'Revenue & Land Records' },
+  { id: 'hr-registration', name: 'Haryana Stamps and Registration Services Office', url: 'https://registrationhry.nic.in/', category: 'Haryana', department: 'Revenue & Land Records' },
+
+  // Housing & Urban
+  { id: 'hr-housing', name: 'Haryana Housing Board and Welfare Department', url: 'https://housinghry.nic.in/', category: 'Haryana', department: 'Housing & Urban Development' },
+  { id: 'hr-municipal', name: 'Haryana Municipal Administration Council Portal', url: 'https://municipalhry.nic.in/', category: 'Haryana', department: 'Housing & Urban Development' },
+  { id: 'hr-urban-dev', name: 'Haryana Urban Local Bodies Services (ULB)', url: 'https://uddhry.nic.in/', category: 'Haryana', department: 'Housing & Urban Development' },
+
+  // Finance & Taxes
+  { id: 'hr-finance', name: 'Haryana State Finance Department Office', url: 'https://financehry.nic.in/', category: 'Haryana', department: 'Administration' },
+  { id: 'hr-commercial-tax', name: 'Haryana Excise, Commercial Tax and GST', url: 'https://taxhry.nic.in/', category: 'Haryana', department: 'Administration' },
+  { id: 'hr-excise', name: 'Haryana State Prohibition & Excise Division', url: 'https://excisehry.nic.in/', category: 'Haryana', department: 'Administration' },
+
+  // Welfare Schemes
+  { id: 'hr-scst-welfare', name: 'Haryana Schedule Castes & Tribe Integration', url: 'https://stwelfarehry.nic.in/', category: 'Haryana', department: 'Welfare Schemes' },
+  { id: 'hr-bc-welfare', name: 'Haryana Welfare of Backward Classes Unit', url: 'https://bcwelfarehry.nic.in/', category: 'Haryana', department: 'Welfare Schemes' },
+  { id: 'hr-minority-welfare', name: 'Haryana Minorities Welfare Board Office', url: 'https://minorityhry.nic.in/', category: 'Haryana', department: 'Welfare Schemes' },
+  { id: 'hr-wcd', name: 'Haryana Women and Child Development (WCD)', url: 'https://wcdhry.nic.in/', category: 'Haryana', department: 'Welfare Schemes' },
+  { id: 'hr-social-justice', name: 'Haryana Social Justice, Welfare & Disability', url: 'https://socialjusticehry.nic.in/', category: 'Haryana', department: 'Welfare Schemes' },
+
+  // Higher Ed
+  { id: 'hr-higher-education', name: 'Haryana Higher Education Department (Official)', url: 'https://highereduhry.ac.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-technical-education', name: 'Haryana Directorate of Technical Education', url: 'https://dtehry.nic.in/', category: 'Haryana', department: 'Education Department' },
+  { id: 'hr-board', name: 'Board of School Education Haryana Sector BSEH', url: 'https://bseh.org.in/', category: 'Haryana', department: 'Education Department' },
+
+  // Legal
+  { id: 'hr-high-court', name: 'Haryana portion of High Court Judicial Careers', url: 'https://chandigarhhighcourt.gov.in/', category: 'Haryana', department: 'Government Gazettes' },
+
+  // E-Services
+  { id: 'hr-saral-service', name: 'Saral Haryana Unified Citizen Service Hub', url: 'https://saral.haryana.gov.in/', category: 'Haryana', department: 'E-Services' },
+  { id: 'hr-intra-portal', name: 'Intra Haryana Government Internal Systems', url: 'https://intrahry.gov.in/', category: 'Haryana', department: 'E-Services' },
+  { id: 'hr-edistrict', name: 'Haryana e-District Administration Platform', url: 'https://edistricthry.nic.in/', category: 'Haryana', department: 'E-Services' },
+
+  // Other Portals
+  { id: 'hr-tourism', name: 'Haryana Tourism Development Corporation (HTDC)', url: 'https://tourismhry.nic.in/', category: 'Haryana', department: 'Tourism & Culture' },
+  { id: 'hr-skill-dev', name: 'Paschim Banga Haryana Skill Development Board', url: 'https://skilhry.nic.in/', category: 'Haryana', department: 'Employment Services' },
+  { id: 'hr-youth', name: 'Haryana Youth Affairs Directorate Portal', url: 'https://youthhry.nic.in/', category: 'Haryana', department: 'Tourism & Culture' },
+  { id: 'hr-sports', name: 'Haryana Sports and Youth Affairs Department', url: 'https://sportshry.nic.in/', category: 'Haryana', department: 'Tourism & Culture' },
+  { id: 'hr-industries', name: 'Haryana Directorate of Industries & Commerce', url: 'https://industrieshry.nic.in/', category: 'Haryana', department: 'Industries & IT' },
+  { id: 'hr-msme', name: 'Haryana MSME Business Incubation Program Desk', url: 'https://msmehry.nic.in/', category: 'Haryana', department: 'Employment Services' },
 
   // --- JHARKHAND GOVERNMENT WEBSITES ---
   { id: 'jh-portal', name: 'Jharkhand State Government Portal', url: 'https://jharkhand.gov.in/', category: 'Jharkhand', department: 'Main State Portal' },
+  { id: 'jh-cmo', name: 'Jharkhand Chief Minister Office (CMO)', url: 'https://cmo.jharkhand.gov.in/', category: 'Jharkhand', department: 'Administration' },
+  { id: 'jh-nic', name: 'NIC Jharkhand Services Portal', url: 'https://jh.nic.in/', category: 'Jharkhand', department: 'E-Governance & NIC' },
   { id: 'jh-psc', name: 'Jharkhand Public Service Commission (JPSC)', url: 'https://jrpsc.jharkhand.gov.in/', category: 'Jharkhand', department: 'Recruitment Board' },
   { id: 'jh-ssc', name: 'Jharkhand Staff Selection Commission (JSSC)', url: 'https://jssc.jharkhand.gov.in/', category: 'Jharkhand', department: 'Recruitment Board' },
-  { id: 'jh-police', name: 'Jharkhand Police Force', url: 'https://police.jharkhand.gov.in/', category: 'Jharkhand', department: 'Police & Security' },
-  { id: 'jh-teachers', name: 'Jharkhand School Education Board', url: 'https://education.jharkhand.gov.in/', category: 'Jharkhand', department: 'Education Department' },
-  { id: 'jh-health', name: 'Jharkhand Health & Family Welfare', url: 'https://health.jharkhand.gov.in/', category: 'Jharkhand', department: 'Health Department' },
+  { id: 'jh-police', name: 'Jharkhand State Police Force', url: 'https://www.jhpolice.gov.in/', category: 'Jharkhand', department: 'Police & Security' },
+  { id: 'jh-police-rec', name: 'Jharkhand Police Recruitment Portal', url: 'https://www.jhpolice.gov.in/en/recruitment', category: 'Jharkhand', department: 'Police & Security' },
+  { id: 'jh-teachers', name: 'Jharkhand School Education Department', url: 'https://education.jharkhand.gov.in/', category: 'Jharkhand', department: 'Education Department' },
+  { id: 'jh-tet', name: 'Jharkhand Teacher Eligibility Test Portal', url: 'https://jhset.jharkhand.gov.in/', category: 'Jharkhand', department: 'Education Department' },
+  { id: 'jh-health', name: 'Jharkhand Health & Family Welfare Department', url: 'https://health.jharkhand.gov.in/', category: 'Jharkhand', department: 'Health Department' },
+  { id: 'jh-medical', name: 'Jharkhand Medical Services', url: 'https://healthservices.jharkhand.gov.in/', category: 'Jharkhand', department: 'Health Department' },
+  { id: 'jh-agri', name: 'Jharkhand Agriculture Directorate', url: 'https://agriculture.jharkhand.gov.in/', category: 'Jharkhand', department: 'Agriculture Department' },
+  { id: 'jh-forest', name: 'Jharkhand Forest & Environment Division', url: 'https://forest.jharkhand.gov.in/', category: 'Jharkhand', department: 'Environment & Forest' },
+  { id: 'jh-panchayat', name: 'Jharkhand Panchayat State Division', url: 'https://pr.jharkhand.gov.in/', category: 'Jharkhand', department: 'Panchayat & Rural Development' },
+  { id: 'jh-revenue', name: 'Jharkhand Revenue & Land Reforms', url: 'https://revenue.jharkhand.gov.in/', category: 'Jharkhand', department: 'Revenue & Land Records' },
+  { id: 'jh-land', name: 'Jharkhand Bhulekh Land Records', url: 'https://bhulekh.jharkhand.gov.in/', category: 'Jharkhand', department: 'Revenue & Land Records' },
+  { id: 'jh-housing', name: 'Jharkhand Housing & Urban Development', url: 'https://housing.jharkhand.gov.in/', category: 'Jharkhand', department: 'Housing & Urban Development' },
+  { id: 'jh-finance', name: 'Jharkhand State Finance Department', url: 'https://finance.jharkhand.gov.in/', category: 'Jharkhand', department: 'Finance & Treasury' },
+  { id: 'jh-welfare', name: 'Jharkhand SC / ST Welfare Ministry', url: 'https://stwelfare.jharkhand.gov.in/', category: 'Jharkhand', department: 'Welfare & Social Justice' },
+  { id: 'jh-wcd', name: 'Jharkhand Women & Child Development', url: 'https://wcd.jharkhand.gov.in/', category: 'Jharkhand', department: 'Welfare & Social Justice' },
+  { id: 'jh-higher-edu', name: 'Jharkhand Higher Educational Council', url: 'https://he.jharkhand.gov.in/', category: 'Jharkhand', department: 'Education Department' },
+  { id: 'jh-tech-edu', name: 'Jharkhand Directorate of Technical Education', url: 'https://dte.jharkhand.gov.in/', category: 'Jharkhand', department: 'Education Department' },
+  { id: 'jh-high-court', name: 'Jharkhand High Court Administration', url: 'https://jharkhandhighcourt.nic.in/', category: 'Jharkhand', department: 'Judiciary & Legal' },
+  { id: 'jh-edistrict', name: 'Jharkhand State e-District Portal', url: 'https://edistrict.jharkhand.gov.in/', category: 'Jharkhand', department: 'E-Services' },
+  { id: 'jh-tourism', name: 'Jharkhand State Tourism Department', url: 'https://tourism.jharkhand.gov.in/', category: 'Jharkhand', department: 'Tourism & Culture' },
+  { id: 'jh-skill', name: 'Jharkhand Skill Development Mission', url: 'https://skil.jharkhand.gov.in/', category: 'Jharkhand', department: 'Employment Services' },
+  { id: 'jh-industries', name: 'Jharkhand Directorate of Industries', url: 'https://industries.jharkhand.gov.in/', category: 'Jharkhand', department: 'Industries & IT' },
+  { id: 'jh-japit', name: 'JAP-IT Recruitment Board Desk', url: 'https://recruitment.jharkhand.gov.in/', category: 'Jharkhand', department: 'Recruitment Board' },
 
   // --- ASSAM GOVERNMENT WEBSITES ---
   { id: 'as-portal', name: 'Assam State Government Portal', url: 'https://assam.gov.in/', category: 'Assam', department: 'Main State Portal' },
+  { id: 'as-cmo', name: 'Assam Chief Minister Office (CMO)', url: 'https://cmo.assam.gov.in/', category: 'Assam', department: 'Administration' },
+  { id: 'as-nic', name: 'NIC Assam State Center Portal', url: 'https://assam.nic.in/', category: 'Assam', department: 'E-Governance & NIC' },
   { id: 'as-psc', name: 'Assam Public Service Commission (APSC)', url: 'https://apsc.in/', category: 'Assam', department: 'Recruitment Board' },
-  { id: 'as-police', name: 'Assam Police Headquarters', url: 'https://police.assam.gov.in/', category: 'Assam', department: 'Police & Security' },
-  { id: 'as-teachers', name: 'Assam Secondary Education Department', url: 'https://education.assam.gov.in/', category: 'Assam', department: 'Education Department' },
-  { id: 'as-health', name: 'Assam Health Department Commission', url: 'https://health.assam.gov.in/', category: 'Assam', department: 'Health Department' },
+  { id: 'as-police', name: 'Assam Police Department HQ', url: 'https://police.assam.gov.in/', category: 'Assam', department: 'Police & Security' },
+  { id: 'as-police-rec', name: 'Assam Police Recruitment Division', url: 'https://police.assam.gov.in/en/recruitment', category: 'Assam', department: 'Police & Security' },
+  { id: 'as-teachers', name: 'Assam School Education Department', url: 'https://education.assam.gov.in/', category: 'Assam', department: 'Education Department' },
+  { id: 'as-tet', name: 'Assam Teacher Eligibility Test Portal', url: 'https://assamtet.in/', category: 'Assam', department: 'Education Department' },
+  { id: 'as-health', name: 'Assam Health & Family Welfare Ministry', url: 'https://health.assam.gov.in/', category: 'Assam', department: 'Health Department' },
+  { id: 'as-medical', name: 'Assam Health Services Directorate', url: 'https://healthservices.assam.gov.in/', category: 'Assam', department: 'Health Department' },
+  { id: 'as-agri', name: 'Assam Agriculture Department Board', url: 'https://agriculture.assam.gov.in/', category: 'Assam', department: 'Agriculture Department' },
+  { id: 'as-forest', name: 'Assam Forest and Environment Board', url: 'https://forest.assam.gov.in/', category: 'Assam', department: 'Environment & Forest' },
+  { id: 'as-panchayat', name: 'Assam Panchayat & Rural State Department', url: 'https://pds.assam.gov.in/', category: 'Assam', department: 'Panchayat & Rural Development' },
+  { id: 'as-revenue', name: 'Assam Revenue and Disaster Management', url: 'https://revenue.assam.gov.in/', category: 'Assam', department: 'Revenue & Land Records' },
+  { id: 'as-land', name: 'Assam Bhulekh Dharitree Land Records', url: 'https://bhulekh.assam.gov.in/', category: 'Assam', department: 'Revenue & Land Records' },
+  { id: 'as-housing', name: 'Assam Housing State Board', url: 'https://housing.assam.gov.in/', category: 'Assam', department: 'Housing & Urban Development' },
+  { id: 'as-finance', name: 'Assam Central Finance Department', url: 'https://finance.assam.gov.in/', category: 'Assam', department: 'Finance & Treasury' },
+  { id: 'as-welfare', name: 'Assam SC / ST Welfare Department', url: 'https://stwelfare.assam.gov.in/', category: 'Assam', department: 'Welfare & Social Justice' },
+  { id: 'as-wcd', name: 'Assam Women & Child Welfare State Directorate', url: 'https://wcd.assam.gov.in/', category: 'Assam', department: 'Welfare & Social Justice' },
+  { id: 'as-higher-edu', name: 'Assam Secondary & Higher Educational Council', url: 'https://he.assam.gov.in/', category: 'Assam', department: 'Education Department' },
+  { id: 'as-tech-edu', name: 'Assam Directorate of Technical Education', url: 'https://dte.assam.gov.in/', category: 'Assam', department: 'Education Department' },
+  { id: 'as-high-court', name: 'Gauhati High Court Legal Portal', url: 'https://gc.nic.in/', category: 'Assam', department: 'Judiciary & Legal' },
+  { id: 'as-edistrict', name: 'Assam e-District citizen hub', url: 'https://edistrict.assam.gov.in/', category: 'Assam', department: 'E-Services' },
+  { id: 'as-tourism', name: 'Assam State Tourism Development Corporation', url: 'https://assamtourism.gov.in/', category: 'Assam', department: 'Tourism & Culture' },
+  { id: 'as-skill', name: 'Assam Skill Development Mission Authority', url: 'https://assamskild.in/', category: 'Assam', department: 'Employment Services' },
+  { id: 'as-industries', name: 'Assam Department of Industries & Commerce', url: 'https://industries.assam.gov.in/', category: 'Assam', department: 'Industries & IT' },
 
   // --- CHHATTISGARH GOVERNMENT WEBSITES ---
-  { id: 'cg-portal', name: 'Chhattisgarh State Government Portal', url: 'https://chhattisgarh.nic.in/', category: 'Chhattisgarh', department: 'Main State Portal' },
+  { id: 'cg-portal', name: 'Chhattisgarh State Government Portal', url: 'https://cgstate.gov.in/', category: 'Chhattisgarh', department: 'Main State Portal' },
+  { id: 'cg-cmo', name: 'Chhattisgarh Chief Minister Office (CMO)', url: 'https://cmo.cg.gov.in/', category: 'Chhattisgarh', department: 'Administration' },
+  { id: 'cg-nic', name: 'NIC Chhattisgarh State Center', url: 'https://cg.nic.in/', category: 'Chhattisgarh', department: 'E-Governance & NIC' },
   { id: 'cg-psc', name: 'Chhattisgarh Public Service Commission (CGPSC)', url: 'https://cgpsc.cg.gov.in/', category: 'Chhattisgarh', department: 'Recruitment Board' },
-  { id: 'cg-gbs', name: 'Chhattisgarh Board of Secondary Education', url: 'https://cgbs.cg.gov.in/', category: 'Chhattisgarh', department: 'Education Department' },
-  { id: 'cg-police', name: 'Chhattisgarh State Police HQ', url: 'https://police.cg.nic.in/', category: 'Chhattisgarh', department: 'Police & Security' },
-  { id: 'cg-teachers', name: 'Chhattisgarh Education Department', url: 'https://education.cg.nic.in/', category: 'Chhattisgarh', department: 'Education Department' },
-  { id: 'cg-health', name: 'Chhattisgarh Department of Health', url: 'https://health.cg.nic.in/', category: 'Chhattisgarh', department: 'Health Department' },
+  { id: 'cg-gbs', name: 'Chhattisgarh Board of Secondary Education (CGBSE)', url: 'https://cgbsebast.cg.gov.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-police', name: 'Chhattisgarh Bastar Police Security Force', url: 'https://bastarpolice.cg.gov.in/', category: 'Chhattisgarh', department: 'Police & Security' },
+  { id: 'cg-police-rec', name: 'Chhattisgarh State Police Recruitment Branch', url: 'https://cgpolice.cg.gov.in/en/recruitment', category: 'Chhattisgarh', department: 'Police & Security' },
+  { id: 'cg-education', name: 'Chhattisgarh State Education Portal (School/Edu)', url: 'https://eduportal.cg.nic.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-tet', name: 'Chhattisgarh Teacher Eligibility Test Dashboard', url: 'https://cgtet.cg.gov.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-health', name: 'Chhattisgarh Health Department Administration', url: 'https://www.cghealth.nic.in/', category: 'Chhattisgarh', department: 'Health Department' },
+  { id: 'cg-medical', name: 'Chhattisgarh Director of Medical Education (CGDME)', url: 'https://cgdme.in/', category: 'Chhattisgarh', department: 'Health Department' },
+  { id: 'cg-agri', name: 'Chhattisgarh Directorate of Agriculture', url: 'https://agriportal.cg.nic.in/', category: 'Chhattisgarh', department: 'Agriculture Department' },
+  { id: 'cg-horticulture', name: 'Chhattisgarh Horticultural Services Portal', url: 'https://agriportal.cg.nic.in/horticulture/', category: 'Chhattisgarh', department: 'Agriculture Department' },
+  { id: 'cg-forest', name: 'Chhattisgarh Forest State Division', url: 'https://fest.cg.gov.in/', category: 'Chhattisgarh', department: 'Environment & Forest' },
+  { id: 'cg-husbandry', name: 'Chhattisgarh Animal Husbandry Division', url: 'https://agriportal.cg.nic.in/ahd/ahdEn/default.aspx', category: 'Chhattisgarh', department: 'Agriculture Department' },
+  { id: 'cg-panchayat', name: 'Chhattisgarh Panchayat & Rural Development (PRD)', url: 'http://prd.cg.gov.in/', category: 'Chhattisgarh', department: 'Panchayat & Rural Development' },
+  { id: 'cg-revenue', name: 'Chhattisgarh Revenue & Land Resources Division', url: 'https://revenue.cg.nic.in/', category: 'Chhattisgarh', department: 'Revenue & Land Records' },
+  { id: 'cg-land', name: 'Chhattisgarh Bhulekh Land Records Desk', url: 'https://bhulekh.cg.gov.in/', category: 'Chhattisgarh', department: 'Revenue & Land Records' },
+  { id: 'cg-housing', name: 'Chhattisgarh Housing and Urban Development Board', url: 'https://housing.cg.gov.in/', category: 'Chhattisgarh', department: 'Housing & Urban Development' },
+  { id: 'cg-finance', name: 'Chhattisgarh Finance & Taxation Department', url: 'https://finance.cg.gov.in/', category: 'Chhattisgarh', department: 'Finance & Treasury' },
+  { id: 'cg-welfare', name: 'Chhattisgarh State Tribes & SC/ST Welfare Dept', url: 'https://tribal.cg.gov.in/', category: 'Chhattisgarh', department: 'Welfare & Social Justice' },
+  { id: 'cg-wcd', name: 'Chhattisgarh Women & Child Development Directorate', url: 'https://cgwcd.gov.in/', category: 'Chhattisgarh', department: 'Welfare & Social Justice' },
+  { id: 'cg-higher-edu', name: 'Chhattisgarh Higher Education Council', url: 'https://highereducation.cg.gov.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-tech-edu', name: 'Chhattisgarh Directorate of Technical Education', url: 'https://dte.cg.gov.in/', category: 'Chhattisgarh', department: 'Education Department' },
+  { id: 'cg-high-court', name: 'Chhattisgarh High Court Administration Portal', url: 'https://chhattisgarhhighcourt.nic.in/', category: 'Chhattisgarh', department: 'Judiciary & Legal' },
+  { id: 'cg-edistrict', name: 'Chhattisgarh e-District Administrative Services', url: 'https://edistrict.cg.gov.in/', category: 'Chhattisgarh', department: 'E-Services' },
+  { id: 'cg-tourism', name: 'Chhattisgarh Tourism Board Division', url: 'https://tourism.cgstate.gov.in/', category: 'Chhattisgarh', department: 'Tourism & Culture' },
+  { id: 'cg-skill', name: 'Chhattisgarh Rojgar & Skill Recruitment Portal', url: 'https://erojgar.cg.gov.in/', category: 'Chhattisgarh', department: 'Employment Services' },
+  { id: 'cg-industries', name: 'Chhattisgarh Directorate of Industries & Trade', url: 'https://industries.cg.gov.in/', category: 'Chhattisgarh', department: 'Industries & IT' },
 
   // --- UTTARAKHAND GOVERNMENT WEBSITES ---
   { id: 'uk-portal', name: 'Uttarakhand State Government Portal', url: 'https://uk.gov.in/', category: 'Uttarakhand', department: 'Main State Portal' },
+  { id: 'uk-cmo', name: 'Uttarakhand Chief Minister Office (CMO)', url: 'https://cm.uk.gov.in/', category: 'Uttarakhand', department: 'Administration' },
+  { id: 'uk-nic', name: 'NIC Uttarakhand Services Portal', url: 'https://uk.nic.in/', category: 'Uttarakhand', department: 'E-Governance & NIC' },
   { id: 'uk-psc', name: 'Uttarakhand Public Service Commission (UKPSC)', url: 'https://ukpsc.gov.in/', category: 'Uttarakhand', department: 'Recruitment Board' },
-  { id: 'uk-police', name: 'Uttarakhand Police force', url: 'https://ukpolice.gov.in/', category: 'Uttarakhand', department: 'Police & Security' },
+  { id: 'uk-police', name: 'Uttarakhand State Police Force HQ', url: 'https://ukpolice.gov.in/', category: 'Uttarakhand', department: 'Police & Security' },
+  { id: 'uk-police-rec', name: 'Uttarakhand Police Force Recruitment Desk', url: 'https://ukpolice.gov.in/en/recruitment', category: 'Uttarakhand', department: 'Police & Security' },
   { id: 'uk-teachers', name: 'Uttarakhand School Education Portal', url: 'https://education.uk.gov.in/', category: 'Uttarakhand', department: 'Education Department' },
-  { id: 'uk-health', name: 'Uttarakhand Health General Services', url: 'https://health.uk.gov.in/', category: 'Uttarakhand', department: 'Health Department' },
+  { id: 'uk-tet', name: 'Uttarakhand Teacher Eligibility Test Portal', url: 'https://uktet.gov.in/', category: 'Uttarakhand', department: 'Education Department' },
+  { id: 'uk-health', name: 'Uttarakhand Health and Family Welfare Directorate', url: 'https://health.uk.gov.in/', category: 'Uttarakhand', department: 'Health Department' },
+  { id: 'uk-medical', name: 'Uttarakhand Medical Health Education Services', url: 'https://healthservices.uk.gov.in/', category: 'Uttarakhand', department: 'Health Department' },
+  { id: 'uk-agri', name: 'Uttarakhand Director of Agriculture', url: 'https://agriculture.uk.gov.in/', category: 'Uttarakhand', department: 'Agriculture Department' },
+  { id: 'uk-forest', name: 'Uttarakhand Forest Protection Department', url: 'https://forest.uk.gov.in/', category: 'Uttarakhand', department: 'Environment & Forest' },
+  { id: 'uk-panchayat', name: 'Uttarakhand State Panchayati Raj Department', url: 'https://pdk.uk.gov.in/', category: 'Uttarakhand', department: 'Panchayat & Rural Development' },
+  { id: 'uk-revenue', name: 'Uttarakhand Land Revenue Board', url: 'https://revenue.uk.gov.in/', category: 'Uttarakhand', department: 'Revenue & Land Records' },
+  { id: 'uk-land', name: 'Uttarakhand Bhulekh Digital Land Records', url: 'https://bhulekh.uk.gov.in/', category: 'Uttarakhand', department: 'Revenue & Land Records' },
+  { id: 'uk-housing', name: 'Uttarakhand Housing & Urban Development Board', url: 'https://housing.uk.gov.in/', category: 'Uttarakhand', department: 'Housing & Urban Development' },
+  { id: 'uk-finance', name: 'Uttarakhand Finance and Taxation Board', url: 'https://finance.uk.gov.in/', category: 'Uttarakhand', department: 'Finance & Treasury' },
+  { id: 'uk-welfare', name: 'Uttarakhand SC/ST/OBC Welfare Directorate', url: 'https://stwelfare.uk.gov.in/', category: 'Uttarakhand', department: 'Welfare & Social Justice' },
+  { id: 'uk-wcd', name: 'Uttarakhand Women Empowerment & Child Development', url: 'https://wcd.uk.gov.in/', category: 'Uttarakhand', department: 'Welfare & Social Justice' },
+  { id: 'uk-higher-edu', name: 'Uttarakhand Higher Educational Board', url: 'https://he.uk.gov.in/', category: 'Uttarakhand', department: 'Education Department' },
+  { id: 'uk-tech-edu', name: 'Uttarakhand Directorate of Technical Education', url: 'https://dte.uk.gov.in/', category: 'Uttarakhand', department: 'Education Department' },
+  { id: 'uk-high-court', name: 'Uttarakhand High Court Legal Administration', url: 'https://ukhighcourt.gov.in/', category: 'Uttarakhand', department: 'Judiciary & Legal' },
+  { id: 'uk-edistrict', name: 'Uttarakhand e-District Citizen Services', url: 'https://edistrict.uk.gov.in/', category: 'Uttarakhand', department: 'E-Services' },
+  { id: 'uk-tourism', name: 'Uttarakhand State Tourism Development Board', url: 'https://uttarakhandtourism.gov.in/', category: 'Uttarakhand', department: 'Tourism & Culture' },
+  { id: 'uk-skill', name: 'Uttarakhand Skill Development Mission Desk', url: 'https://skil.uk.gov.in/', category: 'Uttarakhand', department: 'Employment Services' },
+  { id: 'uk-industries', name: 'Uttarakhand Directorate of Industries', url: 'https://industries.uk.gov.in/', category: 'Uttarakhand', department: 'Industries & IT' },
 
   // --- HIMACHAL PRADESH GOVERNMENT WEBSITES ---
   { id: 'hp-portal', name: 'Himachal Pradesh State Government Portal', url: 'https://himachal.nic.in/', category: 'Himachal Pradesh', department: 'Main State Portal' },
-  { id: 'hp-ssc', name: 'Himachal Pradesh Staff Selection Commission', url: 'https://hpssc.hp.gov.in/', category: 'Himachal Pradesh', department: 'Recruitment Board' },
-  { id: 'hp-psc', name: 'Himachal Pradesh Public Service Commission', url: 'https://hppsc.hp.gov.in/', category: 'Himachal Pradesh', department: 'Recruitment Board' },
+  { id: 'hp-cmo', name: 'Himachal Pradesh Chief Minister Office (CMO)', url: 'https://cmo.hp.gov.in/', category: 'Himachal Pradesh', department: 'Administration' },
+  { id: 'hp-nic', name: 'NIC Himachal Pradesh State Center', url: 'https://hp.nic.in/', category: 'Himachal Pradesh', department: 'E-Governance & NIC' },
+  { id: 'hp-psc', name: 'Himachal Pradesh Public Service Commission (HPPSC)', url: 'https://hppsc.hp.gov.in/', category: 'Himachal Pradesh', department: 'Recruitment Board' },
+  { id: 'hp-ssc', name: 'Himachal Pradesh Staff Selection Commission (HPSSC)', url: 'https://hpssc.hp.gov.in/', category: 'Himachal Pradesh', department: 'Recruitment Board' },
   { id: 'hp-police', name: 'Himachal Pradesh State Police Force', url: 'https://hppolice.gov.in/', category: 'Himachal Pradesh', department: 'Police & Security' },
-  { id: 'hp-teachers', name: 'Himachal Department of Higher Education', url: 'https://education.hp.nic.in/', category: 'Himachal Pradesh', department: 'Education Department' },
-  { id: 'hp-health', name: 'Himachal Health & Family Welfare department', url: 'https://health.hp.nic.in/', category: 'Himachal Pradesh', department: 'Health Department' },
+  { id: 'hp-police-rec', name: 'Himachal State Police Recruitment Portal', url: 'https://hppolice.gov.in/en/recruitment', category: 'Himachal Pradesh', department: 'Police & Security' },
+  { id: 'hp-education', name: 'Himachal School Education Department', url: 'https://education.hp.nic.in/', category: 'Himachal Pradesh', department: 'Education Department' },
+  { id: 'hp-tet', name: 'Himachal Pradesh Teacher Eligibility Test (HPTET)', url: 'https://hptet.hp.nic.in/', category: 'Himachal Pradesh', department: 'Education Department' },
+  { id: 'hp-health', name: 'Himachal Health and Family Welfare Directorate', url: 'https://health.hp.nic.in/', category: 'Himachal Pradesh', department: 'Health Department' },
+  { id: 'hp-medical', name: 'Himachal Health & Medical Services Directorate', url: 'https://healthservices.hp.nic.in/', category: 'Himachal Pradesh', department: 'Health Department' },
+  { id: 'hp-agri', name: 'Himachal Pradesh Central Agriculture Dept', url: 'https://agriculture.hp.nic.in/', category: 'Himachal Pradesh', department: 'Agriculture Department' },
+  { id: 'hp-forest', name: 'Himachal Pradesh Forest State Division', url: 'https://forest.hp.nic.in/', category: 'Himachal Pradesh', department: 'Environment & Forest' },
+  { id: 'hp-panchayat', name: 'Himachal Pradesh Panchayati Raj Department', url: 'https://panchayat.hp.nic.in/', category: 'Himachal Pradesh', department: 'Panchayat & Rural Development' },
+  { id: 'hp-revenue', name: 'Himachal Pradesh Department of Land Revenue', url: 'https://revenue.hp.nic.in/', category: 'Himachal Pradesh', department: 'Revenue & Land Records' },
+  { id: 'hp-land', name: 'Himachal Bhulekh Digital Land Records', url: 'https://bhulekh.hp.nic.in/', category: 'Himachal Pradesh', department: 'Revenue & Land Records' },
+  { id: 'hp-housing', name: 'Himachal Pradesh Housing Development Board', url: 'https://housing.hp.nic.in/', category: 'Himachal Pradesh', department: 'Housing & Urban Development' },
+  { id: 'hp-finance', name: 'Himachal State Finance & Accounts Treasury', url: 'https://finance.hp.nic.in/', category: 'Himachal Pradesh', department: 'Finance & Treasury' },
+  { id: 'hp-welfare', name: 'Himachal SC / ST Welfare Department', url: 'https://stwelfare.hp.nic.in/', category: 'Himachal Pradesh', department: 'Welfare & Social Justice' },
+  { id: 'hp-wcd', name: 'Himachal Women & Child Empowerment Directorate', url: 'https://wcd.hp.nic.in/', category: 'Himachal Pradesh', department: 'Welfare & Social Justice' },
+  { id: 'hp-higher-edu', name: 'Himachal Higher Secondary Educational Council', url: 'https://he.hp.nic.in/', category: 'Himachal Pradesh', department: 'Education Department' },
+  { id: 'hp-tech-edu', name: 'Himachal Directorate of Technical Education (DTE)', url: 'https://dte.hp.nic.in/', category: 'Himachal Pradesh', department: 'Education Department' },
+  { id: 'hp-high-court', name: 'Himachal Pradesh High Court Justice Portal', url: 'https://himachalhighcourt.nic.in/', category: 'Himachal Pradesh', department: 'Judiciary & Legal' },
+  { id: 'hp-edistrict', name: 'Himachal Pradesh e-District Service Hub', url: 'https://edistrict.hp.nic.in/', category: 'Himachal Pradesh', department: 'E-Services' },
+  { id: 'hp-tourism', name: 'Himachal Pradesh State Tourism Board', url: 'https://himachaltourism.gov.in/', category: 'Himachal Pradesh', department: 'Tourism & Culture' },
+  { id: 'hp-skill', name: 'Himachal State Skill Development Mission', url: 'https://skil.hp.nic.in/', category: 'Himachal Pradesh', department: 'Employment Services' },
+  { id: 'hp-industries', name: 'Himachal Directorate of Industries & Commerce', url: 'https://industries.hp.nic.in/', category: 'Himachal Pradesh', department: 'Industries & IT' },
 
   // --- JAMMU AND KASHMIR (UT) GOVERNMENT WEBSITES ---
   { id: 'jk-portal', name: 'Jammu & Kashmir Government Portal', url: 'https://jk.gov.in/', category: 'Jammu & Kashmir', department: 'Main State Portal' },
@@ -988,32 +1764,119 @@ export const MONITORED_WEBSITES: MonitoredWebsite[] = [
   { id: 'jk-health', name: 'J&K Department of Family Welfare', url: 'https://health.jk.gov.in/', category: 'Jammu & Kashmir', department: 'Health Department' },
 
   // --- TRIPURA GOVERNMENT WEBSITES ---
-  { id: 'tr-portal', name: 'Tripura State Government Portal', url: 'https://tripura.nic.in/', category: 'Tripura', department: 'Main State Portal' },
+  { id: 'tr-portal', name: 'Tripura State Government Portal', url: 'https://tripura.gov.in/', category: 'Tripura', department: 'Main State Portal' },
+  { id: 'tr-cmo', name: 'Tripura Chief Minister Office (CMO)', url: 'https://cmo.tripura.gov.in/', category: 'Tripura', department: 'Administration' },
+  { id: 'tr-nic', name: 'NIC Tripura Center E-Services Portal', url: 'https://tripura.nic.in/', category: 'Tripura', department: 'E-Governance & NIC' },
   { id: 'tr-psc', name: 'Tripura Public Service Commission (TPSC)', url: 'https://tppsc.tripura.gov.in/', category: 'Tripura', department: 'Recruitment Board' },
-  { id: 'tr-police', name: 'Tripura State Police', url: 'https://police.tripura.gov.in/', category: 'Tripura', department: 'Police & Security' },
-  { id: 'tr-teachers', name: 'Tripura Higher Education Board', url: 'https://education.tripura.gov.in/', category: 'Tripura', department: 'Education Department' },
+  { id: 'tr-police', name: 'Tripura State Police Force HQ', url: 'https://police.tripura.gov.in/', category: 'Tripura', department: 'Police & Security' },
+  { id: 'tr-police-rec', name: 'Tripura Police Force Recruitment Division', url: 'https://police.tripura.gov.in/en/recruitment', category: 'Tripura', department: 'Police & Security' },
+  { id: 'tr-education', name: 'Tripura Secondary Education Department', url: 'https://education.tripura.gov.in/', category: 'Tripura', department: 'Education Department' },
+  { id: 'tr-tet', name: 'Tripura Teacher Eligibility Test (TET)', url: 'https://tripuratet.in/', category: 'Tripura', department: 'Education Department' },
+  { id: 'tr-health', name: 'Tripura Health & Family Welfare Ministry', url: 'https://health.tripura.gov.in/', category: 'Tripura', department: 'Health Department' },
+  { id: 'tr-medical', name: 'Tripura Director of Health Services', url: 'https://healthservices.tripura.gov.in/', category: 'Tripura', department: 'Health Department' },
+  { id: 'tr-agri', name: 'Tripura Department of Agriculture Board', url: 'https://agriculture.tripura.gov.in/', category: 'Tripura', department: 'Agriculture Department' },
+  { id: 'tr-forest', name: 'Tripura Forest Division Office', url: 'https://forest.tripura.gov.in/', category: 'Tripura', department: 'Environment & Forest' },
+  { id: 'tr-panchayat', name: 'Tripura Directorate of Panchayati Raj', url: 'https://prd.tripura.gov.in/', category: 'Tripura', department: 'Panchayat & Rural Development' },
+  { id: 'tr-revenue', name: 'Tripura Revenue & Land Records Board', url: 'https://revenue.tripura.gov.in/', category: 'Tripura', department: 'Revenue & Land Records' },
+  { id: 'tr-housing', name: 'Tripura State Housing Board', url: 'https://housing.tripura.gov.in/', category: 'Tripura', department: 'Housing & Urban Development' },
+  { id: 'tr-finance', name: 'Tripura Central Finance Ministry Office', url: 'https://finance.tripura.gov.in/', category: 'Tripura', department: 'Finance & Treasury' },
+  { id: 'tr-welfare', name: 'Tripura Tribal & SC / ST Welfare Dept', url: 'https://stwelfare.tripura.gov.in/', category: 'Tripura', department: 'Welfare & Social Justice' },
+  { id: 'tr-wcd', name: 'Tripura Women & Child Empowerment Directorate', url: 'https://wcd.tripura.gov.in/', category: 'Tripura', department: 'Welfare & Social Justice' },
+  { id: 'tr-higher-edu', name: 'Tripura Higher Education Board Office', url: 'https://he.tripura.gov.in/', category: 'Tripura', department: 'Education Department' },
+  { id: 'tr-high-court', name: 'Tripura State High Court Justice Portal', url: 'https://tripurahighcourt.gov.in/', category: 'Tripura', department: 'Judiciary & Legal' },
+  { id: 'tr-edistrict', name: 'Tripura State e-District Portal', url: 'https://edistrict.tripura.gov.in/', category: 'Tripura', department: 'E-Services' },
+  { id: 'tr-tourism', name: 'Tripura Tourism Development Corporation', url: 'https://tripuratourism.gov.in/', category: 'Tripura', department: 'Tourism & Culture' },
+  { id: 'tr-industries', name: 'Tripura Directorate of Industries & Commerce', url: 'https://industries.tripura.gov.in/', category: 'Tripura', department: 'Industries & IT' },
 
   // --- MANIPUR GOVERNMENT WEBSITES ---
   { id: 'mn-portal', name: 'Manipur State Government Portal', url: 'https://manipur.gov.in/', category: 'Manipur', department: 'Main State Portal' },
+  { id: 'mn-cmo', name: 'Manipur Chief Minister Office (CMO)', url: 'https://cmo.manipur.gov.in/', category: 'Manipur', department: 'Administration' },
+  { id: 'mn-nic', name: 'NIC Manipur E-Governance Portal', url: 'https://manipur.nic.in/', category: 'Manipur', department: 'E-Governance & NIC' },
   { id: 'mn-psc', name: 'Manipur Public Service Commission (MPPSC)', url: 'https://mppsc.manipur.gov.in/', category: 'Manipur', department: 'Recruitment Board' },
-  { id: 'mn-police', name: 'Manipur State Police Department', url: 'https://police.manipur.gov.in/', category: 'Manipur', department: 'Police & Security' },
-  { id: 'mn-teachers', name: 'Manipur Secondary Education Department', url: 'https://education.manipur.gov.in/', category: 'Manipur', department: 'Education Department' },
+  { id: 'mn-police', name: 'Manipur State Police Department HQ', url: 'https://police.manipur.gov.in/', category: 'Manipur', department: 'Police & Security' },
+  { id: 'mn-police-rec', name: 'Manipur State Police Recruitment Center', url: 'https://police.manipur.gov.in/en/recruitment', category: 'Manipur', department: 'Police & Security' },
+  { id: 'mn-education', name: 'Manipur Secondary Education Department', url: 'https://education.manipur.gov.in/', category: 'Manipur', department: 'Education Department' },
+  { id: 'mn-health', name: 'Manipur Health & Family Welfare Ministry', url: 'https://health.manipur.gov.in/', category: 'Manipur', department: 'Health Department' },
+  { id: 'mn-medical', name: 'Manipur Directorate of Health Services Office', url: 'https://healthservices.manipur.gov.in/', category: 'Manipur', department: 'Health Department' },
+  { id: 'mn-agri', name: 'Manipur Directorate of Agriculture', url: 'https://agriculture.manipur.gov.in/', category: 'Manipur', department: 'Agriculture Department' },
+  { id: 'mn-forest', name: 'Manipur State Forest Office', url: 'https://forest.manipur.gov.in/', category: 'Manipur', department: 'Environment & Forest' },
+  { id: 'mn-panchayat', name: 'Manipur Directorate of Rural & Panchayats', url: 'https://pds.manipur.gov.in/', category: 'Manipur', department: 'Panchayat & Rural Development' },
+  { id: 'mn-revenue', name: 'Manipur Board of Land Revenue', url: 'https://revenue.manipur.gov.in/', category: 'Manipur', department: 'Revenue & Land Records' },
+  { id: 'mn-housing', name: 'Manipur State Housing Division', url: 'https://housing.manipur.gov.in/', category: 'Manipur', department: 'Housing & Urban Development' },
+  { id: 'mn-finance', name: 'Manipur Finance and Taxation Division', url: 'https://finance.manipur.gov.in/', category: 'Manipur', department: 'Finance & Treasury' },
+  { id: 'mn-welfare', name: 'Manipur SC / ST Tribal Welfare Dept', url: 'https://stwelfare.manipur.gov.in/', category: 'Manipur', department: 'Welfare & Social Justice' },
+  { id: 'mn-wcd', name: 'Manipur Directorate of Women & Child welfare', url: 'https://wcd.manipur.gov.in/', category: 'Manipur', department: 'Welfare & Social Justice' },
+  { id: 'mn-higher-edu', name: 'Manipur Higher Secondary Education Council', url: 'https://he.manipur.gov.in/', category: 'Manipur', department: 'Education Department' },
+  { id: 'mn-high-court', name: 'Manipur High Court Legal Portal', url: 'https://manipurhighcourt.nic.in/', category: 'Manipur', department: 'Judiciary & Legal' },
+  { id: 'mn-edistrict', name: 'Manipur e-District State Center', url: 'https://edistrict.manipur.gov.in/', category: 'Manipur', department: 'E-Services' },
+  { id: 'mn-tourism', name: 'Manipur Tourism Board Office', url: 'https://manipurtourism.gov.in/', category: 'Manipur', department: 'Tourism & Culture' },
+  { id: 'mn-industries', name: 'Manipur Directorate of Industries & Commerce', url: 'https://industries.manipur.gov.in/', category: 'Manipur', department: 'Industries & IT' },
 
   // --- MEGHALAYA GOVERNMENT WEBSITES ---
   { id: 'me-portal', name: 'Meghalaya State Government Portal', url: 'https://meghalaya.gov.in/', category: 'Meghalaya', department: 'Main State Portal' },
+  { id: 'me-cmo', name: 'Meghalaya Chief Minister Office (CMO)', url: 'https://cmo.meghalaya.gov.in/', category: 'Meghalaya', department: 'Administration' },
+  { id: 'me-nic', name: 'NIC Meghalaya Services Portal', url: 'https://meghalaya.nic.in/', category: 'Meghalaya', department: 'E-Governance & NIC' },
   { id: 'me-psc', name: 'Meghalaya Public Service Commission (MPSC)', url: 'https://mpsc.meghalaya.gov.in/', category: 'Meghalaya', department: 'Recruitment Board' },
   { id: 'me-police', name: 'Meghalaya Police Headquarters', url: 'https://police.meghalaya.gov.in/', category: 'Meghalaya', department: 'Police & Security' },
+  { id: 'me-police-rec', name: 'Meghalaya Police Recruitment Division', url: 'https://police.meghalaya.gov.in/en/recruitment', category: 'Meghalaya', department: 'Police & Security' },
   { id: 'me-teachers', name: 'Meghalaya State Education Board', url: 'https://education.meghalaya.gov.in/', category: 'Meghalaya', department: 'Education Department' },
+  { id: 'me-health', name: 'Meghalaya Directorate of Health & Welfare', url: 'https://health.meghalaya.gov.in/', category: 'Meghalaya', department: 'Health Department' },
+  { id: 'me-medical', name: 'Meghalaya Health Services Directorate', url: 'https://healthservices.meghalaya.gov.in/', category: 'Meghalaya', department: 'Health Department' },
+  { id: 'me-agri', name: 'Meghalaya Department of Agriculture', url: 'https://agriculture.meghalaya.gov.in/', category: 'Meghalaya', department: 'Agriculture Department' },
+  { id: 'me-forest', name: 'Meghalaya Forest and Wildlife Division', url: 'https://forest.meghalaya.gov.in/', category: 'Meghalaya', department: 'Environment & Forest' },
+  { id: 'me-panchayat', name: 'Meghalaya Panchayati Raj & Rural (PDS)', url: 'https://pds.meghalaya.gov.in/', category: 'Meghalaya', department: 'Panchayat & Rural Development' },
+  { id: 'me-revenue', name: 'Meghalaya Revenue and Land Survey Board', url: 'https://revenue.meghalaya.gov.in/', category: 'Meghalaya', department: 'Revenue & Land Records' },
+  { id: 'me-housing', name: 'Meghalaya State Housing Directorate', url: 'https://housing.meghalaya.gov.in/', category: 'Meghalaya', department: 'Housing & Urban Development' },
+  { id: 'me-finance', name: 'Meghalaya Central Finance Department', url: 'https://finance.meghalaya.gov.in/', category: 'Meghalaya', department: 'Finance & Treasury' },
+  { id: 'me-welfare', name: 'Meghalaya Tribes and SC/ST Welfare Dept', url: 'https://stwelfare.meghalaya.gov.in/', category: 'Meghalaya', department: 'Welfare & Social Justice' },
+  { id: 'me-wcd', name: 'Meghalaya Directorate of Women & Child welfare', url: 'https://wcd.meghalaya.gov.in/', category: 'Meghalaya', department: 'Welfare & Social Justice' },
+  { id: 'me-higher-edu', name: 'Meghalaya Higher School and Board Council', url: 'https://he.meghalaya.gov.in/', category: 'Meghalaya', department: 'Education Department' },
+  { id: 'me-high-court', name: 'Meghalaya High Court Legal Administration', url: 'https://meghalayahighcourt.gov.in/', category: 'Meghalaya', department: 'Judiciary & Legal' },
+  { id: 'me-edistrict', name: 'Meghalaya e-District Support Desk', url: 'https://edistrict.meghalaya.gov.in/', category: 'Meghalaya', department: 'E-Services' },
+  { id: 'me-tourism', name: 'Meghalaya State Tourism Board', url: 'https://meghalayatourism.gov.in/', category: 'Meghalaya', department: 'Tourism & Culture' },
+  { id: 'me-industries', name: 'Meghalaya Directorate of Industries & Commerce', url: 'https://industries.meghalaya.gov.in/', category: 'Meghalaya', department: 'Industries & IT' },
 
   // --- MIZORAM GOVERNMENT WEBSITES ---
   { id: 'mz-portal', name: 'Mizoram State Government Portal', url: 'https://mizoram.nic.in/', category: 'Mizoram', department: 'Main State Portal' },
-  { id: 'mz-psc', name: 'Mizoram Public Service Commission', url: 'https://secs.mizoram.gov.in/', category: 'Mizoram', department: 'Recruitment Board' },
+  { id: 'mz-cmo', name: 'Mizoram Chief Minister Office (CMO)', url: 'https://cmo.mizoram.gov.in/', category: 'Mizoram', department: 'Administration' },
+  { id: 'mz-nic', name: 'NIC Mizoram Services Portal', url: 'https://mizoram.nic.in/', category: 'Mizoram', department: 'E-Governance & NIC' },
+  { id: 'mz-psc', name: 'Mizoram Public Service Commission (MPSC)', url: 'https://secs.mizoram.gov.in/', category: 'Mizoram', department: 'Recruitment Board' },
   { id: 'mz-police', name: 'Mizoram State Police Force', url: 'https://police.mizoram.gov.in/', category: 'Mizoram', department: 'Police & Security' },
+  { id: 'mz-police-rec', name: 'Mizoram Police Force Recruitment Desk', url: 'https://police.mizoram.gov.in/en/recruitment', category: 'Mizoram', department: 'Police & Security' },
+  { id: 'mz-education', name: 'Mizoram State School Education Board', url: 'https://education.mizoram.gov.in/', category: 'Mizoram', department: 'Education Department' },
+  { id: 'mz-health', name: 'Mizoram State Health services Division', url: 'https://health.mizoram.gov.in/', category: 'Mizoram', department: 'Health Department' },
+  { id: 'mz-agriculture', name: 'Mizoram Directorate of Agriculture Board', url: 'https://agriculture.mizoram.gov.in/', category: 'Mizoram', department: 'Agriculture Department' },
+  { id: 'mz-forest', name: 'Mizoram Forestry and Wildlife Section', url: 'https://forest.mizoram.gov.in/', category: 'Mizoram', department: 'Environment & Forest' },
+  { id: 'mz-revenue', name: 'Mizoram Board of Revenue and Land Surveys', url: 'https://revenue.mizoram.gov.in/', category: 'Mizoram', department: 'Revenue & Land Records' },
+  { id: 'mz-housing', name: 'Mizoram State Housing & Urban department', url: 'https://housing.mizoram.gov.in/', category: 'Mizoram', department: 'Housing & Urban Development' },
+  { id: 'mz-finance', name: 'Mizoram Central Finance Division', url: 'https://finance.mizoram.gov.in/', category: 'Mizoram', department: 'Finance & Treasury' },
+  { id: 'mz-wcd', name: 'Mizoram Women & Child Empowerment Directorate', url: 'https://wcd.mizoram.gov.in/', category: 'Mizoram', department: 'Welfare & Social Justice' },
+  { id: 'mz-higher-edu', name: 'Mizoram Board of Higher Education Office', url: 'https://he.mizoram.gov.in/', category: 'Mizoram', department: 'Education Department' },
+  { id: 'mz-high-court', name: 'Mizoram High Court Judicial Desk', url: 'https://mizoramhighcourt.nic.in/', category: 'Mizoram', department: 'Judiciary & Legal' },
+  { id: 'mz-edistrict', name: 'Mizoram e-District Citizen Hub', url: 'https://edistrict.mizoram.gov.in/', category: 'Mizoram', department: 'E-Services' },
+  { id: 'mz-tourism', name: 'Mizoram State Tourism Department', url: 'https://mizoramtourism.gov.in/', category: 'Mizoram', department: 'Tourism & Culture' },
+  { id: 'mz-industries', name: 'Mizoram Directorate of Industries & Trade', url: 'https://industries.mizoram.gov.in/', category: 'Mizoram', department: 'Industries & IT' },
 
   // --- NAGALAND GOVERNMENT WEBSITES ---
   { id: 'ng-portal', name: 'Nagaland State Government Portal', url: 'https://nagaland.gov.in/', category: 'Nagaland', department: 'Main State Portal' },
+  { id: 'ng-cmo', name: 'Nagaland Chief Minister Office (CMO)', url: 'https://cmo.nagaland.gov.in/', category: 'Nagaland', department: 'Administration' },
+  { id: 'ng-nic', name: 'NIC Nagaland E-Governance Services', url: 'https://nagaland.nic.in/', category: 'Nagaland', department: 'E-Governance & NIC' },
   { id: 'ng-psc', name: 'Nagaland Public Service Commission (NPSC)', url: 'https://npsc.nagaland.gov.in/', category: 'Nagaland', department: 'Recruitment Board' },
-  { id: 'ng-police', name: 'Nagaland State Police', url: 'https://police.nagaland.gov.in/', category: 'Nagaland', department: 'Police & Security' },
+  { id: 'ng-police', name: 'Nagaland State Police Headquarters', url: 'https://police.nagaland.gov.in/', category: 'Nagaland', department: 'Police & Security' },
+  { id: 'ng-police-rec', name: 'Nagaland Police Force Recruitment Unit', url: 'https://police.nagaland.gov.in/en/recruitment', category: 'Nagaland', department: 'Police & Security' },
+  { id: 'ng-education', name: 'Nagaland State School Education Board', url: 'https://education.nagaland.gov.in/', category: 'Nagaland', department: 'Education Department' },
+  { id: 'ng-health', name: 'Nagaland Directorate of Health & Welfare', url: 'https://health.nagaland.gov.in/', category: 'Nagaland', department: 'Health Department' },
+  { id: 'ng-agriculture', name: 'Nagaland Directorate of Agriculture Office', url: 'https://agriculture.nagaland.gov.in/', category: 'Nagaland', department: 'Agriculture Department' },
+  { id: 'ng-forest', name: 'Nagaland Forestry and Protecting Division', url: 'https://forest.nagaland.gov.in/', category: 'Nagaland', department: 'Environment & Forest' },
+  { id: 'ng-revenue', name: 'Nagaland Directorate of Land Revenue', url: 'https://revenue.nagaland.gov.in/', category: 'Nagaland', department: 'Revenue & Land Records' },
+  { id: 'ng-housing', name: 'Nagaland State Housing Office', url: 'https://housing.nagaland.gov.in/', category: 'Nagaland', department: 'Housing & Urban Development' },
+  { id: 'ng-finance', name: 'Nagaland Central Finance Ministry Department', url: 'https://finance.nagaland.gov.in/', category: 'Nagaland', department: 'Finance & Treasury' },
+  { id: 'ng-wcd', name: 'Nagaland Women & Child Welfare Directorate', url: 'https://wcd.nagaland.gov.in/', category: 'Nagaland', department: 'Welfare & Social Justice' },
+  { id: 'ng-higher-edu', name: 'Nagaland Higher School Educational Council', url: 'https://he.nagaland.gov.in/', category: 'Nagaland', department: 'Education Department' },
+  { id: 'ng-high-court', name: 'Nagaland High Court Justice Board', url: 'https://nagalandhighcourt.nic.in/', category: 'Nagaland', department: 'Judiciary & Legal' },
+  { id: 'ng-edistrict', name: 'Nagaland State e-District Portal', url: 'https://edistrict.nagaland.gov.in/', category: 'Nagaland', department: 'E-Services' },
+  { id: 'ng-tourism', name: 'Nagaland Tourism Development Board', url: 'https://nagalandtourism.gov.in/', category: 'Nagaland', department: 'Tourism & Culture' },
+  { id: 'ng-industries', name: 'Nagaland Directorate of Industries and Trade', url: 'https://industries.nagaland.gov.in/', category: 'Nagaland', department: 'Industries & IT' },
 
   // --- SIKKIM GOVERNMENT WEBSITES ---
   { id: 'sk-portal', name: 'Sikkim State Government Portal', url: 'https://sikkim.gov.in/', category: 'Sikkim', department: 'Main State Portal' },
@@ -1027,8 +1890,20 @@ export const MONITORED_WEBSITES: MonitoredWebsite[] = [
 
   // --- GOA GOVERNMENT WEBSITES ---
   { id: 'ga-portal', name: 'Goa State Government Portal', url: 'https://www.goa.gov.in/', category: 'Goa', department: 'Main State Portal' },
+  { id: 'ga-cmo', name: 'Goa Chief Minister Office (CMO)', url: 'https://cmo.goa.gov.in/', category: 'Goa', department: 'Administration' },
+  { id: 'ga-nic', name: 'NIC Goa Digital Center Portal', url: 'https://goa.gov.in/', category: 'Goa', department: 'E-Governance & NIC' },
   { id: 'ga-psc', name: 'Goa Public Service Commission (GPSC)', url: 'https://gpsc.goa.gov.in/', category: 'Goa', department: 'Recruitment Board' },
-  { id: 'ga-police', name: 'Goa Police Department', url: 'https://police.goa.gov.in/', category: 'Goa', department: 'Police & Security' },
+  { id: 'ga-police', name: 'Goa Police Department HQ', url: 'https://police.goa.gov.in/', category: 'Goa', department: 'Police & Security' },
+  { id: 'ga-police-rec', name: 'Goa Police Recruitment Board Division', url: 'https://police.goa.gov.in/en/recruitment', category: 'Goa', department: 'Police & Security' },
+  { id: 'ga-education', name: 'Goa School Education Directorate Office', url: 'https://education.goa.gov.in/', category: 'Goa', department: 'Education Department' },
+  { id: 'ga-tet', name: 'Goa Teacher Eligibility Test (TET) Board', url: 'https://goatet.goa.gov.in/', category: 'Goa', department: 'Education Department' },
+  { id: 'ga-health', name: 'Goa Health and Family Welfare Services', url: 'https://health.goa.gov.in/', category: 'Goa', department: 'Health Department' },
+  { id: 'ga-medical', name: 'Goa Central Medical and Health Department', url: 'https://healthservices.goa.gov.in/', category: 'Goa', department: 'Health Department' },
+  { id: 'ga-agri', name: 'Goa Directorate of Agriculture Division', url: 'https://agriculture.goa.gov.in/', category: 'Goa', department: 'Agriculture Department' },
+  { id: 'ga-forest', name: 'Goa Forest State Safeguard Division', url: 'https://forest.goa.gov.in/', category: 'Goa', department: 'Environment & Forest' },
+  { id: 'ga-panchayat', name: 'Goa State Panchayat Directorate Office', url: 'https://panchayat.goa.gov.in/', category: 'Goa', department: 'Panchayat & Rural Development' },
+  { id: 'ga-revenue', name: 'Goa State Land Revenue Board', url: 'https://revenue.goa.gov.in/', category: 'Goa', department: 'Revenue & Land Records' },
+  { id: 'ga-land', name: 'Goa Bhulekh Digital Land Records Office', url: 'https://bhulekh.goa.gov.in/', category: 'Goa', department: 'Revenue & Land Records' },
 
   // --- DELHI NCT GOVERNMENT WEBSITES ---
   { id: 'dl-portal', name: 'Delhi Govt Information Portal', url: 'https://delhi.gov.in/', category: 'Delhi', department: 'Main State Portal' },

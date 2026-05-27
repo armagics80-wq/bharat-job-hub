@@ -17,6 +17,8 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       phoneNumber: '',
       age: 18,
       category: 'UR',
+      nationalCategory: 'UR',
+      stateCategory: 'STATE_GEN',
       isExServiceman: false,
       qualifications: [],
       state: '',
@@ -35,13 +37,15 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
 
     if (!initialData) return defaultData;
 
-        return {
-          ...defaultData,
-          ...initialData,
-          qualifications: initialData.qualifications || ((initialData as any).qualification ? [(initialData as any).qualification as any] : []),
-          subscriptions: initialData.subscriptions || defaultData.subscriptions
-        };
-      });
+    return {
+      ...defaultData,
+      ...initialData,
+      qualifications: initialData.qualifications || ((initialData as any).qualification ? [(initialData as any).qualification as any] : []),
+      subscriptions: initialData.subscriptions || defaultData.subscriptions,
+      nationalCategory: initialData.nationalCategory || initialData.category || 'UR',
+      stateCategory: initialData.stateCategory || (initialData.state === 'Telangana' ? 'TS_OC' : initialData.state === 'Andhra Pradesh' ? 'AP_OC' : initialData.state === 'Punjab' ? 'PB_GEN' : initialData.state === 'Haryana' ? 'HR_GEN' : 'STATE_GEN')
+    };
+  });
 
   const [qualSearch, setQualSearch] = useState('');
 
@@ -70,265 +74,398 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         </div>
         <div>
           <h2 className="text-sm font-bold text-slate-900">Eligibility Profile</h2>
-          <p className="text-[10px] text-slate-500 uppercase tracking-tight">Enter details for reservation matching</p>
+          <p className="text-[10px] text-slate-500 uppercase tracking-tight">Configure location and reservation parameters first to check matching vacancies</p>
         </div>
       </div>
 
-      <div className="space-y-4 mb-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Full Name
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.fullName}
-              onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-              placeholder="Enter full name"
-            />
+      <div className="space-y-6 mb-6">
+        
+        {/* 1. Domicile & Reservation Matrix (2 Columns) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 border border-slate-200/60 rounded-xl shadow-sm">
+          
+          {/* Column 1: State Selection & Reservation Category */}
+          <div className="space-y-4">
+            <div className="border-b border-indigo-100 pb-1.5 flex items-center gap-2">
+              <span className="w-1.5 h-3 bg-indigo-600 rounded-full"></span>
+              <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider block">State Domicile & local Quota</span>
+            </div>
+
+            {/* A. State Selection */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                State Selection <span className="text-indigo-600 font-bold">*</span>
+              </label>
+              <select
+                id="profile-state-select"
+                required
+                value={formData.state}
+                onChange={(e) => {
+                  const newState = e.target.value;
+                  let defaultStateCat = 'STATE_GEN';
+                  if (newState === 'Telangana') defaultStateCat = 'TS_OC';
+                  if (newState === 'Andhra Pradesh') defaultStateCat = 'AP_OC';
+                  if (newState === 'Punjab') defaultStateCat = 'PB_GEN';
+                  if (newState === 'Haryana') defaultStateCat = 'HR_GEN';
+                  
+                  setFormData({ 
+                    ...formData, 
+                    state: newState, 
+                    district: '', 
+                    stateCategory: defaultStateCat 
+                  });
+                }}
+                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+              >
+                <option value="">Select State</option>
+                {Object.keys(STATES_AND_DISTRICTS).sort().map(state => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* B. State Reservation Category (Comes after State Selection) */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                State Reservation Category <span className="text-indigo-600 font-bold">*</span>
+              </label>
+              <select
+                id="profile-state-category-select"
+                required
+                disabled={!formData.state}
+                value={formData.stateCategory || ''}
+                onChange={(e) => setFormData({ ...formData, stateCategory: e.target.value })}
+                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                {!formData.state ? (
+                  <option value="">Select state first</option>
+                ) : (
+                  <>
+                    {formData.state === 'Telangana' && (
+                      <>
+                        <option value="TS_OC">General / General (TS OC)</option>
+                        <option value="TS_EWS">Economically Weaker Section (TS EWS)</option>
+                        <option value="BC_A">Backward Classes - Group A (TS BC-A)</option>
+                        <option value="BC_B">Backward Classes - Group B (TS BC-B)</option>
+                        <option value="BC_C">Backward Classes - Group C (TS BC-C)</option>
+                        <option value="BC_D">Backward Classes - Group D (TS BC-D)</option>
+                        <option value="BC_E">Backward Classes - Group E (TS BC-E)</option>
+                        <option value="TS_SC">Scheduled Caste (TS SC)</option>
+                        <option value="TS_ST">Scheduled Tribe (TS ST)</option>
+                      </>
+                    )}
+                    {formData.state === 'Andhra Pradesh' && (
+                      <>
+                        <option value="AP_OC">General / General (AP OC)</option>
+                        <option value="AP_EWS">Economically Weaker Section (AP EWS)</option>
+                        <option value="AP_BC_A">Backward Classes - Group A (AP BC-A)</option>
+                        <option value="AP_BC_B">Backward Classes - Group B (AP BC-B)</option>
+                        <option value="AP_BC_C">Backward Classes - Group C (AP BC-C)</option>
+                        <option value="AP_BC_D">Backward Classes - Group D (AP BC-D)</option>
+                        <option value="AP_BC_E">Backward Classes - Group E (AP BC-E)</option>
+                        <option value="AP_SC">Scheduled Caste (AP SC)</option>
+                        <option value="AP_ST">Scheduled Tribe (AP ST)</option>
+                      </>
+                    )}
+                    {formData.state === 'Punjab' && (
+                      <>
+                        <option value="PB_GEN">General / Unreserved (Punjab UR)</option>
+                        <option value="PB_EWS">Economically Weaker Section (Punjab EWS)</option>
+                        <option value="PB_BC">Backward Classes (Punjab BC)</option>
+                        <option value="PB_SC_MZ">Balmiki / Mazhabi Sikh (Punjab SC-MZ)</option>
+                        <option value="PB_SC_OT">Other Scheduled Castes (Punjab SC-Others)</option>
+                        <option value="PB_LDESM">Lineal Descendants of ESM (Punjab LDESM)</option>
+                      </>
+                    )}
+                    {formData.state === 'Haryana' && (
+                      <>
+                        <option value="HR_GEN">General / Unreserved (Haryana UR)</option>
+                        <option value="HR_EWS">Economically Weaker Section (Haryana EWS)</option>
+                        <option value="HR_BCA">Backward Classes Block-A (Haryana BC-A)</option>
+                        <option value="HR_BCB">Backward Classes Block-B (Haryana BC-B)</option>
+                        <option value="HR_SC">Scheduled Caste (Haryana SC)</option>
+                        <option value="HR_DSC">Deprived Scheduled Caste (Haryana DSC)</option>
+                      </>
+                    )}
+                    {formData.state !== 'Telangana' && formData.state !== 'Andhra Pradesh' && formData.state !== 'Punjab' && formData.state !== 'Haryana' && (
+                      <>
+                        <option value="STATE_GEN">General / Unreserved (Local State)</option>
+                        <option value="STATE_EWS">Economically Weaker Section (State EWS)</option>
+                        <option value="STATE_OBC">Backward Class / OBC (State OBC)</option>
+                        <option value="STATE_SC">Scheduled Caste (State SC)</option>
+                        <option value="STATE_ST">Scheduled Tribe (State ST)</option>
+                      </>
+                    )}
+                  </>
+                )}
+              </select>
+            </div>
+
+            {/* C. District Selection */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                District Selection <span className="text-indigo-600 font-bold">*</span>
+              </label>
+              <select
+                id="profile-district-select"
+                required
+                disabled={!formData.state}
+                value={formData.district}
+                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
+                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                <option value="">Select District</option>
+                {formData.state && STATES_AND_DISTRICTS[formData.state] ? (
+                  STATES_AND_DISTRICTS[formData.state].map(dist => (
+                    <option key={dist} value={dist}>{dist}</option>
+                  ))
+                ) : (
+                  <option value="" disabled>Select state first</option>
+                )}
+              </select>
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              required
-              value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-              placeholder="Enter phone number"
-            />
+          {/* Column 2: National Level Selection & Other Special Reservations */}
+          <div className="space-y-4">
+            <div className="border-b border-indigo-100 pb-1.5 flex items-center gap-2">
+              <span className="w-1.5 h-3 bg-indigo-600 rounded-full"></span>
+              <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider block">National Level Categories</span>
+            </div>
+
+            {/* A. National Categories Reservation */}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                National Level Category Reservation <span className="text-indigo-600 font-bold">*</span>
+              </label>
+              <select
+                id="profile-national-category-select"
+                required
+                value={formData.nationalCategory || formData.category}
+                onChange={(e) => {
+                  const val = e.target.value as any;
+                  setFormData({ 
+                    ...formData, 
+                    nationalCategory: val,
+                    category: val
+                  });
+                }}
+                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+              >
+                <option value="UR">General / Unreserved (UR)</option>
+                <option value="EWS">Economically Weaker Section (EWS)</option>
+                <option value="OBC_NCL">OBC - Non Creamy Layer (OBC-NCL)</option>
+                <option value="OBC_CL">OBC - Creamy Layer (OBC-CL)</option>
+                <option value="SC">Scheduled Caste (SC)</option>
+                <option value="ST">Scheduled Tribe (ST)</option>
+              </select>
+            </div>
+
+            {/* B. Special Ex-Servicemen & Disability Quotas */}
+            <div className="space-y-2 pt-2.5">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                Special Reservations & Quotas
+              </label>
+              <div className="grid grid-cols-1 gap-2.5 p-3 bg-white border border-slate-200 rounded-xl shadow-inner">
+                <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.isExServiceman} 
+                    onChange={(e) => setFormData({ ...formData, isExServiceman: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-[11px] font-black text-slate-800 block leading-tight">Ex-Servicemen (ESM)</span>
+                    <span className="text-[8px] text-slate-450 block leading-none font-medium">Click if defensive or military veteran</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2.5 cursor-pointer border-t border-slate-100 pt-2.5 select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={formData.isPWD} 
+                    onChange={(e) => setFormData({ ...formData, isPWD: e.target.checked })}
+                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-[11px] font-black text-slate-800 block leading-tight">PwBD / PH (Physically Handicapped)</span>
+                    <span className="text-[8px] text-slate-450 block leading-none font-medium">Enables physically disabled seat reservation (+10y relaxation)</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
           </div>
+
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Age
-            </label>
-            <input
-              type="number"
-              required
-              min="18"
-              max="100"
-              value={formData.age || ''}
-              onChange={(e) => {
-                const val = e.target.value;
-                setFormData({ ...formData, age: val === '' ? 0 : parseInt(val) || 0 });
-              }}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-            />
+        {/* 2. Personal Information Section */}
+        <div className="border border-slate-200 p-4 rounded-xl space-y-4">
+          <div className="text-[11px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-1.5 flex items-center gap-2">
+            <span className="w-1 h-2.5 bg-slate-405 rounded-full"></span>
+            Personal Information
           </div>
 
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Gender
-            </label>
-            <select
-              required
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
-            >
-              <option value="Male">Male</option>
-              <option value="Female">Female</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-              <GraduationCap className="w-3 h-3" /> Select All Your Qualifications
-            </label>
-            
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Full Name
+              </label>
               <input
                 type="text"
-                placeholder="Search qualification (e.g. BTech, Nursing, ITI...)"
-                value={qualSearch}
-                onChange={(e) => setQualSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                required
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                placeholder="Enter full name"
               />
             </div>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[240px] overflow-y-auto space-y-4 shadow-inner">
-              {['School', 'Technical/Diploma', 'Degree', 'Postgraduate', 'Teaching', 'Special', 'Other'].map(cat => {
-                const qualsInCategory = filteredQuals.filter(q => q.category === cat);
-                if (qualsInCategory.length === 0) return null;
-                
-                return (
-                  <div key={cat} className="space-y-2">
-                    <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1">{cat}</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                      {qualsInCategory.map(q => {
-                        const isSelected = formData.qualifications.includes(q.id);
-                        return (
-                          <button
-                            key={q.id}
-                            type="button"
-                            onClick={() => {
-                              const newQuals = isSelected 
-                                ? formData.qualifications.filter(id => id !== q.id) 
-                                : [...formData.qualifications, q.id];
-                              setFormData({ ...formData, qualifications: newQuals });
-                            }}
-                            className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded border text-[10px] font-medium transition-all text-left ${
-                              isSelected 
-                              ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' 
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
-                            }`}
-                          >
-                            <span className="truncate">{q.label}</span>
-                            {isSelected && <Check className="w-3 h-3 shrink-0" />}
-                          </button>
-                        );
-                      })}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                required
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                placeholder="Enter phone number"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Age
+              </label>
+              <input
+                type="number"
+                required
+                min="18"
+                max="100"
+                value={formData.age || ''}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFormData({ ...formData, age: val === '' ? 0 : parseInt(val) || 0 });
+                }}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Gender
+              </label>
+              <select
+                required
+                value={formData.gender}
+                onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
+              >
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* 3. Educational Qualifications Section */}
+        <div className="border border-slate-200 p-4 rounded-xl space-y-4">
+          <div className="text-[11px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-1.5 flex items-center gap-2">
+            <span className="w-1 h-2.5 bg-slate-405 rounded-full"></span>
+            Educational Qualifications
+          </div>
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                <GraduationCap className="w-3 h-3" /> Select All Your Qualifications
+              </label>
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Search qualification (e.g. BTech, Nursing, ITI...)"
+                  value={qualSearch}
+                  onChange={(e) => setQualSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
+                />
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[240px] overflow-y-auto space-y-4 shadow-inner">
+                {['School', 'Technical/Diploma', 'Degree', 'Postgraduate', 'Teaching', 'Special', 'Other'].map(cat => {
+                  const qualsInCategory = filteredQuals.filter(q => q.category === cat);
+                  if (qualsInCategory.length === 0) return null;
+                  
+                  return (
+                    <div key={cat} className="space-y-2">
+                      <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1">{cat}</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {qualsInCategory.map(q => {
+                          const isSelected = formData.qualifications.includes(q.id);
+                          return (
+                            <button
+                              key={q.id}
+                              type="button"
+                              onClick={() => {
+                                const newQuals = isSelected 
+                                  ? formData.qualifications.filter(id => id !== q.id) 
+                                  : [...formData.qualifications, q.id];
+                                setFormData({ ...formData, qualifications: newQuals });
+                              }}
+                              className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded border text-[10px] font-medium transition-all text-left ${
+                                isSelected 
+                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' 
+                                : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
+                              }`}
+                            >
+                              <span className="truncate">{q.label}</span>
+                              {isSelected && <Check className="w-3 h-3 shrink-0" />}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
+                  );
+                })}
+                {filteredQuals.length === 0 && (
+                  <div className="text-center py-4 text-slate-400 text-xs italic">
+                    No qualifications found matching "{qualSearch}"
                   </div>
-                );
-              })}
-              {filteredQuals.length === 0 && (
-                <div className="text-center py-4 text-slate-400 text-xs italic">
-                  No qualifications found matching "{qualSearch}"
+                )}
+              </div>
+
+              {/* Selected Summary */}
+              {formData.qualifications.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {formData.qualifications.map(id => {
+                    let label: string = id;
+                    try {
+                      label = getQualificationById(id)?.label || id;
+                    } catch (e) {
+                      console.error("Error fetching qualification label:", e);
+                    }
+                    
+                    return (
+                      <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
+                        {label}
+                        <button 
+                          type="button"
+                          onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
+                          className="hover:text-rose-600"
+                        >
+                          <X className="w-2.5 h-2.5" />
+                        </button>
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
-
-            {/* Selected Summary */}
-            {formData.qualifications.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {formData.qualifications.map(id => {
-                  let label: string = id;
-                  try {
-                    label = getQualificationById(id)?.label || id;
-                  } catch (e) {
-                    console.error("Error fetching qualification label:", e);
-                  }
-                  
-                  return (
-                    <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
-                      {label}
-                      <button 
-                        type="button"
-                        onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
-                        className="hover:text-rose-600"
-                      >
-                        <X className="w-2.5 h-2.5" />
-                      </button>
-                    </span>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Category / Reservation
-            </label>
-            <select
-              required
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
-            >
-              <optgroup label="Central / Standard">
-                <option value="UR">General / Unreserved (UR)</option>
-                <option value="EWS">Economically Weaker Section (EWS)</option>
-                <option value="OBC_NCL">OBC - Non Creamy Layer</option>
-                <option value="OBC_CL">OBC - Creamy Layer</option>
-                <option value="SC">Scheduled Caste (SC)</option>
-                <option value="ST">Scheduled Tribe (ST)</option>
-              </optgroup>
-              <optgroup label="Telangana (TS)">
-                <option value="BC_A">BC-A (TS)</option>
-                <option value="BC_B">BC-B (TS)</option>
-                <option value="BC_C">BC-C (TS)</option>
-                <option value="BC_D">BC-D (TS)</option>
-                <option value="BC_E">BC-E (TS)</option>
-              </optgroup>
-              <optgroup label="Andhra Pradesh (AP)">
-                <option value="AP_BC_A">BC-A (AP)</option>
-                <option value="AP_BC_B">BC-B (AP)</option>
-                <option value="AP_BC_C">BC-C (AP)</option>
-                <option value="AP_BC_D">BC-D (AP)</option>
-                <option value="AP_BC_E">BC-E (AP)</option>
-              </optgroup>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-4 pt-0 sm:pt-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={formData.isExServiceman} 
-                onChange={(e) => setFormData({ ...formData, isExServiceman: e.target.checked })}
-                className="w-4 h-4 accent-indigo-600"
-              />
-              <span className="text-xs font-bold text-slate-700">Ex-Serviceman?</span>
-            </label>
-
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input 
-                type="checkbox" 
-                checked={formData.isPWD} 
-                onChange={(e) => setFormData({ ...formData, isPWD: e.target.checked })}
-                className="w-4 h-4 accent-indigo-600"
-              />
-              <span className="text-xs font-bold text-slate-700">PwBD / PH?</span>
-            </label>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              State
-            </label>
-            <select
-              required
-              value={formData.state}
-              onChange={(e) => {
-                const newState = e.target.value;
-                setFormData({ ...formData, state: newState, district: '' });
-              }}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
-            >
-              <option value="">Select State</option>
-              {Object.keys(STATES_AND_DISTRICTS).sort().map(state => (
-                <option key={state} value={state}>{state}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              District
-            </label>
-            <select
-              required
-              value={formData.district}
-              onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
-            >
-              <option value="">Select District</option>
-              {formData.state && STATES_AND_DISTRICTS[formData.state] ? (
-                STATES_AND_DISTRICTS[formData.state].map(dist => (
-                  <option key={dist} value={dist}>{dist}</option>
-                ))
-              ) : (
-                <option value="" disabled>Select state first</option>
-              )}
-            </select>
           </div>
         </div>
 

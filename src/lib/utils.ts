@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { QualificationType, UserProfile, Job } from '../types';
+import { QualificationType, UserProfile, Job, ReservationCategory } from '../types';
 import { getQualificationById } from '../data/qualifications';
 
 export function cn(...inputs: ClassValue[]) {
@@ -111,7 +111,14 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
       };
     }
 
-    const effectiveCategory = user.category;
+    // Dual Quotas Resolving Engine
+    let effectiveCategory: ReservationCategory = user.category || 'UR';
+    if (job.region === 'Central') {
+      effectiveCategory = (user.nationalCategory || user.category || 'UR') as ReservationCategory;
+    } else {
+      effectiveCategory = (user.stateCategory || user.category || 'UR') as ReservationCategory;
+    }
+
     const effectiveIsPWD = user.isPWD;
     const effectiveIsExServiceman = user.isExServiceman;
 
@@ -120,14 +127,18 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
     let totalRelaxation = 0;
     let relaxationReason = "";
 
-    // Define standard relaxations
+    // Define standard relaxations (handling Central/State AP, TS, Punjab, and Haryana)
     const CATEGORY_RELAXATION: Record<string, number> = {
       'OBC_NCL': 3,
       'SC': 5,
       'ST': 5,
-      'EWS': 0, // Usually no age relaxation for EWS in most notifications
+      'EWS': 0, // Usually no age relaxation for EWS in central notifications
       'BC_A': 5, 'BC_B': 5, 'BC_C': 5, 'BC_D': 5, 'BC_E': 5,
+      'TS_SC': 5, 'TS_ST': 5, 'TS_EWS': 5,
       'AP_BC_A': 5, 'AP_BC_B': 5, 'AP_BC_C': 5, 'AP_BC_D': 5, 'AP_BC_E': 5,
+      'AP_SC': 5, 'AP_ST': 5, 'AP_EWS': 5,
+      'PB_BC': 5, 'PB_SC_MZ': 5, 'PB_SC_OT': 5, 'PB_EWS': 0, 'PB_LDESM': 3,
+      'HR_BCA': 5, 'HR_BCB': 5, 'HR_SC': 5, 'HR_DSC': 5, 'HR_EWS': 5,
     };
 
     // Calculate relaxation based on effective qualifications/categories
