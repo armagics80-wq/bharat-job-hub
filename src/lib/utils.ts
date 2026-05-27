@@ -34,8 +34,34 @@ export function isUserEligible(user: UserProfile, job: Job): EligibilityResult {
       return { isEligible: false, reason: "Invalid data", type: "error" };
     }
 
-    // 1. Qualification Hierarchy Check
-    const userQuals = user.qualifications || [];
+    // 1. Qualification Hierarchy Check - Downward Education Rule
+    let userQuals = [...(user.qualifications || [])];
+    
+    const hasDegreeOrHigher = userQuals.some(q => {
+      try {
+        const qual = getQualificationById(q);
+        return qual ? qual.rank >= 6 : false;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    const hasIntermediateOrHigher = userQuals.some(q => {
+      try {
+        const qual = getQualificationById(q);
+        return qual ? qual.rank >= 4 : false;
+      } catch (e) {
+        return false;
+      }
+    });
+
+    if (hasDegreeOrHigher) {
+      if (!userQuals.includes('12th')) userQuals.push('12th');
+      if (!userQuals.includes('10th')) userQuals.push('10th');
+    } else if (hasIntermediateOrHigher) {
+      if (!userQuals.includes('10th')) userQuals.push('10th');
+    }
+
     const userRank = Math.max(0, ...userQuals.map(q => {
       try {
         return getQualificationById(q)?.rank || 0;

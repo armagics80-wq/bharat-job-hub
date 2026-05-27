@@ -34,6 +34,172 @@ import { getQualificationById } from '../data/qualifications';
 import { isUserEligible } from '../lib/utils';
 import JobCard from './JobCard';
 
+interface DeepPrepGuidance {
+  expectedMonth: string;
+  stages: string[];
+  learningPlan: string[];
+}
+
+function getDeepPrepGuidance(jobId: string, jobTitle: string, region: string): DeepPrepGuidance {
+  const normTitle = jobTitle.toLowerCase();
+  
+  if (normTitle.includes('group-i') || normTitle.includes('group 1')) {
+    if (region === 'Telangana') {
+      return {
+        expectedMonth: 'July 2026',
+        stages: [
+          'Stage 1: Preliminary Test (Objective Type - 150 Marks)',
+          'Stage 2: Written Examination (Conventional/Mains - 6 Papers, 900 Marks)',
+          'Stage 3: Offline Document & Certificate Verification'
+        ],
+        learningPlan: [
+          'Master Telangana State Movement & State Formation (Paper VI: 150 Marks). Focus intensely on Telugu Academy textbooks and V. Prakash publications.',
+          'Read Telangana Socio-Economic Outlook 2025-2026, Geography & Economy publications of the State Planning Board.',
+          'Polity & Constitution: Study NCERT Polity Class 11-12 and M. Laxmikanth, focusing on local bodies (73rd & 74th Amendments) and State Executive.'
+        ]
+      };
+    } else if (region === 'Andhra Pradesh') {
+      return {
+        expectedMonth: 'August 2026',
+        stages: [
+          'Stage 1: Screening Test (Objective)',
+          'Stage 2: Main Examination (Written Conventional - 5 papers)',
+          'Stage 3: Technical Skill & Document Verification'
+        ],
+        learningPlan: [
+          'Andhra Pradesh History & Bifurcation (AP Reorganisation Act 2014 & Andhra Historical Academy publications).',
+          'AP SCERT books for Social Studies (Classes 6-10) and AP Socio-Economic Survey 2025-2026 for core scheme analytics.',
+          'Indian Polity & Governance: Complete M. Laxmikanth paired with detailed reports on AP local panchayat governance systems.'
+        ]
+      };
+    }
+  }
+
+  if (normTitle.includes('group-ii') || normTitle.includes('group 2')) {
+    if (region === 'Telangana') {
+      return {
+        expectedMonth: 'September 2026',
+        stages: [
+          'Stage 1: Written Examination (4 Papers - Objective Type, 600 Total Marks)',
+          'Stage 2: Certificate & Merit List Matching'
+        ],
+        learningPlan: [
+          'Study Paper IV (Telangana Movement): Phase-wise milestones from 1948, 1970 Mulki agitation, and late-stage 2001-2014 developments.',
+          'State Polity and Rural Welfare Administration: Read TS SCERT Social Studies texts (Class 6-10) and State welfare schemes (Rythu Bandhu, Dalit Bandhu).',
+          'Indian Economy and TS Economy: Read Telugu Academy publications on macroeconomics and rural-agrarian structures.'
+        ]
+      };
+    } else if (region === 'Andhra Pradesh') {
+      return {
+        expectedMonth: 'September 2026',
+        stages: [
+          'Stage 1: Screening Test (Objective - 150 Marks)',
+          'Stage 2: Mains Examination (2 Papers - 300 Marks total)'
+        ],
+        learningPlan: [
+          'AP Social & Cultural History (Ancient satavahanas to modern era): Read B.S.L. Hanumantha Rao books.',
+          'Indian Constitution & state legislative setups: Read M. Laxmikanth chapters and AP Grama Ward Sachivalayam structures.',
+          'AP Economy & Planning: Focus on agricultural developments, state budget tables, and land reform survey registers.'
+        ]
+      };
+    }
+  }
+
+  if (normTitle.includes('group-iii') || normTitle.includes('group 3')) {
+    return {
+      expectedMonth: 'October 2026',
+      stages: [
+        'Stage 1: Written Examination (3 Papers - 450 Marks total, objective style)'
+      ],
+      learningPlan: [
+        'Read Telugu Academy books regarding Panchayat Raj systems, rural development sociological profiles, and local self-governance rules.',
+        'Study State History, Social structures of Deccan, and local tribal dynamics (SCERT Class 7 & 9 histories).',
+        'General English & Mental Ability: Study R.S. Aggarwal and practice English comprehension passages daily.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('clerk') || normTitle.includes('clerical') || normTitle.includes('clerkship')) {
+    return {
+      expectedMonth: 'November 2026',
+      stages: [
+        'Stage 1: Part 1 Objective MCQ (100 Marks)',
+        'Stage 2: Part 2 Conventional Essay/Letter Writing (Regional/English)',
+        'Stage 3: Basic Computer Operation & Typing Verification'
+      ],
+      learningPlan: [
+        'Practice Quantitative Aptitude (Aris Aggarwal) and English Grammar (Wren & Martin) daily.',
+        'Study regional General Knowledge and History through State Board SCERT books up to Class 10.',
+        'Typing Prep: Maintain a consistent 35 words per minute typing target speed on standard QWERTY keyboards.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('police') || normTitle.includes('constable') || normTitle.includes('sub-inspector') || normTitle.includes('si')) {
+    return {
+      expectedMonth: 'October 2026',
+      stages: [
+        'Stage 1: Preliminary Objective Test (Syllabus: GS, Arithmetic, Reasoning)',
+        'Stage 2: Physical Measurement and Standards Test (PMT/PST)',
+        'Stage 3: Physical Efficiency Endurance Screening Test (PET - 1600m run)',
+        'Stage 4: Final Written Main Examination (Detailed Subjects, 400 Marks)'
+      ],
+      learningPlan: [
+        'Physical Conditioning: Train early for the 1600-meter run (male) and 800-meter run (female) within official standard time thresholds.',
+        'Arithmetic & Reasoning: Practice RS Aggarwal and Arihant reasoning patterns for the prelim exam.',
+        'General Science & Social Studies: Study State SCERT science and social texts from Classes 6 to 10 line-by-line.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('ssc') || normTitle.includes('cgl') || normTitle.includes('chsl') || normTitle.includes('multi tasking') || normTitle.includes('mts')) {
+    return {
+      expectedMonth: 'August 2026',
+      stages: [
+        'Stage 1: Tier-I Computer Based Test (CBT - MCQ)',
+        'Stage 2: Tier-II Advanced CBT (Mathematical, Reasoning, English, General Awareness, Computer Knowledge)',
+        'Stage 3: Data Entry Speed Test / Typing Skill Check'
+      ],
+      learningPlan: [
+        'Mathematics: Solve previous 5 years papers (Kiran publications) with shortcuts for algebra, geometry, and trigonometry.',
+        'English Vocabulary & Grammar: Focus on SP Bakshi or Neetu Singh volume 1, paired with daily English editorials reading.',
+        'General Awareness: Revise static general knowledge (Lucent) and current events of previous 12 months with strong focus on science and history.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('railway') || normTitle.includes('rrb') || normTitle.includes('ntpc') || normTitle.includes('alp') || normTitle.includes('group d')) {
+    return {
+      expectedMonth: 'September 2026',
+      stages: [
+        'Stage 1: 1st Stage Computer Based Test (CBT-1)',
+        'Stage 2: 2nd Stage CBT-2 (Specific technical and mathematical standards)',
+        'Stage 3: CBAT (Aptitude) or Typing Skill Check',
+        'Stage 4: Strict Medical Standard Check (A1/A2/B1/B2 standards)'
+      ],
+      learningPlan: [
+        'General Science (30-40% weightage): Read NCERT Science textbooks from Class 6 to 10 thoroughly, focusing on Physics formulas and chemical equations.',
+        'Analytical Reasoning: Dedicate daily practice time to puzzles, coding-decoding, and syllogisms from RS Aggarwal.',
+        'Railway trivia and current developments: Study general awareness with special interest is transit systems, national budgets, and defense.'
+      ]
+    };
+  }
+
+  return {
+    expectedMonth: 'Shortly in 2026/2027',
+    stages: [
+      'Stage 1: Preliminary screening / Objective examination',
+      'Stage 2: Main examination or practical skill test',
+      'Stage 3: Document verification & character certificate assessment'
+    ],
+    learningPlan: [
+      `General Studies: Complete basic NCERT Books (Class 6 to 10) for Polity, Geography, History and General Science.`,
+      `State quota syllabus: Read local state government secondary school level language and historical textbooks representing ${region}.`,
+      `Practice mock questionnaires and online tests periodically to gain appropriate speed metrics.`
+    ]
+  };
+}
+
 interface EligibilityMatchesProps {
   profile: UserProfile;
   jobs: Job[];
@@ -95,6 +261,12 @@ export default function EligibilityMatches({
     const comingSoonList: { job: Job; isUpcoming: boolean; eligibility: any; guidance: string }[] = [];
 
     jobs.forEach(job => {
+      // 2. THE IRONCLAD STATE RULE (Geofencing)
+      // The user's state is an absolute boundary. Absolutely deny showing state-level jobs from other states.
+      if (profile.state && job.region !== 'Central' && job.region !== profile.state) {
+        return; // Exclude completely - zero exceptions
+      }
+
       const elig = isUserEligible(profile, job);
       const isUpcoming = job.status === 'Upcoming';
       const aiMatch = aiMatches.find(m => m.id === job.id);
@@ -507,16 +679,53 @@ export default function EligibilityMatches({
 
                       {/* Timeline status context or qualification lockers */}
                       {isUpcoming ? (
-                        <div className="p-2.5 bg-indigo-50 text-indigo-900 border border-indigo-100 rounded-lg text-[10px] leading-relaxed space-y-1">
-                          <div className="flex items-center gap-1.5 font-black text-[9px] uppercase text-indigo-850">
-                            <Clock className="w-3.5 h-3.5 text-indigo-500 animate-spin-slow" />
-                            Anticipated Launch Calendar
+                        <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white rounded-xl border border-indigo-800/60 p-4 space-y-3 shadow-md text-left">
+                          <div className="flex items-center justify-between border-b border-indigo-700/40 pb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-450 animate-pulse animate-spin-slow" />
+                              <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider">Deep Prep Guidance</span>
+                            </div>
+                            <span className="text-[8px] bg-indigo-800/80 border border-indigo-600/50 px-2 py-0.5 rounded font-black text-indigo-250 uppercase">
+                              📋 2026 Forecast
+                            </span>
                           </div>
-                          <div className="font-bold">
-                            📅 Expected publication: <span className="text-indigo-650">{job.notificationDate ? format(new Date(job.notificationDate), 'MMMM yyyy') : 'Shortly'}</span>
-                          </div>
-                          <div className="text-slate-500 text-[9px] leading-tight">
-                            Status: Officially approved under local state gazette. Preparing application templates.
+
+                          <div className="space-y-3 text-xs">
+                            {/* Expected publication */}
+                            <div>
+                              <span className="text-[8px] font-black text-indigo-350 block uppercase tracking-wider">Expected Notification:</span>
+                              <p className="font-extrabold text-xs text-emerald-450">
+                                📅 {job.notificationDate ? format(new Date(job.notificationDate), 'MMMM yyyy') : 'Shortly in 2026'}
+                              </p>
+                            </div>
+
+                            {/* Required Exam Stages */}
+                            <div>
+                              <span className="text-[8px] font-black text-indigo-350 block uppercase tracking-wider mb-1">Required Exam Stages:</span>
+                              <div className="space-y-1 pl-0.5">
+                                {getDeepPrepGuidance(job.id, job.title, job.region).stages.map((stage, sIdx) => (
+                                  <div key={sIdx} className="flex gap-1 items-start text-[10px] leading-tight text-indigo-150">
+                                    <span className="text-amber-500 font-bold shrink-0">▪</span>
+                                    <span>{stage}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* How to start learning right now */}
+                            <div className="bg-indigo-950/90 rounded p-2.5 border border-indigo-850/60 space-y-1.5">
+                              <span className="text-[8px] font-black text-amber-400 flex items-center gap-1 uppercase tracking-wider">
+                                <BookOpen className="w-3 h-3 text-amber-500 shrink-0" /> Immediate Sourcing Syllabus Plan:
+                              </span>
+                              <div className="space-y-1 pl-0.5">
+                                {getDeepPrepGuidance(job.id, job.title, job.region).learningPlan.map((planItem, pIdx) => (
+                                  <div key={pIdx} className="flex gap-1.5 items-start text-[10px] leading-snug">
+                                    <span className="text-emerald-400 font-extrabold shrink-0">→</span>
+                                    <p className="text-indigo-100 font-medium">{planItem}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ) : (

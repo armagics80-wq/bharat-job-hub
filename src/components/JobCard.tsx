@@ -289,8 +289,127 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="mt-4 flex flex-col gap-6 pb-6">
+            <div className="mt-4 flex flex-col gap-6 pb-6 text-left">
               
+              {/* MANDATORY REGULATED CARD FORMAT & DEEP GUIDANCE */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* 1. OFFICIAL FORMATED DATA STRUCTURE */}
+                <div id={`regulated-report-${job.id}`} className="bg-slate-50 rounded-xl border-2 border-slate-900 overflow-hidden shadow-sm">
+                  <div className="bg-slate-900 px-4 py-3 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[11px] font-black text-white uppercase tracking-widest">Official Regulated Notification Report</span>
+                  </div>
+                  <div className="p-5 space-y-3.5 text-xs text-left">
+                    <div>
+                      <span className="font-bold text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Job Title:</span>
+                      <span className="font-extrabold text-slate-900 text-sm">{job.title || 'To Be Announced (TBA)'}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Department/Board:</span>
+                      <span className="font-black text-slate-900">{department?.name || job.departmentId.toUpperCase()}</span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Total Vacancies:</span>
+                      <span className="font-black text-slate-900">
+                        {(!job.vacancies || String(job.vacancies).toLowerCase().includes('expected') || String(job.vacancies).toLowerCase().includes('estimate'))
+                          ? 'To Be Announced (TBA)' 
+                          : job.vacancies}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Last Date to Apply:</span>
+                      <span className="font-black text-slate-900">
+                        {job.lastDate ? format(new Date(job.lastDate), 'dd MMM yyyy') : 'To Be Announced (TBA)'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Source Website:</span>
+                      <a href={department?.officialUrl || job.applyLink} target="_blank" rel="noopener noreferrer" className="font-mono text-indigo-600 hover:underline font-extrabold text-[12px] break-all">
+                        {department?.officialUrl || job.applyLink || 'To Be Announced (TBA)'}
+                      </a>
+                    </div>
+                    <div>
+                      <span className="font-bold text-slate-500 block text-[10px] uppercase tracking-wider mb-0.5">Official Notification/Screenshot:</span>
+                      {job.officialPdfUrl ? (
+                        <div className="space-y-1.5">
+                          <a href={job.officialPdfUrl} target="_blank" rel="noopener noreferrer" className="text-emerald-700 hover:underline font-black break-all font-mono text-[11px] block">
+                            {job.officialPdfUrl}
+                          </a>
+                        </div>
+                      ) : (
+                        <div className="text-slate-700 font-medium leading-relaxed bg-amber-50 p-2.5 rounded border border-amber-200 text-[11px]">
+                          <span className="font-bold block text-amber-800 mb-0.5">🔴 Direct PDF link unavailable:</span>
+                          Go to <span className="font-mono font-black text-indigo-800">{department?.officialUrl || job.applyLink}</span> → Click "Recruitment", "Notifications" or "Careers" → Open/Download PDF.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. THE "KNOW MORE" (DEEP GUIDANCE) SECTION */}
+                <div id={`deep-guidance-${job.id}`} className="bg-indigo-50/50 rounded-xl border border-indigo-200 overflow-hidden shadow-sm text-left">
+                  <div className="bg-indigo-700 px-4 py-3 flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-white" />
+                    <span className="text-[11px] font-black text-white uppercase tracking-widest">The "Know More" (Deep Guidance) Section</span>
+                  </div>
+                  <div className="p-5 space-y-4 text-xs text-left">
+                    <div>
+                      <span className="font-extrabold text-indigo-950 block mb-1 text-[11px] uppercase tracking-wider">Exact Educational Eligibility:</span>
+                      <p className="text-slate-800 font-bold bg-white p-3 rounded-lg border border-indigo-100 leading-relaxed shadow-xs">
+                        {job.qualification || 'To Be Announced (TBA)'}
+                        {job.specialRequirements && job.specialRequirements.length > 0 && (
+                          <span className="block text-[10px] text-slate-500 font-medium mt-1">Special Requirements: {job.specialRequirements.join(', ')}</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-indigo-950 block mb-1 text-[11px] uppercase tracking-wider">Age Limits and Standard Relaxations:</span>
+                      <div className="bg-white p-3 rounded-lg border border-indigo-100 space-y-2 text-slate-800 leading-relaxed shadow-xs">
+                        <p className="font-extrabold text-slate-900">Base Limits: {job.minAge || 'TBA'} - {job.maxAge || 'TBA'} Years</p>
+                        {job.detailedReservation?.ageRelaxation ? (
+                          <div className="pt-2 border-t border-dashed border-slate-100 space-y-1">
+                            <p className="font-bold text-[9px] text-indigo-900 uppercase tracking-wider">Standard Relaxations (Permitted):</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {Object.entries(job.detailedReservation.ageRelaxation).map(([cat, yrs]) => (
+                                <div key={cat} className="flex justify-between items-center text-[10px] bg-slate-50 px-2 py-1 rounded border border-slate-100">
+                                  <span className="font-semibold text-slate-500 uppercase">{cat.replace('_', ' ')}:</span>
+                                  <span className="font-black text-indigo-600">+{yrs}y</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-[10px] text-slate-500 italic mt-1">Standard Government relaxations apply as per Departmental guidelines.</p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="font-extrabold text-indigo-950 block mb-1 text-[11px] uppercase tracking-wider">Step-by-Step Application Guide:</span>
+                      <div className="bg-white p-3 rounded-lg border border-indigo-100 space-y-2.5 shadow-xs">
+                        {job.howToApplySteps && job.howToApplySteps.length > 0 ? (
+                          job.howToApplySteps.map((step, index) => (
+                            <div key={index} className="flex gap-2 text-[11px]">
+                              <span className="font-extrabold text-indigo-600 shrink-0">{index + 1}.</span>
+                              <p className="text-slate-700 font-medium leading-tight">{step}</p>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="space-y-1.5 text-slate-700 text-[11px]">
+                            <p className="font-medium"><span className="font-extrabold text-indigo-600">1.</span> Register / Update One-Time Registration (OTR) on the official portal at <span className="font-mono text-xs font-bold">{department?.officialUrl || job.applyLink}</span>.</p>
+                            <p className="font-medium"><span className="font-extrabold text-indigo-600">2.</span> Log in with registration credentials.</p>
+                            <p className="font-medium"><span className="font-extrabold text-indigo-600">3.</span> Navigate to 'Apply Online' or 'Active Notifications'.</p>
+                            <p className="font-medium"><span className="font-extrabold text-indigo-600">4.</span> Enter personal, qualification academic parameters, and upload candidate passport photograph / signatures.</p>
+                            <p className="font-medium"><span className="font-extrabold text-indigo-600">5.</span> Pay the fee using specified online gateways (UPI/Debit/Credit/Netbanking).</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
               {/* SECTION 1: DETAILS */}
               <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="bg-slate-900 px-4 py-3 border-b border-slate-800 flex items-center justify-between">

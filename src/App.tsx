@@ -264,6 +264,12 @@ export default function App() {
 
   const { activeJobs, upcomingJobs, totalMonitored } = useMemo(() => {
     const processed = jobs.filter(job => {
+      // 2. THE IRONCLAD STATE RULE (Geofencing)
+      // If user profile has state set, filter out state-level jobs of any other state. Zero exceptions!
+      if (profile?.state && job.region !== 'Central' && job.region !== profile.state) {
+        return false;
+      }
+
       const dept = getDepartmentById(job.departmentId);
       const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                            dept?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -286,7 +292,7 @@ export default function App() {
       totalMonitored: processed.length
     };
     return results;
-  }, [jobs, searchTerm, filterRegion, filterDistrict, filterCategory]);
+  }, [jobs, searchTerm, filterRegion, filterDistrict, filterCategory, profile]);
 
   const categorizedMatches = useMemo(() => {
     if (!profile) return { perfect: [], almost: [], future: [], needsPrep: [] };
@@ -297,6 +303,11 @@ export default function App() {
     const needsPrep: { job: Job; reason: string }[] = [];
 
     jobs.forEach(job => {
+      // 2. THE IRONCLAD STATE RULE (Geofencing)
+      if (profile.state && job.region !== 'Central' && job.region !== profile.state) {
+        return; // Strictly forbidden to show state-level jobs from other states
+      }
+
       const elig = isUserEligible(profile, job);
       const isUpcoming = job.status === 'Upcoming';
       const aiMatch = aiMatches.find(m => m.id === job.id);
