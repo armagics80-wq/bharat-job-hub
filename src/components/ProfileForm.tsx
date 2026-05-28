@@ -67,7 +67,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
     
     setIsSubmitting(true);
     try {
-      const qualificationLabels = formData.qualifications.map(id => {
+      const qualificationValue = formData.qualifications.map(id => {
         try {
           return getQualificationById(id)?.label || id;
         } catch {
@@ -75,32 +75,42 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         }
       }).join(', ');
 
-      // Send details to the backend /api/save-user endpoint
-      const response = await fetch('/api/save-user', {
+      const nameValue = formData.fullName;
+      const phoneValue = formData.phoneNumber;
+      const stateValue = formData.state;
+      const categoryValue = formData.nationalCategory || formData.category || 'UR';
+
+      // STEP 1: Save Lead to Database
+      const response = await fetch('https://sheetdb.io/api/v1/3eab636wnftsf', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: formData.fullName,
-          phone: formData.phoneNumber,
-          state: formData.state,
-          qualification: qualificationLabels,
-          category: formData.nationalCategory || formData.category || 'UR',
-        }),
+          "data": [
+            {
+              "Name": nameValue,
+              "Phone": phoneValue,
+              "State": stateValue,
+              "Qualification": qualificationValue,
+              "Category": categoryValue
+            }
+          ]
+        })
       });
 
       if (!response.ok) {
-        throw new Error('Save to Google Sheets failed');
+        throw new Error('Save to SheetDB failed');
       }
 
-      console.log('[SheetDB] Successfully synced registration with Google Sheets.');
-      
-      // Trigger parent save which invokes local/AI match fetching sequence immediately
+      console.log('[SheetDB] Successfully saved lead to database.');
+
+      // STEP 2: Show AI Matches (trigger existing parent save and Gemini AI matching)
       await onSave(formData);
     } catch (err) {
-      console.error('[ProfileForm] Error saving user to spreadsheet:', err);
-      // Fallback: still run onSave so that eligibility matching is never blocked
+      console.error('[ProfileForm] Error saving user to database:', err);
+      // Fallback to trigger parent save and matching sequence so user isn't blocked on network failures
       await onSave(formData);
     } finally {
       setIsSubmitting(false);
