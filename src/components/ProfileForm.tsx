@@ -67,7 +67,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
     
     setIsSubmitting(true);
     try {
-      const qualificationValue = formData.qualifications.map(id => {
+      const qualificationLabels = formData.qualifications.map(id => {
         try {
           return getQualificationById(id)?.label || id;
         } catch {
@@ -75,42 +75,49 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         }
       }).join(', ');
 
-      const nameValue = formData.fullName;
-      const phoneValue = formData.phoneNumber;
-      const stateValue = formData.state;
-      const categoryValue = formData.nationalCategory || formData.category || 'UR';
-
-      // STEP 1: Save Lead to Database
-      const response = await fetch('https://sheetdb.io/api/v1/3eab636wnftsf', {
+      // Send details to the backend /api/save-user endpoint
+      const response = await fetch('/api/save-user', {
         method: 'POST',
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          "data": [
-            {
-              "Name": nameValue,
-              "Phone": phoneValue,
-              "State": stateValue,
-              "Qualification": qualificationValue,
-              "Category": categoryValue
-            }
-          ]
-        })
+          name: formData.fullName,
+          phone: formData.phoneNumber,
+          age: formData.age,
+          gender: formData.gender,
+          state: formData.state,
+          district: formData.district,
+          stateCategory: formData.stateCategory,
+          category: formData.nationalCategory || formData.category || 'UR',
+          isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
+          isPWD: formData.isPWD ? 'Yes' : 'No',
+          qualifications: qualificationLabels,
+          documents: formData.documents.join(', '),
+          otherCertificates: formData.otherCertificates || '',
+          subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
+          subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Save to SheetDB failed');
+        throw new Error('Save to Google Sheets failed');
       }
 
-      console.log('[SheetDB] Successfully saved lead to database.');
-
-      // STEP 2: Show AI Matches (trigger existing parent save and Gemini AI matching)
+      const resData = await response.json();
+      if (resData.directSheetLinkDetected) {
+        console.warn('[SheetDB Webhook] Direct Google Sheets URL detected. Advised on Apps Script setup.');
+      } else if (resData.sheetSyncError) {
+        console.warn('[SheetDB Webhook] Sheet syncing failed on backend but user was successfully registered locally:', resData.error);
+      } else {
+        console.log('[SheetDB] Successfully synced registration with Google Sheets.');
+      }
+      
+      // Trigger parent save which invokes local/AI match fetching sequence immediately
       await onSave(formData);
     } catch (err) {
-      console.error('[ProfileForm] Error saving user to database:', err);
-      // Fallback to trigger parent save and matching sequence so user isn't blocked on network failures
+      console.error('[ProfileForm] Error saving user to spreadsheet:', err);
+      // Fallback: still run onSave so that eligibility matching is never blocked
       await onSave(formData);
     } finally {
       setIsSubmitting(false);
