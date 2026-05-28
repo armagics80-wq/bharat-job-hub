@@ -1,30 +1,212 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Job, UserProfile } from '../types';
 import { 
   CheckCircle2, 
   AlertCircle, 
   Sparkles, 
+  Calendar, 
   ChevronDown, 
-  MapPin, 
-  GraduationCap, 
+  ChevronUp, 
+  BellRing, 
   ShieldCheck, 
-  Info,
-  RefreshCw,
-  Search
+  Globe, 
+  Clock, 
+  Bookmark, 
+  Info, 
+  ExternalLink, 
+  Lock, 
+  Unlock, 
+  ArrowRight, 
+  BookOpen, 
+  UserCheck, 
+  MapPin, 
+  Award,
+  PenTool,
+  HelpCircle,
+  Check,
+  Zap,
+  Star
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { getQualificationById, QUALIFICATIONS } from '../data/qualifications';
-import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
+import { format, differenceInDays, formatDistanceToNow } from 'date-fns';
+import { getDepartmentById } from '../data/departments';
+import { getQualificationById } from '../data/qualifications';
 import { isUserEligible } from '../lib/utils';
-import { aiService } from '../services/aiService';
 import JobCard from './JobCard';
 
+interface DeepPrepGuidance {
+  expectedMonth: string;
+  stages: string[];
+  learningPlan: string[];
+}
+
+function getDeepPrepGuidance(jobId: string, jobTitle: string, region: string): DeepPrepGuidance {
+  const normTitle = jobTitle.toLowerCase();
+  
+  if (normTitle.includes('group-i') || normTitle.includes('group 1')) {
+    if (region === 'Telangana') {
+      return {
+        expectedMonth: 'July 2026',
+        stages: [
+          'Stage 1: Preliminary Test (Objective Type - 150 Marks)',
+          'Stage 2: Written Examination (Conventional/Mains - 6 Papers, 900 Marks)',
+          'Stage 3: Offline Document & Certificate Verification'
+        ],
+        learningPlan: [
+          'Master Telangana State Movement & State Formation (Paper VI: 150 Marks). Focus intensely on Telugu Academy textbooks and V. Prakash publications.',
+          'Read Telangana Socio-Economic Outlook 2025-2026, Geography & Economy publications of the State Planning Board.',
+          'Polity & Constitution: Study NCERT Polity Class 11-12 and M. Laxmikanth, focusing on local bodies (73rd & 74th Amendments) and State Executive.'
+        ]
+      };
+    } else if (region === 'Andhra Pradesh') {
+      return {
+        expectedMonth: 'August 2026',
+        stages: [
+          'Stage 1: Screening Test (Objective)',
+          'Stage 2: Main Examination (Written Conventional - 5 papers)',
+          'Stage 3: Technical Skill & Document Verification'
+        ],
+        learningPlan: [
+          'Andhra Pradesh History & Bifurcation (AP Reorganisation Act 2014 & Andhra Historical Academy publications).',
+          'AP SCERT books for Social Studies (Classes 6-10) and AP Socio-Economic Survey 2025-2026 for core scheme analytics.',
+          'Indian Polity & Governance: Complete M. Laxmikanth paired with detailed reports on AP local panchayat governance systems.'
+        ]
+      };
+    }
+  }
+
+  if (normTitle.includes('group-ii') || normTitle.includes('group 2')) {
+    if (region === 'Telangana') {
+      return {
+        expectedMonth: 'September 2026',
+        stages: [
+          'Stage 1: Written Examination (4 Papers - Objective Type, 600 Total Marks)',
+          'Stage 2: Certificate & Merit List Matching'
+        ],
+        learningPlan: [
+          'Study Paper IV (Telangana Movement): Phase-wise milestones from 1948, 1970 Mulki agitation, and late-stage 2001-2014 developments.',
+          'State Polity and Rural Welfare Administration: Read TS SCERT Social Studies texts (Class 6-10) and State welfare schemes (Rythu Bandhu, Dalit Bandhu).',
+          'Indian Economy and TS Economy: Read Telugu Academy publications on macroeconomics and rural-agrarian structures.'
+        ]
+      };
+    } else if (region === 'Andhra Pradesh') {
+      return {
+        expectedMonth: 'September 2026',
+        stages: [
+          'Stage 1: Screening Test (Objective - 150 Marks)',
+          'Stage 2: Mains Examination (2 Papers - 300 Marks total)'
+        ],
+        learningPlan: [
+          'AP Social & Cultural History (Ancient satavahanas to modern era): Read B.S.L. Hanumantha Rao books.',
+          'Indian Constitution & state legislative setups: Read M. Laxmikanth chapters and AP Grama Ward Sachivalayam structures.',
+          'AP Economy & Planning: Focus on agricultural developments, state budget tables, and land reform survey registers.'
+        ]
+      };
+    }
+  }
+
+  if (normTitle.includes('group-iii') || normTitle.includes('group 3')) {
+    return {
+      expectedMonth: 'October 2026',
+      stages: [
+        'Stage 1: Written Examination (3 Papers - 450 Marks total, objective style)'
+      ],
+      learningPlan: [
+        'Read Telugu Academy books regarding Panchayat Raj systems, rural development sociological profiles, and local self-governance rules.',
+        'Study State History, Social structures of Deccan, and local tribal dynamics (SCERT Class 7 & 9 histories).',
+        'General English & Mental Ability: Study R.S. Aggarwal and practice English comprehension passages daily.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('clerk') || normTitle.includes('clerical') || normTitle.includes('clerkship')) {
+    return {
+      expectedMonth: 'November 2026',
+      stages: [
+        'Stage 1: Part 1 Objective MCQ (100 Marks)',
+        'Stage 2: Part 2 Conventional Essay/Letter Writing (Regional/English)',
+        'Stage 3: Basic Computer Operation & Typing Verification'
+      ],
+      learningPlan: [
+        'Practice Quantitative Aptitude (Aris Aggarwal) and English Grammar (Wren & Martin) daily.',
+        'Study regional General Knowledge and History through State Board SCERT books up to Class 10.',
+        'Typing Prep: Maintain a consistent 35 words per minute typing target speed on standard QWERTY keyboards.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('police') || normTitle.includes('constable') || normTitle.includes('sub-inspector') || normTitle.includes('si')) {
+    return {
+      expectedMonth: 'October 2026',
+      stages: [
+        'Stage 1: Preliminary Objective Test (Syllabus: GS, Arithmetic, Reasoning)',
+        'Stage 2: Physical Measurement and Standards Test (PMT/PST)',
+        'Stage 3: Physical Efficiency Endurance Screening Test (PET - 1600m run)',
+        'Stage 4: Final Written Main Examination (Detailed Subjects, 400 Marks)'
+      ],
+      learningPlan: [
+        'Physical Conditioning: Train early for the 1600-meter run (male) and 800-meter run (female) within official standard time thresholds.',
+        'Arithmetic & Reasoning: Practice RS Aggarwal and Arihant reasoning patterns for the prelim exam.',
+        'General Science & Social Studies: Study State SCERT science and social texts from Classes 6 to 10 line-by-line.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('ssc') || normTitle.includes('cgl') || normTitle.includes('chsl') || normTitle.includes('multi tasking') || normTitle.includes('mts')) {
+    return {
+      expectedMonth: 'August 2026',
+      stages: [
+        'Stage 1: Tier-I Computer Based Test (CBT - MCQ)',
+        'Stage 2: Tier-II Advanced CBT (Mathematical, Reasoning, English, General Awareness, Computer Knowledge)',
+        'Stage 3: Data Entry Speed Test / Typing Skill Check'
+      ],
+      learningPlan: [
+        'Mathematics: Solve previous 5 years papers (Kiran publications) with shortcuts for algebra, geometry, and trigonometry.',
+        'English Vocabulary & Grammar: Focus on SP Bakshi or Neetu Singh volume 1, paired with daily English editorials reading.',
+        'General Awareness: Revise static general knowledge (Lucent) and current events of previous 12 months with strong focus on science and history.'
+      ]
+    };
+  }
+
+  if (normTitle.includes('railway') || normTitle.includes('rrb') || normTitle.includes('ntpc') || normTitle.includes('alp') || normTitle.includes('group d')) {
+    return {
+      expectedMonth: 'September 2026',
+      stages: [
+        'Stage 1: 1st Stage Computer Based Test (CBT-1)',
+        'Stage 2: 2nd Stage CBT-2 (Specific technical and mathematical standards)',
+        'Stage 3: CBAT (Aptitude) or Typing Skill Check',
+        'Stage 4: Strict Medical Standard Check (A1/A2/B1/B2 standards)'
+      ],
+      learningPlan: [
+        'General Science (30-40% weightage): Read NCERT Science textbooks from Class 6 to 10 thoroughly, focusing on Physics formulas and chemical equations.',
+        'Analytical Reasoning: Dedicate daily practice time to puzzles, coding-decoding, and syllogisms from RS Aggarwal.',
+        'Railway trivia and current developments: Study general awareness with special interest is transit systems, national budgets, and defense.'
+      ]
+    };
+  }
+
+  return {
+    expectedMonth: 'Shortly in 2026/2027',
+    stages: [
+      'Stage 1: Preliminary screening / Objective examination',
+      'Stage 2: Main examination or practical skill test',
+      'Stage 3: Document verification & character certificate assessment'
+    ],
+    learningPlan: [
+      `General Studies: Complete basic NCERT Books (Class 6 to 10) for Polity, Geography, History and General Science.`,
+      `State quota syllabus: Read local state government secondary school level language and historical textbooks representing ${region}.`,
+      `Practice mock questionnaires and online tests periodically to gain appropriate speed metrics.`
+    ]
+  };
+}
+
 interface EligibilityMatchesProps {
-  profile?: UserProfile | null;
+  profile: UserProfile;
   jobs: Job[];
   savedJobIds: Set<string>;
   onToggleSave: (jobId: string) => void;
-  onNotifySync?: (msg: string) => void;
+  aiMatches: { id: string; guidance: string }[];
+  onNotifySync: (msg: string) => void;
 }
 
 export default function EligibilityMatches({
@@ -32,313 +214,641 @@ export default function EligibilityMatches({
   jobs,
   savedJobIds,
   onToggleSave,
+  aiMatches,
   onNotifySync
 }: EligibilityMatchesProps) {
-  // Initialize filter state from localStorage, fallback to profile data or default empty
-  const [selectedState, setSelectedState] = useState(() => {
-    return localStorage.getItem('elig_state') || profile?.state || '';
-  });
-  
-  const [selectedQualification, setSelectedQualification] = useState(() => {
-    return localStorage.getItem('elig_qualification') || profile?.qualifications?.[0] || '';
-  });
-  
-  const [selectedCategory, setSelectedCategory] = useState(() => {
-    return localStorage.getItem('elig_category') || profile?.category || 'UR';
-  });
-
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-  const [hasSearched, setHasSearched] = useState(false);
-  const [aiMatches, setAiMatches] = useState<{ id: string; guidance: string }[]>([]);
-
-  // Category community definitions
-  const categories = [
-    { id: 'UR', label: 'General / Unreserved (UR)' },
-    { id: 'EWS', label: 'Economically Weaker Section (EWS)' },
-    { id: 'OBC_NCL', label: 'OBC - Non Creamy Layer (OBC-NCL)' },
-    { id: 'SC', label: 'Scheduled Caste (SC)' },
-    { id: 'ST', label: 'Scheduled Tribe (ST)' },
-  ];
-
-  // Academics
-  const selectableQualifications = QUALIFICATIONS.filter(q => 
-    ['School', 'Technical/Diploma', 'Degree', 'Postgraduate'].includes(q.category)
-  ).sort((a, b) => a.rank - b.rank);
-
-  // Directly retrieve user profile payload based on filters
-  const currentUserProfile = useMemo(() => {
-    const p: UserProfile = {
-      fullName: 'Eligible Candidate',
-      phoneNumber: '',
-      state: selectedState,
-      qualifications: [selectedQualification as any],
-      category: selectedCategory as any,
-      nationalCategory: selectedCategory as any,
-      stateCategory: selectedCategory as any,
-      age: 24, // Neutral standard age for checks
-      isExServiceman: false,
-      isPWD: false,
-      gender: 'Male',
-      district: '',
-      skills: [],
-      documents: [],
-      otherCertificates: '',
-      preferredRegion: 'All',
-      subscriptions: {
-        regions: [],
-        categories: []
-      }
-    };
-    return p;
-  }, [selectedState, selectedQualification, selectedCategory]);
-
-  const handleCheckEligibility = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedState || !selectedQualification) {
-      setSearchError("Please finalize both State of Domicile and Qualification selectors first.");
-      return;
-    }
-
-    setIsLoading(true);
-    setSearchError(null);
-    setHasSearched(true);
-
-    // Persist selected configurations
-    localStorage.setItem('elig_state', selectedState);
-    localStorage.setItem('elig_qualification', selectedQualification);
-    localStorage.setItem('elig_category', selectedCategory);
-
-    // Compute verified eligible jobs first
-    const eligibleList = jobs.filter(job => {
-      try {
-        return isUserEligible(currentUserProfile, job).isEligible;
-      } catch (err) {
-        console.error("Local eligibility verify crashed:", err);
-        return false;
-      }
-    });
-
+  const [reminders, setReminders] = useState<Set<string>>(() => {
     try {
-      // Direct call to Gemini AI API matching logic
-      const result = await aiService.matchJobs(currentUserProfile, eligibleList);
-      if (result && result.matches) {
-        setAiMatches(result.matches);
-        if (onNotifySync) {
-          onNotifySync(`✓ Loaded ${result.matches.length} matches from eligibility engine!`);
-        }
-      } else {
-        // Fallback display local matches
-        setAiMatches(eligibleList.map(job => ({
-          id: job.id,
-          guidance: `Verified Eligibility: Your chosen credentials satisfy the official recruitment notification requirements.`
-        })));
-      }
-    } catch (err: any) {
-      console.warn("Direct Gemini pipeline error, fallback to local match guidelines", err);
-      setSearchError("General matching guide active. Displaying official verified listings.");
-      setAiMatches(eligibleList.map(job => ({
-        id: job.id,
-        guidance: `Verified Eligibility: Your chosen credentials satisfy the official recruitment notification requirements.`
-      })));
-    } finally {
-      setIsLoading(false);
+      const stored = localStorage.getItem('user_sync_reminders');
+      return stored ? new Set(JSON.parse(stored)) : new Set();
+    } catch {
+      return new Set();
+    }
+  });
+
+  const [expandedPrepJobs, setExpandedPrepJobs] = useState<Set<string>>(new Set());
+
+  const handleToggleReminder = (jobId: string, jobTitle: string) => {
+    const next = new Set(reminders);
+    if (next.has(jobId)) {
+      next.delete(jobId);
+      onNotifySync(`Notification cancelled for ${jobTitle}`);
+    } else {
+      next.add(jobId);
+      onNotifySync(`✓ SMS & Email status alerts enabled for ${jobTitle}!`);
+    }
+    setReminders(next);
+    try {
+      localStorage.setItem('user_sync_reminders', JSON.stringify(Array.from(next)));
+    } catch (e) {
+      console.error(e);
     }
   };
 
-  // Merge aiMatches mapping directly back to complete Job objects
-  const displayMatchedJobs = useMemo(() => {
-    return aiMatches
-      .map(match => {
-        const matchingJob = jobs.find(j => j.id === match.id);
-        if (!matchingJob) return null;
-        return {
-          job: matchingJob,
-          guidance: match.guidance
-        };
-      })
-      .filter((item): item is { job: Job; guidance: string } => item !== null);
-  }, [aiMatches, jobs]);
+  const handleTogglePrepExpand = (jobId: string) => {
+    const next = new Set(expandedPrepJobs);
+    if (next.has(jobId)) {
+      next.delete(jobId);
+    } else {
+      next.add(jobId);
+    }
+    setExpandedPrepJobs(next);
+  };
+
+  // Compute matches
+  const { availableNow, comingSoon } = useMemo(() => {
+    const availableList: { job: Job; eligibility: any; guidance: string }[] = [];
+    const comingSoonList: { job: Job; isUpcoming: boolean; eligibility: any; guidance: string }[] = [];
+
+    jobs.forEach(job => {
+      // 2. THE IRONCLAD STATE RULE (Geofencing)
+      // The user's state is an absolute boundary. Absolutely deny showing state-level jobs from other states.
+      if (profile.state && job.region !== 'Central' && job.region !== profile.state) {
+        return; // Exclude completely - zero exceptions
+      }
+
+      const elig = isUserEligible(profile, job);
+      const isUpcoming = job.status === 'Upcoming';
+      const aiMatch = aiMatches.find(m => m.id === job.id);
+      const guidance = aiMatch?.guidance || '';
+
+      if (isUpcoming) {
+        // Upcoming jobs always go to coming soon, regardless of current eligibility
+        comingSoonList.push({
+          job,
+          isUpcoming: true,
+          eligibility: elig,
+          guidance: guidance || `Expected recruitment notification. Eligible with current qualification.`
+        });
+      } else {
+        if (elig.isEligible) {
+          // Active & eligible
+          availableList.push({
+            job,
+            eligibility: elig,
+            guidance
+          });
+        } else {
+          // Mismatching credentials (Active but ineligible right now) -> goes to Coming Soon under target/prep
+          comingSoonList.push({
+            job,
+            isUpcoming: false,
+            eligibility: elig,
+            guidance
+          });
+        }
+      }
+    });
+
+    // Arrange list priority
+    return {
+      availableNow: availableList,
+      comingSoon: comingSoonList
+    };
+  }, [jobs, profile, aiMatches]);
+
+  const userEducationLabels = useMemo(() => {
+    if (!profile.qualifications || profile.qualifications.length === 0) return 'None Selected';
+    return profile.qualifications
+      .map(q => getQualificationById(q)?.label || q)
+      .join(', ');
+  }, [profile.qualifications]);
 
   return (
-    <div className="space-y-6 text-left" id="eligibility-matches-container">
-      {/* 📋 ENGINE SELECTORS PANEL */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        {/* Banner header to establish distinct tone */}
-        <div className="bg-[#0a192f] text-white p-5 text-left">
-          <h2 className="text-base font-extrabold tracking-wide flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-emerald-400 shrink-0" />
-            Check Live Government Job Eligibility
-          </h2>
-          <p className="text-xs text-slate-350 mt-1 leading-relaxed">
-            Specify your domicile state, highest academic tier, and reserve community status below. We'll run a real-time eligibility matching algorithm and query the Gemini API directly.
-          </p>
-        </div>
-
-        {/* Dynamic drop-down selectors form */}
-        <form onSubmit={handleCheckEligibility} className="p-5 md:p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            {/* Domicile State Selector */}
-            <div className="space-y-1.5" id="state-select-container">
-              <label htmlFor="elig-state" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                State of Domicile
-              </label>
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select
-                  id="elig-state"
-                  required
-                  value={selectedState}
-                  onChange={(e) => setSelectedState(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">Select State</option>
-                  {Object.keys(STATES_AND_DISTRICTS).sort().map(stateName => (
-                    <option key={stateName} value={stateName}>{stateName}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
+    <div className="space-y-6">
+      {/* 📋 PROFILE OVERVIEW DASHBOARD BANNER */}
+      <div className="bg-slate-900 text-white rounded-xl border border-slate-800 p-5 shadow-sm relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute left-1/2 bottom-0 -translate-x-1/2 translate-y-12 w-96 h-24 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+          <div className="space-y-1 flex-1">
+            <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-black uppercase tracking-wider">
+              <UserCheck className="w-3 h-3 text-emerald-400" /> Active Eligibility Profile
             </div>
-
-            {/* Academic Qualification Selector */}
-            <div className="space-y-1.5" id="qualification-select-container">
-              <label htmlFor="elig-qualification" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Highest Qualification
-              </label>
-              <div className="relative">
-                <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select
-                  id="elig-qualification"
-                  required
-                  value={selectedQualification}
-                  onChange={(e) => setSelectedQualification(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
-                >
-                  <option value="">Select Highest Level</option>
-                  {selectableQualifications.map(qual => (
-                    <option key={qual.id} value={qual.id}>{qual.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
-            </div>
-
-            {/* Reservation Community Selector */}
-            <div className="space-y-1.5" id="category-select-container">
-              <label htmlFor="elig-category" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
-                Social Category Queue
-              </label>
-              <div className="relative">
-                <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <select
-                  id="elig-category"
-                  required
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all appearance-none cursor-pointer"
-                >
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.label}</option>
-                  ))}
-                </select>
-                <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Primary Unified CTA Button */}
-          <div className="pt-2" id="check-eligibility-button-section">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3 bg-[#0a192f] text-emerald-450 hover:text-white border-2 border-emerald-500 hover:bg-emerald-600 hover:border-emerald-600 rounded-xl font-bold uppercase tracking-widest text-xs shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
-                  <span>Finding Matches...</span>
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4 text-emerald-400" />
-                  <span>Check Eligibility</span>
-                </>
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-
-      {/* Error alert if any */}
-      {searchError && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-amber-800 text-xs">
-          <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-          <p className="font-semibold leading-relaxed">{searchError}</p>
-        </div>
-      )}
-
-      {/* 📋 ELIGIBLE MATCH RESULTS CONTAINER */}
-      <div className="space-y-4">
-        {hasSearched ? (
-          isLoading ? (
-            <div className="py-20 text-center bg-white rounded-2xl border border-slate-200/70 p-6 shadow-sm">
-              <RefreshCw className="w-10 h-10 text-indigo-600 mx-auto mb-4 animate-spin" />
-              <h3 className="text-sm font-black text-slate-800 uppercase tracking-widest">Compiling Job Match Matrix</h3>
-              <p className="text-xs text-slate-400 mt-2 max-w-xs mx-auto leading-relaxed">
-                Applying relaxation models and parsing requirements dynamically against the Gemini AI engine...
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-3">
-                <div className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                  <h3 className="text-sm font-black text-slate-800 uppercase tracking-wider">
-                    Your Eligible Matches ({displayMatchedJobs.length})
-                  </h3>
-                </div>
-                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
-                  Status: 100% Eligible
-                </span>
-              </div>
-
-              {displayMatchedJobs.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {displayMatchedJobs.map(({ job, guidance }) => (
-                    <JobCard 
-                      key={job.id} 
-                      job={job} 
-                      userProfile={currentUserProfile} 
-                      isSaved={savedJobIds.has(job.id)}
-                      onToggleSave={onToggleSave}
-                      isMatch={true}
-                      guidance={guidance}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="py-16 text-center bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
-                  <Info className="w-12 h-12 text-slate-350 mx-auto mb-3" />
-                  <h4 className="text-sm font-black text-slate-700 uppercase">No active matches found</h4>
-                  <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto leading-relaxed">
-                    We verified your coordinates but no currently open job announcements in {selectedState} perfectly fit the selected criteria. Try adjusting your preferences!
-                  </p>
-                </div>
-              )}
-            </div>
-          )
-        ) : (
-          <div className="py-16 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 p-6">
-            <Info className="w-12 h-12 text-slate-350 mx-auto mb-3" />
-            <h4 className="text-sm font-black text-slate-700 uppercase tracking-wider">No eligibility screening run yet</h4>
-            <p className="text-xs text-slate-400 mt-1.5 max-w-md mx-auto leading-relaxed">
-              Select your region state, qualifications, and reservation categories in the form above and click <strong className="text-slate-700">Check Eligibility</strong> to test eligibility parameters instantly against live openings.
+            <h2 className="text-lg font-black tracking-tight text-white leading-tight">
+              {profile.fullName || 'Guest Candidate'}
+            </h2>
+            <p className="text-xs text-slate-300 line-clamp-1">
+              Analyzing government portals for: <span className="text-emerald-400 font-bold">{userEducationLabels}</span>
             </p>
           </div>
-        )}
+
+          <div className="flex flex-wrap items-center gap-2 text-[10px] font-black uppercase tracking-wider">
+            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
+              <span className="text-slate-400 text-[8px]">Age</span>
+              <span className="text-slate-200">{profile.age} Yrs</span>
+            </div>
+            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
+              <span className="text-slate-400 text-[8px]">Local State</span>
+              <span className="text-slate-200">{profile.state || 'All India'}</span>
+            </div>
+            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
+              <span className="text-indigo-400 text-[8px]">State Category</span>
+              <span className="text-indigo-200">
+                {profile.stateCategory 
+                  ? profile.stateCategory.replace('_', ' ').replace('TS ', '').replace('AP ', '').replace('PB ', '').replace('HR ', '') 
+                  : 'None'}
+              </span>
+            </div>
+            <div className="px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-lg flex items-center gap-1.5">
+              <span className="text-emerald-400 text-[8px]">National Category</span>
+              <span className="text-emerald-200">{(profile.nationalCategory || profile.category).replace('_', ' ')}</span>
+            </div>
+            {profile.isPWD && (
+              <div className="px-3 py-1.5 bg-rose-950/40 border border-rose-800/60 rounded-lg text-rose-300 flex items-center gap-1">
+                ♿ PwBD
+              </div>
+            )}
+            {profile.isExServiceman && (
+              <div className="px-3 py-1.5 bg-teal-950/40 border border-teal-800/60 rounded-lg text-teal-300 flex items-center gap-1">
+                🎖️ Ex-Serviceman
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Dynamic Match Count Summary Box */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-slate-800/60 text-slate-300">
+          <div>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Available Now</span>
+            <span className="text-sm font-black text-white flex items-center gap-1.5 mt-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              {availableNow.length} Jobs
+            </span>
+          </div>
+          <div>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Coming Soon / Target</span>
+            <span className="text-sm font-black text-white flex items-center gap-1 mt-0.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              {comingSoon.length} Alerts
+            </span>
+          </div>
+          <div>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Matched Quotas</span>
+            <span className="text-sm font-black text-emerald-400 flex items-center gap-1 mt-0.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              {profile.category === 'UR' ? 'Standard' : 'Reserved Benefits'}
+            </span>
+          </div>
+          <div>
+            <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest block">Portal Synchronizer</span>
+            <span className="text-sm font-bold text-slate-300 flex items-center gap-1 mt-0.5">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400 animate-spin-slow" />
+              100% Verified
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* 📊 TWO-COLUMN VERIFICATION LAYOUT */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        
+        {/* ================= COLUMN 1: AVAILABLE NOW (Left 7 Columns) ================= */}
+        <div className="xl:col-span-7 space-y-4">
+          <div className="flex items-center justify-between bg-white border border-slate-200/80 p-3.5 rounded-lg shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                <CheckCircle2 className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  📍 AVAILABLE NOW
+                </h3>
+                <p className="text-[10px] text-slate-400 font-medium">Apply Online Today ({availableNow.length} Jobs Matched)</p>
+              </div>
+            </div>
+            <span className="text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-tight">
+              100% Eligible
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {availableNow.length > 0 ? (
+              availableNow.map(({ job, eligibility, guidance }) => {
+                const department = getDepartmentById(job.departmentId);
+                const isSaved = savedJobIds.has(job.id);
+
+                return (
+                  <div 
+                    key={job.id} 
+                    className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm hover:border-indigo-300 transition-all group flex flex-col"
+                  >
+                    {/* Top status bar */}
+                    <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
+                      <div className="flex items-center gap-1.5 text-emerald-600">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse font-mono" />
+                        Live & Open
+                      </div>
+                      <span className="text-slate-400">{job.region} Government</span>
+                    </div>
+
+                    <div className="p-4 space-y-3 flex-1">
+                      {/* Job Title & Source badge */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[9px] font-black text-indigo-600 uppercase tracking-wider bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded">
+                            {job.jobCategory || 'Central Govt'}
+                          </span>
+                          <span className="text-[9px] font-semibold text-slate-500 flex items-center gap-1 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                            <Globe className="w-3 h-3 text-slate-400" /> Source: {job.officialSource}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-black text-slate-900 leading-snug group-hover:text-indigo-600 transition-colors">
+                          {job.title}
+                        </h4>
+                        <p className="text-xs text-slate-500 font-medium leading-normal">{department?.name}</p>
+                      </div>
+
+                      {/* Primary Parameters Grid */}
+                      <div className="grid grid-cols-2 gap-2 text-[11px] leading-tight p-3 bg-slate-50 border border-slate-150 rounded-lg">
+                        <div>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Vacancies</span>
+                          <span className="font-extrabold text-indigo-700">{job.vacancies || 'Postings Notified'}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Salary Scale</span>
+                          <span className="font-extrabold text-slate-800">{job.salary}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Apply Deadline</span>
+                          <span className="font-extrabold text-rose-600">{format(new Date(job.lastDate), 'dd MMM yyyy')}</span>
+                        </div>
+                        <div>
+                          <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Scheduled Exam</span>
+                          <span className="font-extrabold text-slate-600">{job.examDate || 'Refer to Gazette'}</span>
+                        </div>
+                      </div>
+
+                      {/* 📋 ELIGIBILITY COMPOSITE STATUS METRIC */}
+                      <div className="p-3 bg-emerald-50/50 rounded-lg border border-emerald-100/80 space-y-2">
+                        <div className="text-[9px] font-semibold text-emerald-800 uppercase tracking-wider flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                          Verified Eligibility Checkmarks
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[10px] text-emerald-800 font-medium leading-none">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-500 font-bold">✓</span>
+                            <span>Age check: <strong className="text-emerald-900 font-bold">{profile.age}</strong> fits {job.minAge}-{job.maxAge} Yrs</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-500 font-bold">✓</span>
+                            <span className="truncate">Qual: <strong className="text-emerald-900 font-bold">MAPPED</strong> ({job.qualification})</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-500 font-bold">✓</span>
+                            <span>Reservation Benefit: <strong className="text-emerald-900 font-bold">{profile.category.replace('_', ' ')}</strong></span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-emerald-500 font-bold">✓</span>
+                            <span>Region candidacy: <strong className="text-emerald-900 font-bold">{job.region === 'Central' ? 'Central Open' : `${job.region} state quota`}</strong></span>
+                          </div>
+                        </div>
+
+                        {eligibility && eligibility.reason && (
+                          <div className="text-[9px] text-emerald-700/80 italic pt-1 border-t border-emerald-100/60 leading-tight">
+                            Status context: {eligibility.reason}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Guidance Box (if existing) */}
+                      {guidance && (
+                        <div className="p-2.5 bg-indigo-50 text-indigo-900 border border-indigo-100 rounded text-[10px] leading-relaxed flex gap-2">
+                          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                          <span><strong>AI Guidance:</strong> {guidance}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Apply action section */}
+                    <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3">
+                      <div>
+                        <span className="text-[8px] text-slate-400 font-mono tracking-wider block">ID: {job.id.slice(0, 10).toUpperCase()}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          onClick={() => onToggleSave(job.id)}
+                          className={`p-2 rounded border text-xs font-bold transition-all ${
+                            isSaved 
+                            ? 'bg-rose-50 border-rose-250 text-rose-600' 
+                            : 'bg-white border-slate-200 text-slate-400 hover:text-rose-600 hover:border-rose-220'
+                          }`}
+                          title={isSaved ? "Remove Bookmark" : "Save Notification"}
+                        >
+                          <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-600 text-rose-600' : ''}`} />
+                        </button>
+
+                        <a
+                          href={job.applyLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5 shadow-sm active:scale-[0.98] transition-all"
+                        >
+                          APPLY NOW ↗
+                        </a>
+
+                        <button 
+                          onClick={() => handleTogglePrepExpand(job.id)}
+                          className={`px-3 py-1.5 rounded text-[10px] font-black uppercase tracking-widest transition-all ${
+                            expandedPrepJobs.has(job.id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100'
+                          }`}
+                        >
+                          {expandedPrepJobs.has(job.id) ? 'Collapse' : 'Details ⤓'}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Detailed expanded content directly rendered */}
+                    <AnimatePresence>
+                      {expandedPrepJobs.has(job.id) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="border-t border-slate-150 overflow-hidden bg-slate-50/40"
+                        >
+                          <div className="p-4 space-y-4 text-xs leading-relaxed text-slate-600">
+                            <div>
+                              <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">About the recruitment & structure</h5>
+                              <p className="text-[11px] font-medium text-slate-700">{job.description}</p>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+                              <div>
+                                <span className="text-[9px] font-black uppercase text-slate-400 block mb-0.5">Selection methodology</span>
+                                <span className="font-bold text-slate-700">{job.selectionProcess || 'Refer to official document standard syllabus'}</span>
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black uppercase text-slate-400 block mb-0.5 font-mono">Exam system</span>
+                                <span className="font-bold text-slate-700">{job.examPattern || 'Offline written examination / Computer based CBT test'}</span>
+                              </div>
+                            </div>
+
+                            {job.howToApplySteps && job.howToApplySteps.length > 0 && (
+                              <div className="bg-white p-3 rounded-lg border border-slate-200">
+                                <h5 className="text-[9px] font-black uppercase tracking-wider text-indigo-900 mb-1.5">Official Application Steps</h5>
+                                <ol className="list-decimal pl-4 space-y-1.5 text-[10px] font-bold text-slate-700">
+                                  {job.howToApplySteps.slice(0, 5).map((step, idx) => (
+                                    <li key={idx} className="leading-tight">{step}</li>
+                                  ))}
+                                </ol>
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-16 text-center bg-white rounded-xl border border-slate-250 p-6">
+                <Info className="w-12 h-12 text-slate-350 mx-auto mb-4" />
+                <h4 className="text-sm font-bold text-slate-700">No active eligible matches found</h4>
+                <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
+                  Try broadening your profile preferences, checking optional certs, or consult upcoming ads in Coming Soon column on right.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ================= COLUMN 2: COMING SOON / TARGET OPPORTUNITIES (Right 5 Columns) ================= */}
+        <div className="xl:col-span-5 space-y-4">
+          <div className="flex items-center justify-between bg-white border border-slate-200/80 p-3.5 rounded-lg shadow-sm">
+            <div className="flex items-center gap-2">
+              <span className="p-2 bg-indigo-50 rounded-lg text-indigo-600 animate-pulse">
+                <BellRing className="w-4 h-4" />
+              </span>
+              <div>
+                <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                  🔔 COMING SOON & TARGETS
+                </h3>
+                <p className="text-[10px] text-slate-400 font-medium">Expected Launches & Career Prep ({comingSoon.length} Items)</p>
+              </div>
+            </div>
+            <span className="text-[10px] text-indigo-700 bg-indigo-50 border border-indigo-100 font-bold px-2.5 py-0.5 rounded-full uppercase tracking-tight">
+              Future Path
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            {comingSoon.length > 0 ? (
+              comingSoon.map(({ job, isUpcoming, eligibility }) => {
+                const isSaved = savedJobIds.has(job.id);
+                const hasReminder = reminders.has(job.id);
+                const department = getDepartmentById(job.departmentId);
+
+                return (
+                  <div 
+                    key={job.id} 
+                    className={`bg-white border rounded-xl overflow-hidden shadow-sm transition-all relative ${
+                      isUpcoming 
+                      ? 'border-indigo-150 hover:border-indigo-300' 
+                      : 'border-slate-200/80 bg-slate-50/50 hover:bg-white'
+                    }`}
+                  >
+                    {/* Badge alert ribbon for eligibility locks */}
+                    {!isUpcoming && (
+                      <div className="absolute top-0 right-0 pt-2 pr-2">
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-rose-50 text-rose-700 border border-rose-100 text-[8px] font-black uppercase tracking-wider rounded">
+                          <Lock className="w-2.5 h-2.5" /> Target Prep
+                        </span>
+                      </div>
+                    )}
+                    {isUpcoming && (
+                      <div className="absolute top-0 right-0 pt-2 pr-2">
+                        <span className="inline-flex items-center gap-0.5 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 text-[8px] font-black uppercase tracking-wider rounded animate-pulse">
+                          ⏱️ EXPECTED
+                        </span>
+                      </div>
+                    )}
+
+                    <div className="p-4 space-y-3">
+                      {/* Org details */}
+                      <div className="space-y-1 pr-16 bg-transparent">
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{department?.name || 'Government Organization'}</p>
+                        <h4 className="text-xs font-black text-slate-800 leading-tight block">{job.title}</h4>
+                        <p className="text-[10px] text-slate-500 font-mono flex items-center gap-1">
+                          <Globe className="w-3 h-3 text-slate-400 shrink-0" /> Portal: {job.officialSource}
+                        </p>
+                      </div>
+
+                      {/* Timeline status context or qualification lockers */}
+                      {isUpcoming ? (
+                        <div className="bg-gradient-to-br from-indigo-900 via-indigo-950 to-slate-900 text-white rounded-xl border border-indigo-800/60 p-4 space-y-3 shadow-md text-left">
+                          <div className="flex items-center justify-between border-b border-indigo-700/40 pb-1.5">
+                            <div className="flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-amber-450 animate-pulse animate-spin-slow" />
+                              <span className="text-[9px] font-black text-amber-400 uppercase tracking-wider">Deep Prep Guidance</span>
+                            </div>
+                            <span className="text-[8px] bg-indigo-800/80 border border-indigo-600/50 px-2 py-0.5 rounded font-black text-indigo-250 uppercase">
+                              📋 2026 Forecast
+                            </span>
+                          </div>
+
+                          <div className="space-y-3 text-xs">
+                            {/* Expected publication */}
+                            <div>
+                              <span className="text-[8px] font-black text-indigo-350 block uppercase tracking-wider">Expected Notification:</span>
+                              <p className="font-extrabold text-xs text-emerald-450">
+                                📅 {job.notificationDate ? format(new Date(job.notificationDate), 'MMMM yyyy') : 'Shortly in 2026'}
+                              </p>
+                            </div>
+
+                            {/* Required Exam Stages */}
+                            <div>
+                              <span className="text-[8px] font-black text-indigo-350 block uppercase tracking-wider mb-1">Required Exam Stages:</span>
+                              <div className="space-y-1 pl-0.5">
+                                {getDeepPrepGuidance(job.id, job.title, job.region).stages.map((stage, sIdx) => (
+                                  <div key={sIdx} className="flex gap-1 items-start text-[10px] leading-tight text-indigo-150">
+                                    <span className="text-amber-500 font-bold shrink-0">▪</span>
+                                    <span>{stage}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* How to start learning right now */}
+                            <div className="bg-indigo-950/90 rounded p-2.5 border border-indigo-850/60 space-y-1.5">
+                              <span className="text-[8px] font-black text-amber-400 flex items-center gap-1 uppercase tracking-wider">
+                                <BookOpen className="w-3 h-3 text-amber-500 shrink-0" /> Immediate Sourcing Syllabus Plan:
+                              </span>
+                              <div className="space-y-1 pl-0.5">
+                                {getDeepPrepGuidance(job.id, job.title, job.region).learningPlan.map((planItem, pIdx) => (
+                                  <div key={pIdx} className="flex gap-1.5 items-start text-[10px] leading-snug">
+                                    <span className="text-emerald-400 font-extrabold shrink-0">→</span>
+                                    <p className="text-indigo-100 font-medium">{planItem}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-2.5 bg-rose-50 border border-rose-100 text-rose-900 rounded-lg text-[10px] leading-relaxed space-y-1">
+                          <div className="flex items-center gap-1.5 font-black text-[9px] uppercase text-rose-850">
+                            <Lock className="w-3.5 h-3.5 text-rose-500" />
+                            ELIGIBILITY LOCKS PENDING
+                          </div>
+                          
+                          <div className="space-y-1 font-bold text-rose-800 text-[9.5px]">
+                            <div>
+                              ✗ Qualification gap: requires <span className="bg-rose-100 text-rose-900 font-black px-1 rounded">{getQualificationById(job.minQualification)?.label || job.qualification}</span>
+                            </div>
+                            <div className="text-[9px] text-slate-500 leading-tight font-medium mt-1">
+                              💡 Solution: Map this opportunity for future preparation. Perfect if completing matching degrees standard duration.
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Brief statistics */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] text-slate-500 border-t border-dashed border-slate-200/80 pt-2 font-medium">
+                        <span>💰 Salary Scale: <strong className="text-slate-700">{job.salary}</strong></span>
+                        <span>👥 Vacancies: <strong className="text-slate-700">{job.vacancies || 'TBD'}</strong></span>
+                      </div>
+                    </div>
+
+                    {/* Left footer action actions */}
+                    <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[8px] text-slate-400 font-mono tracking-wider">REF ID: {job.id.slice(0, 8).toUpperCase()}</span>
+                      
+                      <div className="flex items-center gap-1.5">
+                        {isUpcoming ? (
+                          <button
+                            onClick={() => handleToggleReminder(job.id, job.title)}
+                            className={`px-3 py-1 bg-transparent rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1 transition-all ${
+                              hasReminder 
+                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 animate-bounce' 
+                              : 'bg-white text-indigo-700 border border-indigo-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {hasReminder ? (
+                              <>
+                                <Check className="w-3 h-3 text-emerald-500" />
+                                MATCH ALERT ON ✓
+                              </>
+                            ) : (
+                              <>
+                                <BellRing className="w-3 h-3 text-indigo-500 animate-pulse" />
+                                SET ALERT REMINDER
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={() => handleTogglePrepExpand(job.id)}
+                            className={`px-3 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all ${
+                              expandedPrepJobs.has(job.id) ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100'
+                            }`}
+                          >
+                            {expandedPrepJobs.has(job.id) ? 'Collapse' : 'Prep Guide ⤓'}
+                          </button>
+                        )}
+
+                        <button
+                          onClick={() => onToggleSave(job.id)}
+                          className={`p-1.5 rounded border transition-all ${
+                            isSaved 
+                            ? 'bg-rose-50 border-rose-200 text-rose-600' 
+                            : 'bg-white border-slate-200 text-slate-400'
+                          }`}
+                          title="Save Opportunity"
+                        >
+                          <Bookmark className={`w-3 h-3 ${isSaved ? 'fill-rose-500 text-rose-500' : ''}`} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Expandable preparation guide */}
+                    <AnimatePresence>
+                      {expandedPrepJobs.has(job.id) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="border-t border-slate-150 overflow-hidden bg-slate-100/30"
+                        >
+                          <div className="p-4 space-y-3.5 text-xs text-slate-650 leading-relaxed">
+                            <div className="flex items-start gap-2">
+                              <BookOpen className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
+                              <div>
+                                <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-800 mb-0.5">Syllabus & recommended books</h5>
+                                <p className="text-[11px] font-medium text-slate-700">
+                                  Standard requirements are subject to syllabus norms in {job.region}. Candidates are advised to pursue general awareness, basic quantitative calculations and state history parameters early.
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="flex items-start gap-2 border-t border-slate-200/80 pt-3">
+                              <Award className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                              <div>
+                                <h5 className="text-[10px] font-black uppercase tracking-wider text-slate-800 mb-0.5">Estimated starting salary range</h5>
+                                <p className="text-[11px] font-black text-slate-75 *">
+                                  Upon meeting qualification and passing exam thresholds, starting scale is {job.salary} accompanied with state DA & standard allowances.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-12 text-center bg-slate-50 border border-dashed border-slate-200 p-6 rounded-xl">
+                <Info className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                <p className="text-xs text-slate-500 font-medium">No upcoming target notifications available.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );
