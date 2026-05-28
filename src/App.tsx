@@ -21,7 +21,7 @@ import { Job, UserProfile } from './types';
 import { isUserEligible } from './lib/utils';
 import { getDepartmentById } from './data/departments';
 import { getQualificationById } from './data/qualifications';
-import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle, Bookmark, Server } from 'lucide-react';
+import { Search, Filter, RefreshCw, Info, IndianRupee, Globe, Send, ShieldCheck, Sparkles, ArrowRight, Bell, BellRing, Building2, Briefcase, Calendar, Clock, Activity, CheckCircle2, AlertCircle, Bookmark, Server, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, differenceInDays } from 'date-fns';
 
@@ -74,6 +74,27 @@ export default function App() {
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  // Shared job deep linking detection
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sharedId = params.get('jobId');
+      if (sharedId) {
+        const found = jobs.find(j => j.id === sharedId) || STATIC_JOBS.find(j => j.id === sharedId);
+        if (found) {
+          setSearchTerm(found.title);
+          setSuccessMessage(`Loaded shared job: "${found.title}"`);
+          
+          // Cleanly reset URL parameter without reloading page
+          const newUrl = window.location.pathname;
+          window.history.replaceState({}, document.title, newUrl);
+        }
+      }
+    } catch (e) {
+      console.error("Deep link parsing error:", e);
+    }
+  }, [jobs]);
 
   useEffect(() => {
     // 1. Real-time job listener

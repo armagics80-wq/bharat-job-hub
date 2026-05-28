@@ -300,6 +300,40 @@ async function startServer() {
     }
   });
 
+  // Save profile data into a Google Sheet via SheetDB API
+  app.post('/api/save-user', async (req, res) => {
+    try {
+      const { name, phone, state, qualification, category } = req.body;
+      
+      const sheetDbUrl = process.env.SHEETDB_URL;
+      if (!sheetDbUrl) {
+        console.warn('[SheetDB] SHEETDB_URL is not set in environment variables. Simulating success.');
+        return res.status(200).json({ success: true, simulated: true });
+      }
+
+      const response = await axios.post(sheetDbUrl, {
+        data: [
+          {
+            Name: name || '',
+            Phone: phone || '',
+            State: state || '',
+            Qualification: qualification || '',
+            Category: category || '',
+            Timestamp: new Date().toLocaleString('en-US', { timeZone: 'UTC' })
+          }
+        ]
+      }, {
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      console.log('[SheetDB] Saved row successfully:', response.data);
+      return res.status(200).json({ success: true, response: response.data });
+    } catch (err: any) {
+      console.error('[SheetDB] Error saving user details to spreadsheet:', err.message);
+      return res.status(500).json({ error: err.message || 'Failed to save to Google Sheets' });
+    }
+  });
+
   // Manual Trigger for testing
   app.post('/api/sync/trigger', async (req, res) => {
     try {

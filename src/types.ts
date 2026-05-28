@@ -61,11 +61,21 @@ export interface Job {
   state?: string;
   district?: string;
   howToApplySteps: string[];
+  application_steps?: string[];
+  tags?: string[];
   applicationFee?: string;
   documentRequired: string[];
   status: 'Active' | 'Upcoming' | 'Expired';
   vacancies?: string | number;
   sourceType: 'Official Notification' | 'Upcoming Opportunity' | 'Media Prediction';
+  deep_guidance?: {
+    quick_eligibility?: {
+      age_limit?: string;
+      qualification?: string;
+    };
+    selection_process?: string[];
+    study_checklist?: string[];
+  };
   verified?: boolean;
   verificationStatus?: 'Verified' | 'Pending' | 'Unavailable';
   lastVerifiedAt?: string;

@@ -6,7 +6,7 @@ import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
-  onSave: (data: UserProfile) => void;
+  onSave: (data: UserProfile) => void | Promise<void>;
   isLoading?: boolean;
 }
 
@@ -48,6 +48,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
   });
 
   const [qualSearch, setQualSearch] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const filteredQuals = useMemo(() => {
     if (!qualSearch) return QUALIFICATIONS;
@@ -57,13 +58,53 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
     );
   }, [qualSearch]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.qualifications.length === 0) {
       alert('Please select at least one qualification to check eligibility.');
       return;
     }
-    onSave(formData);
+    
+    setIsSubmitting(true);
+    try {
+      const qualificationLabels = formData.qualifications.map(id => {
+        try {
+          return getQualificationById(id)?.label || id;
+        } catch {
+          return id;
+        }
+      }).join(', ');
+
+      // Send details to the backend /api/save-user endpoint
+      const response = await fetch('/api/save-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: formData.fullName,
+          phone: formData.phoneNumber,
+          state: formData.state,
+          qualification: qualificationLabels,
+          category: formData.nationalCategory || formData.category || 'UR',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Save to Google Sheets failed');
+      }
+
+      console.log('[SheetDB] Successfully synced registration with Google Sheets.');
+      
+      // Trigger parent save which invokes local/AI match fetching sequence immediately
+      await onSave(formData);
+    } catch (err) {
+      console.error('[ProfileForm] Error saving user to spreadsheet:', err);
+      // Fallback: still run onSave so that eligibility matching is never blocked
+      await onSave(formData);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -600,12 +641,15 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       </div>
 
       <button
-        disabled={isLoading}
+        disabled={isSubmitting || isLoading}
         type="submit"
         className="w-full py-2.5 bg-indigo-600 text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
       >
-        {isLoading ? (
-          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+        {isSubmitting || isLoading ? (
+          <>
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <span>Saving Profile & Finding Jobs...</span>
+          </>
         ) : (
           <>
             <Save className="w-3.5 h-3.5" />
