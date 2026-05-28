@@ -193,71 +193,69 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
       'Organize reservation category proof / support OTR documents',
       'Download the official notification PDF file for subject syllabus details'
     ];
-  }, [job]);
-
-  return (
+  }, [job]);  return (
     <motion.div 
       layout
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`bg-white shadow-md rounded-xl border border-slate-100 p-4 md:p-5 transition-all duration-300 hover:shadow-lg ${
+      className={`bg-white shadow-md rounded-2xl border border-slate-100 p-5 md:p-6 transition-all duration-300 hover:shadow-lg ${
         showHowToApply ? 'ring-2 ring-indigo-505 bg-slate-50/50' : 'hover:bg-slate-50/30'
       } ${isMatch ? 'border-indigo-100 bg-indigo-50/10' : ''}`}
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         {/* Top Badges & Source Verification Ribbon */}
-        <div className="flex flex-wrap items-center justify-between gap-2.5 border-b border-slate-100 pb-2.5" id={`badge-row-${job.id}`}>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-50 pb-3" id={`badge-row-${job.id}`}>
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${getSourceTypeColor(job.sourceType)}`}>
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${getSourceTypeColor(job.sourceType)}`}>
               {job.sourceType}
             </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${statusInfo.color}`}>
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${statusInfo.color}`}>
               {statusInfo.label}
             </span>
-            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border ${getRegionColor(job.region)}`}>
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider border ${getRegionColor(job.region)}`}>
               {job.region}
             </span>
             {isJobNewToday && (
-              <span className="text-[10px] px-2 py-0.5 bg-rose-605 text-white bg-rose-600 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse">
+              <span className="text-[10px] px-2.5 py-0.5 bg-rose-605 text-white bg-rose-600 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse">
                 <Zap className="w-2.5 h-2.5 fill-white" /> New Today
               </span>
             )}
           </div>
 
           {/* 100% Verified Official Source badge with checkmark icon */}
-          <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full text-[10px] md:text-[11px] font-semibold select-none">
-            <CheckCircle2 className="w-3 h-3 text-emerald-600 shrink-0" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-full text-[10px] md:text-xs font-semibold select-none">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
             <span className="font-bold">100% Verified Official Source</span>
           </div>
         </div>
 
         {/* Card Header: Job Title (Dark Navy) & Department (Gray) */}
-        <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
+        <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
           <div className="flex-1 min-w-0" onClick={() => setShowHowToApply(!showHowToApply)}>
-            <div className="space-y-0.5 cursor-pointer">
-              <h3 className="text-sm md:text-base font-extrabold text-[#0a192f] hover:text-indigo-600 transition-colors leading-snug flex flex-wrap items-center gap-1.5">
+            <div className="space-y-1 cursor-pointer">
+              <h3 className="text-base md:text-lg font-extrabold text-[#0a192f] hover:text-indigo-600 transition-colors leading-snug flex flex-wrap items-center gap-2">
                 <span>{job.title}</span>
                 {eligibility && (
-                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
                     eligibility.isEligible 
                     ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' 
                     : eligibility.type === 'error' 
                       ? 'bg-rose-100 text-rose-800 border border-rose-200' 
                       : 'bg-amber-100 text-amber-800 border border-amber-200'
                   }`}>
-                    {eligibility.isEligible ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> : <AlertCircle className="w-2.5 h-2.5 text-amber-600" />}
+                    {eligibility.isEligible ? <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> : <AlertCircle className="w-2.5 h-2.5 text-amber-605" />}
                     {eligibility.isEligible ? 'Eligible' : 'Check Criteria'}
                   </span>
                 )}
               </h3>
               
-              <div className="flex items-center gap-1.5 text-slate-500">
-                <span className="text-xs font-semibold text-slate-500">{department?.name || 'Recruitment Department'}</span>
+              <div className="flex items-center gap-2 text-slate-500">
+                <span className="text-sm font-semibold text-slate-500">{department?.name || 'Recruitment Department'}</span>
                 {job.jobCategory && (
                   <>
-                    <span className="h-2.5 w-px bg-slate-200" />
-                    <span className="text-[10.5px] bg-slate-50 border border-slate-150 rounded px-1.5 py-0.2 text-slate-500 font-medium">{job.jobCategory}</span>
+                    <span className="h-3 w-px bg-slate-200" />
+                    <span className="text-xs bg-slate-50 border border-slate-150 rounded px-1.5 py-0.2 text-slate-500 font-medium">{job.jobCategory}</span>
                   </>
                 )}
               </div>
@@ -265,19 +263,19 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
 
             {/* Candidate eligibility badge notifications */}
             {eligibility && !eligibility.isEligible && (
-              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-2 bg-rose-50 px-2 py-1 rounded-lg border border-rose-100 inline-block text-left">
-                <AlertCircle className="w-3 h-3 text-rose-505 shrink-0" /> {eligibility.reason}
+              <p className="text-[10px] font-bold text-rose-600 flex items-center gap-1 mt-2.5 bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-100 inline-block text-left">
+                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" /> {eligibility.reason}
               </p>
             )}
             {eligibility && eligibility.isEligible && eligibility.reason.includes('relaxation') && (
-              <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 mt-2 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100 inline-block text-left">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> {eligibility.reason}
+              <p className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 mt-2.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 inline-block text-left">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-505 shrink-0" /> {eligibility.reason}
               </p>
             )}
           </div>
 
           {/* Corner Call to Actions: Bookmarking, Sharing and Learn More toggle buttons */}
-          <div className="flex items-center gap-1.5 shrink-0 sm:self-center" id={`controls-${job.id}`}>
+          <div className="flex items-center gap-2 shrink-0 sm:self-center" id={`controls-${job.id}`}>
             {/* Save bookmark */}
             <button
               id={`bookmark-${job.id}`}
@@ -286,13 +284,13 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
                 if (onToggleSave) onToggleSave(job.id);
               }}
               title={isSaved ? "Remove from Saved Jobs" : "Save Job Opportunity"}
-              className={`p-1.5 rounded-lg border transition-all duration-200 ${
+              className={`p-2 rounded-xl border transition-all duration-200 ${
                 isSaved 
                 ? 'bg-rose-50 border-rose-200 text-rose-600 shadow-sm' 
                 : 'bg-white border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50/20'
               }`}
             >
-              <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-rose-600 text-rose-605' : ''}`} />
+              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-rose-600 text-rose-605' : ''}`} />
             </button>
 
             {/* Share action */}
@@ -300,15 +298,15 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
               id={`share-${job.id}`}
               onClick={handleShare}
               title="Share or Copy Job Announcement URL"
-              className={`p-1.5 rounded-lg border transition-all duration-200 flex items-center justify-center gap-1 ${
+              className={`p-2 rounded-xl border transition-all duration-200 flex items-center justify-center gap-1.5 ${
                 shareState !== 'idle'
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-600 animate-pulse' 
                 : 'bg-white border-slate-200 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50/20'
               }`}
             >
-              <Share2 className="w-3.5 h-3.5" />
+              <Share2 className="w-4 h-4" />
               {shareState !== 'idle' && (
-                <span className="text-[8px] font-black uppercase tracking-wider px-0.5 text-emerald-700">
+                <span className="text-[9px] font-black uppercase tracking-wider px-1 text-emerald-700">
                   {shareState === 'copied' ? 'Copied' : 'Shared'}
                 </span>
               )}
@@ -321,25 +319,25 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
                 e.stopPropagation(); 
                 setShowHowToApply(!showHowToApply); 
               }}
-              className={`px-2.5 py-1.5 rounded-lg text-[10.5px] font-bold uppercase tracking-wider transition-all duration-200 border flex items-center gap-1 ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 border flex items-center gap-1.5 ${
                 showHowToApply 
                 ? 'bg-[#0a192f] border-[#0a192f] text-white shadow' 
-                : 'bg-slate-50 hover:bg-indigo-50 border-slate-200 text-slate-705 hover:text-indigo-700'
+                : 'bg-slate-50 hover:bg-indigo-50 border-slate-200 text-slate-700 hover:text-indigo-700'
               }`}
             >
               <span>{showHowToApply ? 'Less' : 'Learn More'}</span>
-              {showHowToApply ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              {showHowToApply ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
         {/* Tags badge mappings displayed as small, pill-shaped badges */}
-        <div className="flex flex-wrap gap-1" id={`tags-container-${job.id}`}>
+        <div className="flex flex-wrap gap-1.5" id={`tags-container-${job.id}`}>
           {(job.tags || [job.jobType, job.jobCategory, job.region].filter(Boolean)).map((tag, idx) => (
             <span
               id={`tag-${job.id}-${idx}`}
               key={idx}
-              className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-800 border border-blue-100"
+              className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-800 border border-blue-100" // wait background is blue-50, let's keep it clean
             >
               {tag}
             </span>
@@ -347,23 +345,23 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
         </div>
 
         {/* Quick horizontal spec grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 bg-slate-50 border border-slate-100 rounded-lg p-2.5 text-[10.5px] text-slate-650" id={`spec-ribbon-${job.id}`}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 border border-slate-100 rounded-xl p-3.5 text-[11px] text-slate-650" id={`spec-ribbon-${job.id}`}>
           <div>
-            <span className="block text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Vacancies</span>
+            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Vacancies</span>
             <span className="font-extrabold text-slate-850">{String(job.vacancies || 'TBA')}</span>
           </div>
           <div>
-            <span className="block text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Salary Band</span>
+            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Salary Band</span>
             <span className="font-extrabold text-indigo-700">{job.salary}</span>
           </div>
           <div>
-            <span className="block text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Last Date</span>
+            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Last Date to Apply</span>
             <span className="font-extrabold text-rose-600 font-mono">
               {job.lastDate ? format(new Date(job.lastDate), 'dd-MM-yyyy') : 'TBA'}
             </span>
           </div>
           <div>
-            <span className="block text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Vetting Status</span>
+            <span className="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Vetting Status</span>
             <span className="font-extrabold text-emerald-600 flex items-center gap-0.5">
               <CheckCircle2 className="w-3 h-3 text-emerald-500" /> Safe Portal
             </span>

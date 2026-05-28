@@ -1,8 +1,8 @@
-import { useState, useMemo } from 'react';
-import { UserProfile, QualificationType } from '../types';
-import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase } from 'lucide-react';
-import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
+import { useState } from 'react';
+import { UserProfile } from '../types';
+import { QUALIFICATIONS } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
+import { User, Phone, MapPin, GraduationCap, ShieldCheck } from 'lucide-react';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -11,652 +11,244 @@ interface ProfileFormProps {
 }
 
 export default function ProfileForm({ initialData, onSave, isLoading }: ProfileFormProps) {
-  const [formData, setFormData] = useState<UserProfile>(() => {
-    const defaultData: UserProfile = {
-      fullName: '',
-      phoneNumber: '',
-      age: 18,
-      category: 'UR',
-      nationalCategory: 'UR',
-      stateCategory: 'STATE_GEN',
-      isExServiceman: false,
-      qualifications: [],
-      state: '',
-      district: '',
-      gender: 'Male',
-      isPWD: false,
-      skills: [],
-      documents: [],
-      otherCertificates: '',
-      preferredRegion: 'All',
-      subscriptions: {
-        regions: [],
-        categories: []
-      }
-    };
-
-    if (!initialData) return defaultData;
-
-    return {
-      ...defaultData,
-      ...initialData,
-      qualifications: initialData.qualifications || ((initialData as any).qualification ? [(initialData as any).qualification as any] : []),
-      subscriptions: initialData.subscriptions || defaultData.subscriptions,
-      nationalCategory: initialData.nationalCategory || initialData.category || 'UR',
-      stateCategory: initialData.stateCategory || (initialData.state === 'Telangana' ? 'TS_OC' : initialData.state === 'Andhra Pradesh' ? 'AP_OC' : initialData.state === 'Punjab' ? 'PB_GEN' : initialData.state === 'Haryana' ? 'HR_GEN' : 'STATE_GEN')
-    };
+  const [formData, setFormData] = useState({
+    name: initialData?.fullName || '',
+    phone: initialData?.phoneNumber || '',
+    state: initialData?.state || '',
+    qualification: initialData?.qualifications?.[0] || '',
+    category: initialData?.category || 'UR',
   });
 
-  const [qualSearch, setQualSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filteredQuals = useMemo(() => {
-    if (!qualSearch) return QUALIFICATIONS;
-    return QUALIFICATIONS.filter(q => 
-      q.label.toLowerCase().includes(qualSearch.toLowerCase()) || 
-      q.category.toLowerCase().includes(qualSearch.toLowerCase())
-    );
-  }, [qualSearch]);
+  // Filter qualifications to present user with high-level academic/vocational choices
+  const selectableQualifications = QUALIFICATIONS.filter(q => 
+    ['School', 'Technical/Diploma', 'Degree', 'Postgraduate'].includes(q.category)
+  ).sort((a, b) => a.rank - b.rank);
+
+  const categories = [
+    { id: 'UR', label: 'General / Unreserved (UR)' },
+    { id: 'EWS', label: 'Economically Weaker Section (EWS)' },
+    { id: 'OBC_NCL', label: 'OBC - Non Creamy Layer (OBC-NCL)' },
+    { id: 'SC', label: 'Scheduled Caste (SC)' },
+    { id: 'ST', label: 'Scheduled Tribe (ST)' },
+  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // 1. MUST be the very first line of handleSubmit
     e.preventDefault();
-    if (formData.qualifications.length === 0) {
-      alert('Please select at least one qualification to check eligibility.');
-      return;
-    }
-    
-    setIsSubmitting(true);
-    try {
-      const qualificationLabels = formData.qualifications.map(id => {
-        try {
-          return getQualificationById(id)?.label || id;
-        } catch {
-          return id;
-        }
-      }).join(', ');
 
-      // Send details to the backend /api/save-user endpoint
+    // 2. Add temporary alert to confirm click registration
+    alert("Connecting to database...");
+
+    setIsSubmitting(true);
+
+    try {
+      // 3. Asynchronous POST request to '/api/save-user'
       const response = await fetch('/api/save-user', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.fullName,
-          phone: formData.phoneNumber,
+          name: formData.name,
+          phone: formData.phone,
           state: formData.state,
-          qualification: qualificationLabels,
-          category: formData.nationalCategory || formData.category || 'UR',
+          qualification: formData.qualification,
+          category: formData.category,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Save to Google Sheets failed');
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      console.log('[SheetDB] Successfully synced registration with Google Sheets.');
-      
-      // Trigger parent save which invokes local/AI match fetching sequence immediately
-      await onSave(formData);
-    } catch (err) {
-      console.error('[ProfileForm] Error saving user to spreadsheet:', err);
-      // Fallback: still run onSave so that eligibility matching is never blocked
-      await onSave(formData);
+      console.log('[SheetDB] User profile synchronized successfully!');
+
+      // Map back to global UserProfile object structure with defaults for required core fields
+      const mappedProfile: UserProfile = {
+        fullName: formData.name,
+        phoneNumber: formData.phone,
+        state: formData.state,
+        qualifications: [formData.qualification as any],
+        category: formData.category as any,
+        nationalCategory: formData.category as any,
+        age: 24, // neutral default age
+        isExServiceman: false,
+        isPWD: false,
+        gender: 'Male',
+        district: '',
+        skills: [],
+        documents: [],
+        otherCertificates: '',
+        preferredRegion: 'All',
+        subscriptions: {
+          regions: [],
+          categories: []
+        }
+      };
+
+      // 4. Immediately trigger existing match-fetching sequence
+      await onSave(mappedProfile);
+
+    } catch (err: any) {
+      // Show exact failure message in browser console
+      console.error(err.message || 'Failed to save profile to Google Sheets.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   return (
-    <form id="profile-form" onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-5">
-        <div className="p-2 bg-indigo-50 rounded">
-          <User className="w-4 h-4 text-indigo-600" />
-        </div>
-        <div>
-          <h2 className="text-sm font-bold text-slate-900">Eligibility Profile</h2>
-          <p className="text-[10px] text-slate-500 uppercase tracking-tight">Configure location and reservation parameters first to check matching vacancies</p>
-        </div>
+    <div id="profile-form-container" className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden max-w-2xl mx-auto">
+      {/* Header section */}
+      <div className="bg-[#0a192f] text-white p-5 text-left">
+        <h2 className="text-base font-extrabold tracking-wide flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+          Check Government Job Eligibility
+        </h2>
+        <p className="text-xs text-slate-350 mt-1 leading-relaxed">
+          Provide your core credentials below to verify your eligibility for SSC, Railways, and State Commission vacancies.
+        </p>
       </div>
 
-      <div className="space-y-6 mb-6">
-        
-        {/* 1. Domicile & Reservation Matrix (2 Columns) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-slate-50 border border-slate-200/60 rounded-xl shadow-sm">
-          
-          {/* Column 1: State Selection & Reservation Category */}
-          <div className="space-y-4">
-            <div className="border-b border-indigo-100 pb-1.5 flex items-center gap-2">
-              <span className="w-1.5 h-3 bg-indigo-600 rounded-full"></span>
-              <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider block">State Domicile & local Quota</span>
-            </div>
-
-            {/* A. State Selection */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                State Selection <span className="text-indigo-600 font-bold">*</span>
-              </label>
-              <select
-                id="profile-state-select"
-                required
-                value={formData.state}
-                onChange={(e) => {
-                  const newState = e.target.value;
-                  let defaultStateCat = 'STATE_GEN';
-                  if (newState === 'Telangana') defaultStateCat = 'TS_OC';
-                  if (newState === 'Andhra Pradesh') defaultStateCat = 'AP_OC';
-                  if (newState === 'Punjab') defaultStateCat = 'PB_GEN';
-                  if (newState === 'Haryana') defaultStateCat = 'HR_GEN';
-                  
-                  setFormData({ 
-                    ...formData, 
-                    state: newState, 
-                    district: '', 
-                    stateCategory: defaultStateCat 
-                  });
-                }}
-                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm"
-              >
-                <option value="">Select State</option>
-                {Object.keys(STATES_AND_DISTRICTS).sort().map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* B. State Reservation Category (Comes after State Selection) */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                State Reservation Category <span className="text-indigo-600 font-bold">*</span>
-              </label>
-              <select
-                id="profile-state-category-select"
-                required
-                disabled={!formData.state}
-                value={formData.stateCategory || ''}
-                onChange={(e) => setFormData({ ...formData, stateCategory: e.target.value })}
-                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                {!formData.state ? (
-                  <option value="">Select state first</option>
-                ) : (
-                  <>
-                    {formData.state === 'Telangana' && (
-                      <>
-                        <option value="TS_OC">General / General (TS OC)</option>
-                        <option value="TS_EWS">Economically Weaker Section (TS EWS)</option>
-                        <option value="BC_A">Backward Classes - Group A (TS BC-A)</option>
-                        <option value="BC_B">Backward Classes - Group B (TS BC-B)</option>
-                        <option value="BC_C">Backward Classes - Group C (TS BC-C)</option>
-                        <option value="BC_D">Backward Classes - Group D (TS BC-D)</option>
-                        <option value="BC_E">Backward Classes - Group E (TS BC-E)</option>
-                        <option value="TS_SC">Scheduled Caste (TS SC)</option>
-                        <option value="TS_ST">Scheduled Tribe (TS ST)</option>
-                      </>
-                    )}
-                    {formData.state === 'Andhra Pradesh' && (
-                      <>
-                        <option value="AP_OC">General / General (AP OC)</option>
-                        <option value="AP_EWS">Economically Weaker Section (AP EWS)</option>
-                        <option value="AP_BC_A">Backward Classes - Group A (AP BC-A)</option>
-                        <option value="AP_BC_B">Backward Classes - Group B (AP BC-B)</option>
-                        <option value="AP_BC_C">Backward Classes - Group C (AP BC-C)</option>
-                        <option value="AP_BC_D">Backward Classes - Group D (AP BC-D)</option>
-                        <option value="AP_BC_E">Backward Classes - Group E (AP BC-E)</option>
-                        <option value="AP_SC">Scheduled Caste (AP SC)</option>
-                        <option value="AP_ST">Scheduled Tribe (AP ST)</option>
-                      </>
-                    )}
-                    {formData.state === 'Punjab' && (
-                      <>
-                        <option value="PB_GEN">General / Unreserved (Punjab UR)</option>
-                        <option value="PB_EWS">Economically Weaker Section (Punjab EWS)</option>
-                        <option value="PB_BC">Backward Classes (Punjab BC)</option>
-                        <option value="PB_SC_MZ">Balmiki / Mazhabi Sikh (Punjab SC-MZ)</option>
-                        <option value="PB_SC_OT">Other Scheduled Castes (Punjab SC-Others)</option>
-                        <option value="PB_LDESM">Lineal Descendants of ESM (Punjab LDESM)</option>
-                      </>
-                    )}
-                    {formData.state === 'Haryana' && (
-                      <>
-                        <option value="HR_GEN">General / Unreserved (Haryana UR)</option>
-                        <option value="HR_EWS">Economically Weaker Section (Haryana EWS)</option>
-                        <option value="HR_BCA">Backward Classes Block-A (Haryana BC-A)</option>
-                        <option value="HR_BCB">Backward Classes Block-B (Haryana BC-B)</option>
-                        <option value="HR_SC">Scheduled Caste (Haryana SC)</option>
-                        <option value="HR_DSC">Deprived Scheduled Caste (Haryana DSC)</option>
-                      </>
-                    )}
-                    {formData.state !== 'Telangana' && formData.state !== 'Andhra Pradesh' && formData.state !== 'Punjab' && formData.state !== 'Haryana' && (
-                      <>
-                        <option value="STATE_GEN">General / Unreserved (Local State)</option>
-                        <option value="STATE_EWS">Economically Weaker Section (State EWS)</option>
-                        <option value="STATE_OBC">Backward Class / OBC (State OBC)</option>
-                        <option value="STATE_SC">Scheduled Caste (State SC)</option>
-                        <option value="STATE_ST">Scheduled Tribe (State ST)</option>
-                      </>
-                    )}
-                  </>
-                )}
-              </select>
-            </div>
-
-            {/* C. District Selection */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                District Selection <span className="text-indigo-600 font-bold">*</span>
-              </label>
-              <select
-                id="profile-district-select"
-                required
-                disabled={!formData.state}
-                value={formData.district}
-                onChange={(e) => setFormData({ ...formData, district: e.target.value })}
-                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm disabled:bg-slate-100 disabled:text-slate-400"
-              >
-                <option value="">Select District</option>
-                {formData.state && STATES_AND_DISTRICTS[formData.state] ? (
-                  STATES_AND_DISTRICTS[formData.state].map(dist => (
-                    <option key={dist} value={dist}>{dist}</option>
-                  ))
-                ) : (
-                  <option value="" disabled>Select state first</option>
-                )}
-              </select>
-            </div>
+      {/* Form content */}
+      <form id="profile-eligibility-form" onSubmit={handleSubmit} className="p-5 md:p-6 space-y-4 text-left">
+        {/* Name Input */}
+        <div className="space-y-1.5">
+          <label htmlFor="name-input" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+            Full Name <span className="text-rose-500 font-bold">*</span>
+          </label>
+          <div className="relative">
+            <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              id="name-input"
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder="Enter your full name"
+              className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs"
+            />
           </div>
-
-          {/* Column 2: National Level Selection & Other Special Reservations */}
-          <div className="space-y-4">
-            <div className="border-b border-indigo-100 pb-1.5 flex items-center gap-2">
-              <span className="w-1.5 h-3 bg-indigo-600 rounded-full"></span>
-              <span className="text-[11px] font-black text-indigo-900 uppercase tracking-wider block">National Level Categories</span>
-            </div>
-
-            {/* A. National Categories Reservation */}
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                National Level Category Reservation <span className="text-indigo-600 font-bold">*</span>
-              </label>
-              <select
-                id="profile-national-category-select"
-                required
-                value={formData.nationalCategory || formData.category}
-                onChange={(e) => {
-                  const val = e.target.value as any;
-                  setFormData({ 
-                    ...formData, 
-                    nationalCategory: val,
-                    category: val
-                  });
-                }}
-                className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm"
-              >
-                <option value="UR">General / Unreserved (UR)</option>
-                <option value="EWS">Economically Weaker Section (EWS)</option>
-                <option value="OBC_NCL">OBC - Non Creamy Layer (OBC-NCL)</option>
-                <option value="OBC_CL">OBC - Creamy Layer (OBC-CL)</option>
-                <option value="SC">Scheduled Caste (SC)</option>
-                <option value="ST">Scheduled Tribe (ST)</option>
-              </select>
-            </div>
-
-            {/* B. Special Ex-Servicemen & Disability Quotas */}
-            <div className="space-y-2 pt-2.5">
-              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
-                Special Reservations & Quotas
-              </label>
-              <div className="grid grid-cols-1 gap-2.5 p-3 bg-white border border-slate-200 rounded-xl shadow-inner">
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.isExServiceman} 
-                    onChange={(e) => setFormData({ ...formData, isExServiceman: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
-                  />
-                  <div>
-                    <span className="text-[11px] font-black text-slate-800 block leading-tight">Ex-Servicemen (ESM)</span>
-                    <span className="text-[8px] text-slate-450 block leading-none font-medium">Click if defensive or military veteran</span>
-                  </div>
-                </label>
-
-                <label className="flex items-center gap-2.5 cursor-pointer border-t border-slate-100 pt-2.5 select-none">
-                  <input 
-                    type="checkbox" 
-                    checked={formData.isPWD} 
-                    onChange={(e) => setFormData({ ...formData, isPWD: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500"
-                  />
-                  <div>
-                    <span className="text-[11px] font-black text-slate-800 block leading-tight">PwBD / PH (Physically Handicapped)</span>
-                    <span className="text-[8px] text-slate-450 block leading-none font-medium">Enables physically disabled seat reservation (+10y relaxation)</span>
-                  </div>
-                </label>
-              </div>
-            </div>
-
-          </div>
-
         </div>
 
-        {/* 2. Personal Information Section */}
-        <div className="border border-slate-200 p-4 rounded-xl space-y-4">
-          <div className="text-[11px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-1.5 flex items-center gap-2">
-            <span className="w-1 h-2.5 bg-slate-405 rounded-full"></span>
-            Personal Information
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Full Name
-              </label>
+        {/* Column grid for Phone & State */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Phone Input */}
+          <div className="space-y-1.5">
+            <label htmlFor="phone-input" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+              Phone Number <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
-                type="text"
-                required
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-                placeholder="Enter full name"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Phone Number
-              </label>
-              <input
+                id="phone-input"
                 type="tel"
                 required
-                value={formData.phoneNumber}
-                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-                placeholder="Enter phone number"
+                value={formData.phone}
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                placeholder="Enter 10-digit number"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Age
-              </label>
-              <input
-                type="number"
-                required
-                min="18"
-                max="100"
-                value={formData.age || ''}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  setFormData({ ...formData, age: val === '' ? 0 : parseInt(val) || 0 });
-                }}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                Gender
-              </label>
+          {/* District / State Select */}
+          <div className="space-y-1.5">
+            <label htmlFor="state-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+              State of Domicile <span className="text-rose-500 font-bold">*</span>
+            </label>
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <select
+                id="state-select"
                 required
-                value={formData.gender}
-                onChange={(e) => setFormData({ ...formData, gender: e.target.value as any })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all bg-white"
+                value={formData.state}
+                onChange={(e) => handleInputChange('state', e.target.value)}
+                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs appearance-none cursor-pointer"
               >
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
+                <option value="">Select State</option>
+                {Object.keys(STATES_AND_DISTRICTS).sort().map(stateName => (
+                  <option key={stateName} value={stateName}>{stateName}</option>
+                ))}
               </select>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
             </div>
           </div>
         </div>
 
-        {/* 3. Educational Qualifications Section */}
-        <div className="border border-slate-200 p-4 rounded-xl space-y-4">
-          <div className="text-[11px] font-black text-slate-900 uppercase tracking-widest border-b border-slate-100 pb-1.5 flex items-center gap-2">
-            <span className="w-1 h-2.5 bg-slate-405 rounded-full"></span>
-            Educational Qualifications
-          </div>
-
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
-                <GraduationCap className="w-3 h-3" /> Select All Your Qualifications
-              </label>
-              
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search qualification (e.g. BTech, Nursing, ITI...)"
-                  value={qualSearch}
-                  onChange={(e) => setQualSearch(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all"
-                />
-              </div>
-
-              <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 max-h-[240px] overflow-y-auto space-y-4 shadow-inner">
-                {['School', 'Technical/Diploma', 'Degree', 'Postgraduate', 'Teaching', 'Special', 'Other'].map(cat => {
-                  const qualsInCategory = filteredQuals.filter(q => q.category === cat);
-                  if (qualsInCategory.length === 0) return null;
-                  
-                  return (
-                    <div key={cat} className="space-y-2">
-                      <h4 className="text-[9px] font-bold text-slate-400 uppercase tracking-widest px-1">{cat}</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                        {qualsInCategory.map(q => {
-                          const isSelected = formData.qualifications.includes(q.id);
-                          return (
-                            <button
-                              key={q.id}
-                              type="button"
-                              onClick={() => {
-                                const newQuals = isSelected 
-                                  ? formData.qualifications.filter(id => id !== q.id) 
-                                  : [...formData.qualifications, q.id];
-                                setFormData({ ...formData, qualifications: newQuals });
-                              }}
-                              className={`flex items-center justify-between gap-2 px-3 py-1.5 rounded border text-[10px] font-medium transition-all text-left ${
-                                isSelected 
-                                ? 'bg-indigo-600 border-indigo-600 text-white shadow-sm' 
-                                : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300'
-                              }`}
-                            >
-                              <span className="truncate">{q.label}</span>
-                              {isSelected && <Check className="w-3 h-3 shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-                {filteredQuals.length === 0 && (
-                  <div className="text-center py-4 text-slate-400 text-xs italic">
-                    No qualifications found matching "{qualSearch}"
-                  </div>
-                )}
-              </div>
-
-              {/* Selected Summary */}
-              {formData.qualifications.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {formData.qualifications.map(id => {
-                    let label: string = id;
-                    try {
-                      label = getQualificationById(id)?.label || id;
-                    } catch (e) {
-                      console.error("Error fetching qualification label:", e);
-                    }
-                    
-                    return (
-                      <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-100 rounded text-[9px] font-bold">
-                        {label}
-                        <button 
-                          type="button"
-                          onClick={() => setFormData({ ...formData, qualifications: formData.qualifications.filter(q => q !== id) })}
-                          className="hover:text-rose-600"
-                        >
-                          <X className="w-2.5 h-2.5" />
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+        {/* Qualification Select */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Basic Documents (Select All)
+          <label htmlFor="qualification-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+            Highest Academic Qualification <span className="text-rose-500 font-bold">*</span>
           </label>
-          <div className="grid grid-cols-2 gap-2">
-            {['Aadhar Card', 'Cast Certificate', 'EWS Cert', 'Income Cert', 'Residence Cert', 'PH Certificate'].map((doc) => {
-              const isSelected = formData.documents.includes(doc);
-              return (
-                <button
-                  key={doc}
-                  type="button"
-                  onClick={() => {
-                    const newDocs = isSelected 
-                      ? formData.documents.filter(d => d !== doc) 
-                      : [...formData.documents, doc];
-                    setFormData({ ...formData, documents: newDocs });
-                  }}
-                  className={`flex items-center gap-2 p-2 rounded border text-[9px] font-bold transition-all ${
-                    isSelected 
-                    ? 'bg-indigo-900 border-indigo-900 text-white' 
-                    : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
-                  }`}
-                >
-                  <FileText className="w-2.5 h-2.5" />
-                  {doc}
-                </button>
-              );
-            })}
+          <div className="relative">
+            <GraduationCap className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              id="qualification-select"
+              required
+              value={formData.qualification}
+              onChange={(e) => handleInputChange('qualification', e.target.value)}
+              className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs appearance-none cursor-pointer"
+            >
+              <option value="">Select Highest Qualification</option>
+              {selectableQualifications.map(qual => (
+                <option key={qual.id} value={qual.id}>{qual.label}</option>
+              ))}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
           </div>
         </div>
 
+        {/* Reservation Category Select */}
         <div className="space-y-1.5">
-          <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            What other certificates do you have?
+          <label htmlFor="category-select" className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">
+            Social Category / Community Reservation Quota <span className="text-rose-500 font-bold">*</span>
           </label>
-          <textarea
-            value={formData.otherCertificates}
-            onChange={(e) => setFormData({ ...formData, otherCertificates: e.target.value })}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all min-h-[60px]"
-            placeholder="Type your extra certificates here (e.g. NCC, Sports, Typing, Computer Basic...)"
-          />
-        </div>
-
-        <div className="pt-4 border-t border-slate-100 flex items-center gap-2 mb-2">
-          <BellRing className="w-3.5 h-3.5 text-indigo-600" />
-          <h3 className="text-[10px] font-bold uppercase tracking-wider text-slate-700">Real-time Job Alerts</h3>
-        </div>
-
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Subscribe to Regions
-            </label>
-            <div className="max-h-36 overflow-y-auto p-2 bg-slate-50 border border-slate-200 rounded-lg flex flex-wrap gap-1.5 custom-scrollbar">
-              {[
-                'Central', 'Andhra Pradesh', 'Telangana', 'Uttar Pradesh', 'Maharashtra', 'Bihar', 'West Bengal', 'Tamil Nadu', 'Madhya Pradesh', 'Rajasthan', 'Karnataka',
-                'Gujarat', 'Odisha', 'Kerala', 'Punjab', 'Haryana', 'Jharkhand', 'Assam', 'Chhattisgarh', 'Uttarakhand', 'Himachal Pradesh', 'Jammu & Kashmir', 'Tripura',
-                'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Sikkim', 'Arunachal Pradesh', 'Goa', 'Delhi', 'Puducherry', 'Chandigarh', 'Andaman & Nicobar', 'Dadra & Nagar Haveli', 'Ladakh', 'Lakshadweep'
-              ].map((region) => {
-                const isSelected = formData.subscriptions?.regions.includes(region);
-                return (
-                  <button
-                    key={region}
-                    type="button"
-                    onClick={() => {
-                      const currentRegions = formData.subscriptions?.regions || [];
-                      const newRegions = isSelected 
-                        ? currentRegions.filter(r => r !== region) 
-                        : [...currentRegions, region];
-                      setFormData({ 
-                        ...formData, 
-                        subscriptions: { 
-                          ...(formData.subscriptions || { categories: [] }), 
-                          regions: newRegions 
-                        } 
-                      });
-                    }}
-                    className={`px-2.5 py-1 rounded-full border text-[9px] font-bold transition-all ${
-                      isSelected 
-                      ? 'bg-indigo-600 border-indigo-600 text-white' 
-                      : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
-                    }`}
-                  >
-                    {region}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              Job Categories (Based on Qualification)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {['Police', 'Teaching', 'Banking', 'Railway', 'Group-I/II', 'Technical'].map((cat) => {
-                const isSelected = formData.subscriptions?.categories.includes(cat);
-                return (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => {
-                      const currentCats = formData.subscriptions?.categories || [];
-                      const newCats = isSelected 
-                        ? currentCats.filter(c => c !== cat) 
-                        : [...currentCats, cat];
-                      setFormData({ 
-                        ...formData, 
-                        subscriptions: { 
-                          ...(formData.subscriptions || { regions: [] }), 
-                          categories: newCats 
-                        } 
-                      });
-                    }}
-                    className={`px-3 py-1 rounded-full border text-[9px] font-bold transition-all ${
-                      isSelected 
-                      ? 'bg-indigo-600 border-indigo-600 text-white' 
-                      : 'bg-white border-slate-200 text-slate-500 hover:border-indigo-300'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                );
-              })}
-            </div>
-            <p className="text-[9px] text-slate-400 mt-1 italic">You will receive notifications immediately when new jobs match these criteria.</p>
+          <div className="relative">
+            <ShieldCheck className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <select
+              id="category-select"
+              required
+              value={formData.category}
+              onChange={(e) => handleInputChange('category', e.target.value)}
+              className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 hover:bg-slate-50/50 border border-slate-200/80 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all shadow-xs appearance-none cursor-pointer"
+            >
+              <option value="">Select Quota Category</option>
+              {categories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.label}</option>
+              ))}
+            </select>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[10px]">▼</div>
           </div>
         </div>
-      </div>
 
-      <button
-        disabled={isSubmitting || isLoading}
-        type="submit"
-        className="w-full py-2.5 bg-indigo-600 text-white rounded text-xs font-bold uppercase tracking-widest hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-      >
-        {isSubmitting || isLoading ? (
-          <>
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span>Saving Profile & Finding Jobs...</span>
-          </>
-        ) : (
-          <>
-            <Save className="w-3.5 h-3.5" />
-            Save & Check Eligibility
-          </>
-        )}
-      </button>
-    </form>
+        {/* Form CTA Submit Button */}
+        <div className="pt-4" id="submit-button-section">
+          <button
+            type="submit"
+            disabled={isSubmitting || isLoading}
+            className="w-full py-3 bg-[#0a192f] text-emerald-400 hover:text-white border-2 border-emerald-500 hover:bg-emerald-600 hover:border-emerald-600 rounded-xl font-bold uppercase tracking-widest text-xs shadow-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isSubmitting || isLoading ? (
+              <>
+                <div className="w-4 h-4 border-2 border-slate-200/30 border-t-white rounded-full animate-spin"></div>
+                <span>Saving Profile...</span>
+              </>
+            ) : (
+              <span>Save & Check Eligibility</span>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

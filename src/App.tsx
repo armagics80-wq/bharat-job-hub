@@ -904,37 +904,14 @@ export default function App() {
                 exit={{ opacity: 0, x: -10 }}
                 className="space-y-6"
               >
-                <ProfileForm 
-                  initialData={profile} 
-                  onSave={saveProfile} 
-                  isLoading={isSaving} 
-                />
 
-                {profile ? (
-                  isMatching ? (
-                    <div className="py-16 text-center bg-white rounded-xl border border-slate-200">
-                      <RefreshCw className="w-8 h-8 text-indigo-600 mx-auto mb-3 animate-spin" />
-                      <p className="text-xs font-bold text-slate-700 uppercase tracking-widest">Analyzing recruitment guidelines...</p>
-                    </div>
-                  ) : (
-                    <EligibilityMatches 
-                      profile={profile}
-                      jobs={jobs}
-                      savedJobIds={savedJobIds}
-                      onToggleSave={handleToggleSave}
-                      aiMatches={aiMatches}
-                      onNotifySync={(msg) => setSuccessMessage(msg)}
-                    />
-                  )
-                ) : (
-                  <div className="py-16 text-center bg-white rounded-xl border border-slate-200 p-6">
-                    <Info className="w-12 h-12 text-indigo-400 mx-auto mb-4" />
-                    <h3 className="text-sm font-bold text-slate-800">Complete Your Eligibility Profile</h3>
-                    <p className="text-xs text-slate-500 mt-2 max-w-sm mx-auto">
-                      Fill out your age, qualifications, local state and reserve categories above to dynamically check live eligible advertisements across the central SSC, Railways and State PSCs.
-                    </p>
-                  </div>
-                )}
+                <EligibilityMatches 
+                  profile={profile}
+                  jobs={jobs}
+                  savedJobIds={savedJobIds}
+                  onToggleSave={handleToggleSave}
+                  onNotifySync={(msg) => setSuccessMessage(msg)}
+                />
               </motion.div>
             ) : activeTab === 'sync-status' ? (
               <motion.div 
