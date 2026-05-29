@@ -124,6 +124,11 @@ export const profileService = {
     try {
       // Synchronously record in local storage for double-safe offline fallback
       localStorage.setItem(`profile_${userId}`, JSON.stringify(profile));
+      
+      const isGuest = userId.startsWith('temp-') || userId.startsWith('guest-');
+      if (isGuest) {
+        localStorage.setItem('temp_profile', JSON.stringify(profile));
+      }
 
       const res = await fetch(`/api/profile/${userId}`, {
         method: 'POST',
@@ -137,27 +142,42 @@ export const profileService = {
   },
 
   async getProfile(userId: string): Promise<UserProfile | null> {
-    try {
-      const local = localStorage.getItem(`profile_${userId}`);
-      if (local) {
-        try {
-          return JSON.parse(local) as UserProfile;
-        } catch (e) {}
+    const isGuest = userId.startsWith('temp-') || userId.startsWith('guest-');
+    
+    // 1. For real authenticated users, we want to prioritize active server load to allow true cross-device synchronization
+    if (!isGuest) {
+      try {
+        const res = await fetch(`/api/profile/${userId}`);
+        if (res.ok) {
+          const data = await res.json();
+          // Keep cache in sync
+          localStorage.setItem(`profile_${userId}`, JSON.stringify(data));
+          return data as UserProfile;
+        }
+      } catch (serverErr) {
+        console.warn('[Sync Client] Fetching profile from server failed, fallback to local:', serverErr);
       }
-
-      const res = await fetch(`/api/profile/${userId}`);
-      if (res.ok) {
-        const data = await res.json();
-        return data as UserProfile;
-      }
-    } catch (err) {
-      console.warn('[Sync Client] Failed to get profile from server, trying local cache storage:', err);
     }
+
+    // 2. Query specific local cache if the user matches
     const local = localStorage.getItem(`profile_${userId}`);
     if (local) {
       try {
         return JSON.parse(local) as UserProfile;
       } catch (e) {}
+    }
+
+    // 3. If standard user logged in but we have no server record, check if we had pre-existing guest data to migrate
+    if (!isGuest) {
+      const tempLocal = localStorage.getItem('temp_profile');
+      if (tempLocal) {
+        try {
+          const parsed = JSON.parse(tempLocal) as UserProfile;
+          // Synchronously push their local setup up to the cloud profile
+          await this.saveProfile(userId, parsed);
+          return parsed;
+        } catch (e) {}
+      }
     }
     return null;
   }

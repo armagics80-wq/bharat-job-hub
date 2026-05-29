@@ -168,6 +168,7 @@ try {
   if (!admin.apps.length) {
     admin.initializeApp({
       credential: admin.credential.applicationDefault(),
+      projectId: firebaseConfig.projectId
     });
   }
   const dbId = firebaseConfig.firestoreDatabaseId;
