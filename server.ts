@@ -7,6 +7,7 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import https from 'https';
 import dotenv from 'dotenv';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // Initialize environment variables
 dotenv.config();
@@ -108,7 +109,8 @@ function createInMemoryDb() {
   const store: any = {
     jobs: {},
     activity: {},
-    profiles: {}
+    profiles: {},
+    settings: {}
   };
   return {
     collection(name: string) {
@@ -118,6 +120,24 @@ function createInMemoryDb() {
       return new InMemoryBatch(store);
     }
   };
+}
+
+async function getTargetUrl() {
+  let rawUrl = '';
+  try {
+    const settingsDoc = await db.collection('settings').doc('sheets_config').get();
+    if (settingsDoc && settingsDoc.exists) {
+      const s = settingsDoc.data();
+      rawUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+    }
+  } catch (err: any) {
+    console.warn('[Sheets Config] Failed to fetch settings from Firestore, using fallback:', err.message);
+  }
+  
+  if (!rawUrl) {
+    rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL || '';
+  }
+  return rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
 }
 
 // Safely initialize firebase-admin and default to the in-memory fallback until proved live on start
@@ -130,7 +150,14 @@ try {
       credential: admin.credential.applicationDefault(),
     });
   }
-  db = admin.firestore();
+  const dbId = firebaseConfig.firestoreDatabaseId;
+  if (dbId) {
+    db = getFirestore(admin.apps[0] || admin.app(), dbId);
+    console.log(`[Firestore] Connected to custom database ID: ${dbId}`);
+  } else {
+    db = getFirestore(admin.apps[0] || admin.app());
+    console.log('[Firestore] Connected to default database');
+  }
 } catch (error: any) {
   console.warn('[Firestore] Standard admin.firestore() initialization failed. Using memory database.', error.message);
   db = createInMemoryDb();
@@ -330,8 +357,7 @@ async function startServer() {
         subscribedCategories
       } = req.body;
       
-      const rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
-      const targetUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
+      const targetUrl = await getTargetUrl();
       const timestampIso = new Date().toISOString();
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
@@ -559,11 +585,39 @@ async function startServer() {
     }
   });
 
+  // Save dynamic sheets config to Firestore (enables sync across all devices/members)
+  app.post('/api/save-sheets-config', async (req, res) => {
+    try {
+      const { SHEETDB_URL, GOOGLE_SCRIPT_URL } = req.body;
+      await db.collection('settings').doc('sheets_config').set({
+        SHEETDB_URL: (SHEETDB_URL || '').trim(),
+        GOOGLE_SCRIPT_URL: (GOOGLE_SCRIPT_URL || '').trim(),
+        updatedAt: new Date().toISOString()
+      });
+      console.log('[Sheets Config] Updated spreadsheet sync URLs in Firestore settings.');
+      res.json({ success: true, message: 'Spreadsheet synchronization settings updated successfully!' });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Diagnostic endpoint for sheets sync
   app.get('/api/sheets-diagnostic', async (req, res) => {
     try {
-      const rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
-      const targetUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
+      const targetUrl = await getTargetUrl();
+      
+      let sheetdbUrl = '';
+      let googleScriptUrl = '';
+      try {
+        const settingsDoc = await db.collection('settings').doc('sheets_config').get();
+        if (settingsDoc && settingsDoc.exists) {
+          const s = settingsDoc.data();
+          sheetdbUrl = s?.SHEETDB_URL || '';
+          googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+        }
+      } catch (settingsError: any) {
+        console.warn('Could not read raw configuration for response pre-fill:', settingsError.message);
+      }
       
       let urlConfigured = false;
       let obfuscatedUrl = '';
@@ -830,6 +884,8 @@ async function startServer() {
       diagnosticLogs.push(`[INFO] Diagnostic sequence completed. State: ${hasCriticalError ? 'MISCONFIGURED' : 'CONNECTED'}`);
 
       return res.json({
+        sheetdbUrl,
+        googleScriptUrl,
         urlConfigured,
         urlType,
         obfuscatedUrl,
@@ -852,8 +908,7 @@ async function startServer() {
   // Manual synchronizer endpoint
   app.post('/api/sheets-manual-sync', async (req, res) => {
     try {
-      const rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
-      const targetUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
+      const targetUrl = await getTargetUrl();
       
       if (!targetUrl) {
         return res.status(400).json({ error: 'Spreadsheet Sync URL is not configured in Settings.' });
@@ -1098,11 +1153,12 @@ async function startServer() {
     console.log('[Server] Testing live Cloud Firestore connectivity...');
     try {
       // Create a test collection call to verify if API is enabled / used
-      const testDb = admin.firestore();
+      const dbId = firebaseConfig.firestoreDatabaseId;
+      const testDb = dbId ? getFirestore(admin.apps[0] || admin.app(), dbId) : getFirestore(admin.apps[0] || admin.app());
       await testDb.collection('jobs').limit(1).get();
       db = testDb;
       isFirestoreAvailable = true;
-      console.log('[Firestore] Successfully established live connection to Firestore DB.');
+      console.log(`[Firestore] Successfully established live connection to Firestore DB ID: ${dbId || '(default)'}`);
     } catch (dbError: any) {
       console.warn('[Firestore] Firestore API not accessible or permission denied. Defaulting to local in-memory fallback. Server will continue operating securely.', dbError.message);
       db = createInMemoryDb();

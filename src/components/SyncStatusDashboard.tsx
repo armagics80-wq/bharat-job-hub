@@ -127,6 +127,12 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
   const [syncingSingleId, setSyncingSingleId] = useState<string | null>(null);
   const [manualSyncMsg, setManualSyncMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  // Dynamic spreadsheet config states
+  const [sheetdbInput, setSheetdbInput] = useState('');
+  const [scriptInput, setScriptInput] = useState('');
+  const [savingConfig, setSavingConfig] = useState(false);
+  const [configSuccessMsg, setConfigSuccessMsg] = useState('');
+
   const loadSheetDiagnostic = async () => {
     setLoadingDiag(true);
     try {
@@ -134,11 +140,47 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
       if (res.ok) {
         const data = await res.json();
         setSheetDiag(data);
+        if (data.sheetdbUrl !== undefined) {
+          setSheetdbInput(data.sheetdbUrl);
+        }
+        if (data.googleScriptUrl !== undefined) {
+          setScriptInput(data.googleScriptUrl);
+        }
       }
     } catch (err) {
       console.error('[Diagnostic] Error querying sheet status:', err);
     } finally {
       setLoadingDiag(false);
+    }
+  };
+
+  const handleSaveConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingConfig(true);
+    setConfigSuccessMsg('');
+    try {
+      const res = await fetch('/api/save-sheets-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          SHEETDB_URL: sheetdbInput,
+          GOOGLE_SCRIPT_URL: scriptInput
+        })
+      });
+      if (res.ok) {
+        setConfigSuccessMsg('Spreadsheet settings saved successfully! Direct synchronization is now active for all submissions.');
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync('Success: Dynamic sheets URL saved successfully!');
+        }
+        setTimeout(() => setConfigSuccessMsg(''), 6000);
+      } else {
+        alert('Failed to save spreadsheet settings.');
+      }
+    } catch (err: any) {
+      alert('Error: ' + (err.message || 'Could not connect.'));
+    } finally {
+      setSavingConfig(false);
     }
   };
 
@@ -601,6 +643,72 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
             </div>
           </div>
         )}
+
+        {/* Dynamic Spreadsheet Configuration Form (Forces Firestore synchronization on any device/phone) */}
+        <form onSubmit={handleSaveConfig} className="bg-slate-50 border border-slate-205 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+            <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
+              <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
+              <span>Spreadsheet Settings (Synchronized Online Across All Devices)</span>
+            </div>
+            {configSuccessMsg && (
+              <span className="text-[10px] text-emerald-600 font-extrabold animate-pulse">{configSuccessMsg}</span>
+            )}
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label id="lbl-sheetdb-url" className="text-[9px] uppercase tracking-wider font-extrabold text-slate-500 block">
+                SheetDB.io API URL
+              </label>
+              <input
+                id="inp-sheetdb-url"
+                type="url"
+                placeholder="e.g. https://sheetdb.io/api/v1/your_unique_api"
+                value={sheetdbInput}
+                onChange={(e) => setSheetdbInput(e.target.value)}
+                className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono"
+              />
+              <p className="text-[9px] text-slate-400 font-medium">Preferred. Type column headers like (Timestamp, Name, Phone, State) in Row 1 of your Google Sheet first.</p>
+            </div>
+            
+            <div className="space-y-1">
+              <label id="lbl-script-url" className="text-[9px] uppercase tracking-wider font-extrabold text-slate-500 block">
+                Google Apps Script Web App URL
+              </label>
+              <input
+                id="inp-script-url"
+                type="url"
+                placeholder="e.g. https://script.google.com/macros/s/your_macro_id/exec"
+                value={scriptInput}
+                onChange={(e) => setScriptInput(e.target.value)}
+                className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono"
+              />
+              <p className="text-[9px] text-slate-400 font-medium">Alternative. Deploy your Google Script as a Web App (Execute as: Me, Access: Anyone) and paste its URL here.</p>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <button
+              id="btn-save-config"
+              type="submit"
+              disabled={savingConfig}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-350 text-white text-[10px] uppercase tracking-wider font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              {savingConfig ? (
+                <>
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Saving Settings...
+                </>
+              ) : (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  Save & Enable Sync
+                </>
+              )}
+            </button>
+          </div>
+        </form>
 
         {/* Sync message output */}
         {manualSyncMsg && (
