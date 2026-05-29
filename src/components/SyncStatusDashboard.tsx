@@ -530,46 +530,132 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
           </div>
         )}
 
-        {/* Live Active API Connection Scanner results */}
+        {/* Live Active API Connection Scanner results & Critical Diagnosis */}
         {sheetDiag?.connectionTest && sheetDiag.connectionTest.status !== 'idle' && (
-          <div className={`p-4 rounded-xl border text-xs leading-normal ${
-            sheetDiag.connectionTest.status === 'success'
-              ? 'bg-emerald-50/50 border-emerald-200/80 text-emerald-850'
-              : 'bg-rose-50/40 border-rose-200/70 text-rose-900'
-          }`}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className={`w-1.5 h-1.5 rounded-full ${
-                sheetDiag.connectionTest.status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
-              }`} />
-              <span className="font-black uppercase tracking-wider text-[9px] text-slate-400">Google Sheets Integration Connection Scanner results</span>
-            </div>
-            
-            {sheetDiag.connectionTest.status === 'success' ? (
-              <div className="space-y-1.5">
-                <p>
-                  <strong>Active Ping Connected !</strong> Spreadsheet API endpoint replied successfully in <span className="font-bold text-emerald-700">{sheetDiag.connectionTest.latencyMs}ms</span>.
-                </p>
-                {sheetDiag.connectionTest.headersDiscovered && sheetDiag.connectionTest.headersDiscovered.length > 0 && (
-                  <div>
-                    <span className="text-[9px] uppercase font-bold text-slate-400 block mb-1">Spreadsheet Column Labels Registered:</span>
-                    <div className="flex flex-wrap gap-1">
-                      {sheetDiag.connectionTest.headersDiscovered.map((col: string) => (
-                        <span key={col} className="text-[9px] bg-emerald-100/50 border border-emerald-200 text-emerald-800 font-mono px-1.5 py-0.5 rounded font-black">{col}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+          <div className="p-5 rounded-xl border border-slate-200 bg-white shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-2.5 rounded-full ${
+                  sheetDiag.hasCriticalError 
+                    ? 'bg-rose-500 animate-pulse' 
+                    : sheetDiag.headerCheck?.status === 'warning' 
+                    ? 'bg-amber-400 animate-pulse' 
+                    : 'bg-emerald-500'
+                }`} />
+                <span className="font-extrabold uppercase tracking-wider text-[11px] text-slate-700">Integrations Scanner & Diagnostic Suite</span>
               </div>
-            ) : (
-              <div className="space-y-2">
-                <p className="font-bold">Check-up failure communicating with Spreadsheet Service:</p>
-                <div className="p-2.5 bg-rose-100/40 rounded font-mono text-[10px] text-rose-950 border border-rose-200 whitespace-pre-wrap">
-                  {sheetDiag.connectionTest.message}
+              <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500 font-black font-mono">
+                {sheetDiag.urlType === 'sheetdb' ? 'SHEETDB.IO BRIDGE' : sheetDiag.urlType === 'apps-script' ? 'GOOGLE APPS SCRIPT' : 'SYSTEM UNSET'}
+              </span>
+            </div>
+
+            {/* 1. CRITICAL CONSOLE ALERT CASE */}
+            {sheetDiag.hasCriticalError && (
+              <div className="p-4 bg-rose-50 border-l-4 border-rose-600 rounded-r-xl space-y-2">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5 animate-bounce" />
+                  <div>
+                    <h4 className="text-xs font-black text-rose-950 uppercase tracking-tight">
+                      CRITICAL DIAGNOSIS ALERT: {sheetDiag.criticalErrorMessage}
+                    </h4>
+                    <p className="text-[11px] text-rose-900 mt-1 leading-relaxed">
+                      Your spreadsheet is not receiving details submitted by visitors because the connection cannot be successfully completed.
+                    </p>
+                  </div>
                 </div>
-                <div className="text-[10px] leading-relaxed text-slate-600">
-                  💡 <strong>Suggested Fix Actions:</strong><br />
-                  1. Have you set Row 1 yet? If Row 1 of your Google Sheet is fully empty, SheetDB replies with <code className="px-1 py-0.5 bg-slate-100 rounded text-red-500 font-mono text-[9px]">400 Bad Request</code>. Please write headers like **Name**, **Phone**, **State**, and **Timestamp** in Row 1 of your Google sheet first!<br />
-                  2. Check that the SheetDB endpoint URL pasted in the dashboard is the active full URL copy (ends with <code className="font-mono text-[9px]">/api/v1/xyz</code>).
+                <div className="p-3 bg-white/80 border border-rose-100 rounded-lg text-[10px] leading-relaxed text-slate-700">
+                  <span className="font-bold text-rose-800 uppercase block mb-1">🛠️ Immediate Action Remedy:</span>
+                  {sheetDiag.actionRemedy}
+                </div>
+              </div>
+            )}
+
+            {/* 2. SPECIFIC HEADER MAPPING ANALYTICS */}
+            {sheetDiag.headerCheck && sheetDiag.headerCheck.status !== 'unchecked' && (
+              <div className={`p-4 rounded-xl border text-xs leading-normal ${
+                sheetDiag.headerCheck.status === 'success'
+                  ? 'bg-emerald-50/40 border-emerald-100 text-emerald-950'
+                  : sheetDiag.headerCheck.status === 'warning'
+                  ? 'bg-amber-50/40 border-amber-200/60 text-slate-900'
+                  : 'bg-rose-50/20 border-rose-100 text-slate-900'
+              }`}>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5">
+                    {sheetDiag.headerCheck.status === 'success' && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    )}
+                    {sheetDiag.headerCheck.status === 'warning' && (
+                      <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                    )}
+                    {sheetDiag.headerCheck.status === 'failed' && (
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                    <span className="font-bold text-xs uppercase tracking-tight">Spreadsheet Schema Mapping Diagnosis</span>
+                  </div>
+
+                  {sheetDiag.headerCheck.status === 'success' ? (
+                    <p className="text-[11px] opacity-90 leading-relaxed">
+                      <strong>All essential columns configured properly!</strong> Our parser verified Row 1 of your spreadsheet and discovered standard headers matching our form keys. Any new candidates will map instantly in real-time.
+                    </p>
+                  ) : sheetDiag.headerCheck.status === 'warning' ? (
+                    <div className="space-y-1.5">
+                      <p className="text-[11px] opacity-95 leading-relaxed">
+                        <strong>Partial Header Mismatch.</strong> Row 1 column labels are working, but some crucial mapping keys are missing from your sheet:
+                      </p>
+                      <div className="flex flex-wrap gap-1 py-0.5">
+                        {sheetDiag.headerCheck.missingEssential.map((col: string) => (
+                          <span key={col} className="px-2 py-0.5 bg-amber-100 border border-amber-200 text-amber-800 rounded font-mono text-[9px] font-black uppercase">
+                            Missing Key: {col}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-slate-500 leading-normal">
+                        💡 <strong>Why this matters:</strong> Candidate profiles will be appended to the row, but values for the missing headers above cannot be correctly routed. We highly recommend writing these precise headers in Row 1 of your sheet!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <p className="text-[11px] font-bold text-rose-950">
+                        Spreadsheet columns check-up failed: Row 1 of sheet is completely blank!
+                      </p>
+                      <p className="text-[10px] text-slate-600 leading-relaxed">
+                        SheetDB cannot sync entry values. It requires Column headers in the very first row to pair fields like `Name`, `Phone`, `State`, `Timestamp`. Write these headers in Row 1 of your sheet immediately.
+                      </p>
+                    </div>
+                  )}
+
+                  {sheetDiag.connectionTest.headersDiscovered && sheetDiag.connectionTest.headersDiscovered.length > 0 && (
+                    <div className="border-t border-dashed border-slate-200/60 pt-2.5">
+                      <span className="text-[9px] uppercase font-extrabold text-slate-400 block mb-1.5">Discovered Spreadsheet Column Headers (Row 1):</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sheetDiag.connectionTest.headersDiscovered.map((col: string, idx: number) => (
+                          <span key={col + idx} className="text-[10px] bg-indigo-50 border border-indigo-150 text-indigo-850 font-mono px-1.5 py-0.5 rounded font-black">{col}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 3. LOGS CONSOLE TERMINAL VIEW */}
+            {sheetDiag?.diagnosticLogs && sheetDiag.diagnosticLogs.length > 0 && (
+              <div className="space-y-1.5">
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block">Live Handshake debug trace output</span>
+                <div className="bg-slate-900 border border-slate-950 p-3.5 rounded-xl font-mono text-[10px] text-slate-300 space-y-1.5 max-h-[160px] overflow-y-auto leading-relaxed scrollbar-thin scrollbar-thumb-slate-700 bg-gradient-to-b from-slate-950 to-slate-900 shadow-inner">
+                  {sheetDiag.diagnosticLogs.map((log: string, idx: number) => {
+                    let logColor = 'text-slate-300';
+                    if (log.includes('[SUCCESS]')) logColor = 'text-emerald-400 font-bold';
+                    if (log.includes('[CRITICAL]') || log.includes('[ERROR]')) logColor = 'text-rose-400 font-bold';
+                    if (log.includes('[WARNING]')) logColor = 'text-amber-400 font-semibold';
+                    if (log.includes('[INFO]')) logColor = 'text-sky-400';
+                    
+                    return (
+                      <div key={idx} className={`${logColor} tracking-tight break-words`}>
+                        {log}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}

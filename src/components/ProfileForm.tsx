@@ -49,6 +49,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
 
   const [qualSearch, setQualSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showResultModal, setShowResultModal] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{
     status: 'success' | 'warning' | 'simulated' | 'error' | null;
     message: string;
@@ -138,6 +139,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       
       // Trigger parent save which invokes local/AI match fetching sequence immediately
       await onSave(formData);
+      setShowResultModal(true);
     } catch (err: any) {
       console.error('[ProfileForm] Error saving user to spreadsheet:', err);
       setSyncFeedback({
@@ -147,6 +149,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       });
       // Fallback: still run onSave so that eligibility matching is never blocked
       await onSave(formData);
+      setShowResultModal(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -740,6 +743,85 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           </>
         )}
       </button>
+
+      {/* Connection & Headers Diagnostic Alert Modal */}
+      {showResultModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white max-w-md w-full rounded-xl border border-slate-200 p-6 shadow-2xl relative space-y-4 animate-in fade-in zoom-in duration-150">
+            <button 
+              type="button"
+              onClick={() => setShowResultModal(false)}
+              className="absolute top-4 right-4 p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            
+            <div className="flex items-center gap-2.5">
+              <div className={`p-2.5 rounded-full ${
+                syncFeedback.status === 'success' ? 'bg-emerald-50 text-emerald-600' :
+                syncFeedback.status === 'warning' ? 'bg-amber-50 text-amber-600' :
+                syncFeedback.status === 'simulated' ? 'bg-indigo-50 text-indigo-600' :
+                'bg-rose-50 text-rose-500'
+              }`}>
+                {syncFeedback.status === 'success' ? (
+                  <Check className="w-5 h-5" />
+                ) : syncFeedback.status === 'warning' ? (
+                  <AlertTriangle className="w-5 h-5" />
+                ) : syncFeedback.status === 'simulated' ? (
+                  <Info className="w-5 h-5" />
+                ) : (
+                  <AlertCircle className="w-5 h-5" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  {syncFeedback.status === 'success' ? 'Profile Saved & Registered' : 'Saved in Backup, Sync Caution'}
+                </h3>
+                <span className="text-[9px] uppercase font-black text-slate-400 tracking-wider">Spreadsheet Synchronization Status</span>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-1">
+              <div className={`p-4 rounded-lg text-xs leading-relaxed font-semibold ${
+                syncFeedback.status === 'success' ? 'bg-emerald-50/50 border border-emerald-100 text-emerald-950' :
+                syncFeedback.status === 'warning' ? 'bg-amber-50/50 border border-amber-100 text-amber-955' :
+                syncFeedback.status === 'simulated' ? 'bg-indigo-50/50 border border-indigo-100 text-indigo-950' :
+                'bg-rose-50/40 border border-rose-100 text-rose-955'
+              }`}>
+                <p className="font-extrabold mb-1">{syncFeedback.message}</p>
+                <p className="text-[10px] leading-relaxed font-medium opacity-90">{syncFeedback.details}</p>
+              </div>
+
+              {syncFeedback.status === 'error' && (
+                <div className="p-3.5 bg-amber-50 border border-amber-205 rounded-lg text-[10px] leading-relaxed text-slate-700 space-y-1.5">
+                  <span className="font-bold text-amber-800 uppercase block">
+                    💡 EXPLANATION OF GOOGLE SHEETS DESYNCHRONIZATION:
+                  </span>
+                  <p>
+                    Your details were safely backed up in our offline Firestore database so you won't lose them! But they could not be synced immediately to the Google Sheet.
+                  </p>
+                  <p className="font-black text-rose-700">
+                    This happens if your SHEETDB_URL is misconfigured, or if Row 1 of your Google Sheet is completely blank.
+                  </p>
+                  <div className="bg-white/80 p-2.5 rounded border border-amber-150 text-[10px] font-medium">
+                    <strong>How to solve:</strong> Open your Google Sheet, type headers in Row 1 (like <code>Timestamp</code>, <code>Name</code>, <code>Phone</code>, <code>State</code>, etc.), sync again, or check the <strong>Sync Status</strong> dashboard tab for real-time live terminal trace logs!
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResultModal(false)}
+                className="flex-1 py-2 bg-slate-900 text-white rounded text-xs font-black transition hover:bg-slate-800 active:scale-95"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   );
 }

@@ -56,6 +56,10 @@ class InMemoryCollectionReference {
     return this;
   }
 
+  orderBy(field: string, direction?: string) {
+    return this;
+  }
+
   doc(id: string) {
     return new InMemoryDocumentReference(this.name, id, this.store);
   }
@@ -535,9 +539,17 @@ async function startServer() {
       return res.status(200).json({ success: true, response: response.data });
     } catch (err: any) {
       console.error('[Sheets Sync] Error occurred while saving user details to spreadsheet:', err.message);
-      if (err.response) {
-        console.error('[Sheets Sync] Destination response status:', err.response.status);
-        console.error('[Sheets Sync] Destination response body:', JSON.stringify(err.response.data));
+      const errorStatus = err.response ? err.response.status : '500';
+      const errorData = err.response ? JSON.stringify(err.response.data) : err.message;
+      try {
+        await db.collection('sync_errors').add({
+          timestamp: new Date().toISOString(),
+          message: err.message || 'Failed saving registration profile',
+          status: String(errorStatus),
+          data: errorData.substring(0, 500)
+        });
+      } catch (logErr: any) {
+        console.warn('Could not log sync failure to DB:', logErr.message);
       }
       return res.status(200).json({ 
         success: true, 
@@ -609,40 +621,213 @@ async function startServer() {
         console.warn('[Diagnostic] DB fetch failed:', dbErr.message);
       }
 
-      // Test active ping connection to the SheetDB/AppsScript API
+      // Detailed interactive diagnostic tools
+      let diagnosticLogs: string[] = [];
       let connectionTest: any = { status: 'idle' };
-      if (urlConfigured && urlType !== 'direct-sheet' && targetUrl) {
-        try {
-          const startTime = Date.now();
-          if (urlType === 'sheetdb') {
-            const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
-            const keysRes = await axios.get(keysUrl, { timeout: 3000 });
-            connectionTest = {
-              status: 'success',
-              latencyMs: Date.now() - startTime,
-              headersDiscovered: keysRes.data.keys || keysRes.data || [],
-              message: 'Successfully connected and pulled active headers!'
-            };
-          } else {
-            // Apps Script can be pinged with GET
-            await axios.get(targetUrl, { timeout: 3000 });
-            connectionTest = {
-              status: 'success',
-              latencyMs: Date.now() - startTime,
-              message: 'Successfully reached Google Apps Script webhook!'
-            };
-          }
-        } catch (pingErr: any) {
+      let headerCheck: any = { status: 'unchecked', missingEssential: [], configuredColumns: [] };
+      let hasCriticalError = false;
+      let criticalErrorMessage = '';
+      let actionRemedy = '';
+
+      diagnosticLogs.push(`[${new Date().toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' })}] Starting Google Sheets connectivity scanner...`);
+
+      if (!targetUrl) {
+        diagnosticLogs.push(`[WARNING] No SHEETDB_URL or GOOGLE_SCRIPT_URL configured in environment settings.`);
+        connectionTest = {
+          status: 'unconfigured',
+          message: 'Integration API key is missing. Sync is currently bypassed.'
+        };
+      } else {
+        diagnosticLogs.push(`[INFO] Checked environment variables. Key is active: ${obfuscatedUrl} (${urlType})`);
+        
+        if (urlType === 'direct-sheet') {
+          diagnosticLogs.push(`[CRITICAL] Error! Direct Google Sheets reader link detected. Web views cannot process dynamic web socket database submissions!`);
+          hasCriticalError = true;
+          criticalErrorMessage = 'Direct Google Sheet URL is incompatible';
+          actionRemedy = 'Direct google spreadsheets links (docs.google.com/spreadsheets...) are designed for human web browser viewing. They cannot accept backend API data posts. Please go to SheetDB.io, paste your sheet URL, grab the generated API endpoint (e.g. https://sheetdb.io/api/v1/...), and configure it as SHEETDB_URL inside your settings.';
           connectionTest = {
             status: 'failed',
-            error: pingErr.message,
-            statusCode: pingErr.response?.status,
-            message: pingErr.response?.status === 400 
-              ? 'SheetDB replied with 400 Bad Request. This usually happens when Row 1 of your spreadsheet is completely blank. SheetDB requires you to input column headers in the very first row!'
-              : `Connection test failed: ${pingErr.message}. Double-check your setting url permissions and access.`
+            error: 'Direct Google Sheets links cannot be written to directly from servers.',
+            message: 'Direct web link is set. Intermediary API like SheetDB.io or Google Apps Script is required.'
           };
+        } else {
+          diagnosticLogs.push(`[INFO] Handshaking ping with backend API server...`);
+          try {
+            const startTime = Date.now();
+            let headersList: string[] = [];
+
+            if (urlType === 'sheetdb') {
+              let keysUrl = targetUrl;
+              try {
+                const parsedUrl = new URL(targetUrl);
+                if (parsedUrl.pathname.endsWith('/')) {
+                  parsedUrl.pathname = parsedUrl.pathname + 'keys';
+                } else {
+                  parsedUrl.pathname = parsedUrl.pathname + '/keys';
+                }
+                keysUrl = parsedUrl.toString();
+              } catch (urlErr) {
+                keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+              }
+
+              diagnosticLogs.push(`[INFO] Sending HTTP GET request to discover headers schema: ${keysUrl}`);
+              const keysRes = await axios.get(keysUrl, { timeout: 4000 });
+              const latency = Date.now() - startTime;
+              diagnosticLogs.push(`[SUCCESS] Connected to SheetDB with healthy response in ${latency}ms.`);
+
+              if (keysRes.data && Array.isArray(keysRes.data.keys)) {
+                headersList = keysRes.data.keys;
+              } else if (Array.isArray(keysRes.data)) {
+                headersList = keysRes.data;
+              } else if (keysRes.data && keysRes.data.error) {
+                throw new Error(keysRes.data.error);
+              } else {
+                diagnosticLogs.push(`[INFO] Keys URL did not return structural keys array. Fetching top rows as fallback...`);
+                const primaryRes = await axios.get(targetUrl, { timeout: 4000 });
+                if (Array.isArray(primaryRes.data) && primaryRes.data.length > 0) {
+                  headersList = Object.keys(primaryRes.data[0]);
+                }
+              }
+
+              diagnosticLogs.push(`[INFO] Successfully extracted existing SheetDB Column Headers: [${headersList.join(', ')}]`);
+
+              // Analyze essential headers
+              const essential = ['Name', 'Phone', 'State', 'Timestamp'];
+              const missing: string[] = [];
+              const lowerHeaders = headersList.map(h => String(h).toLowerCase().trim().replace(/[^a-z0-9]/g, ''));
+
+              essential.forEach(col => {
+                const normCol = col.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const found = lowerHeaders.some(lh => lh === normCol || lh.includes(normCol) || normCol.includes(lh));
+                if (!found) {
+                  missing.push(col);
+                }
+              });
+
+              if (headersList.length === 0) {
+                diagnosticLogs.push(`[CRITICAL] Error: No column headers discovered! Row 1 of your spreadsheet is fully empty.`);
+                hasCriticalError = true;
+                criticalErrorMessage = 'Row 1 Headers Missing (Empty Sheet)';
+                actionRemedy = 'SheetDB requires Row 1 to be populated with column labels (like Name, Phone, State, Timestamp) to map incoming data. Write column names in Row 1 of your Google Sheet first, sync again, and SheetDB will instantly allow data mappings.';
+                headerCheck = {
+                  status: 'failed',
+                  missingEssential: essential,
+                  configuredColumns: []
+                };
+              } else if (missing.length > 0) {
+                diagnosticLogs.push(`[WARNING] Some essential columns are missing from Row 1: [${missing.join(', ')}]. Highly recommended to insert them.`);
+                headerCheck = {
+                  status: 'warning',
+                  missingEssential: missing,
+                  configuredColumns: headersList
+                };
+              } else {
+                diagnosticLogs.push(`[SUCCESS] Verified Row 1 headers schema: All essential headers (Name, Phone, State, Timestamp) are perfectly active.`);
+                headerCheck = {
+                  status: 'success',
+                  missingEssential: [],
+                  configuredColumns: headersList
+                };
+              }
+
+              connectionTest = {
+                status: 'success',
+                latencyMs: latency,
+                headersDiscovered: headersList,
+                message: 'Successfully reached SheetDB endpoint!'
+              };
+
+            } else {
+              // Apps Script URL
+              diagnosticLogs.push(`[INFO] Requesting Google Web App deployment trigger...`);
+              const scriptRes = await axios.get(targetUrl, { timeout: 4000 });
+              const latency = Date.now() - startTime;
+              diagnosticLogs.push(`[SUCCESS] Apps Script reached successfully in ${latency}ms (HTTP ${scriptRes.status}).`);
+
+              headerCheck = {
+                status: 'unchecked',
+                info: 'Apps Script macros do not share headers publicly. Match column variable designations manually inside your Script editor.',
+                configuredColumns: []
+              };
+
+              connectionTest = {
+                status: 'success',
+                latencyMs: latency,
+                message: 'Successfully reached Google Apps Script webhook!'
+              };
+            }
+          } catch (pingErr: any) {
+            const status = pingErr.response?.status;
+            const dataStr = pingErr.response ? JSON.stringify(pingErr.response.data) : '';
+            diagnosticLogs.push(`[CRITICAL] Endpoint test failed: ${pingErr.message}`);
+            
+            hasCriticalError = true;
+            if (status === 400 || dataStr.toLowerCase().includes('empty') || dataStr.toLowerCase().includes('headers')) {
+              criticalErrorMessage = 'Row 1 Headers Missing (Empty Sheet)';
+              actionRemedy = 'SheetDB returned an HTTP 400 Bad Request. This indicates Row 1 of your sheet is fully blank! Please write column headers like Name, Phone, State, Timestamp, and District in Row 1 of your Google Sheet. Row 1 cannot be empty.';
+            } else if (status === 403 || status === 401) {
+              criticalErrorMessage = 'Access Key Blocked or Disabled';
+              actionRemedy = 'Your SheetDB.io credentials did not authorize us. Review the API secrets protection keys or rate limits active inside your SheetDB developer portal.';
+            } else if (status === 404) {
+              criticalErrorMessage = 'Resource Endpoint Code 404 Not Found';
+              actionRemedy = 'The system received a 404 Not Found error. Check your dashboard settings and assure that the SHEETDB_URL has no typos and is configured exactly as provided on sheetdb.io.';
+            } else {
+              criticalErrorMessage = 'Handshake Error / Connection timed out';
+              actionRemedy = `The endpoint did not respond fast enough. Please confirm your sheet permission settings (e.g., set Share settings to "Anyone with the link can view/edit") and check your network state. Status code: ${status || 'Unknown'}.`;
+            }
+
+            connectionTest = {
+              status: 'failed',
+              error: pingErr.message,
+              statusCode: status,
+              message: criticalErrorMessage
+            };
+
+            headerCheck = {
+              status: 'failed',
+              missingEssential: ['Name', 'Phone', 'State', 'Timestamp'],
+              configuredColumns: []
+            };
+          }
         }
       }
+
+      // Query recent sync errors to append as debug items in the live trace logs
+      try {
+        const errorSnapshot = await db.collection('sync_errors')
+          .orderBy('timestamp', 'desc')
+          .limit(5)
+          .get();
+        if (errorSnapshot && errorSnapshot.docs && errorSnapshot.docs.length > 0) {
+          // Robust fallback sorting to guarantee descending order even when on memory DB
+          const docsCopy = [...errorSnapshot.docs];
+          docsCopy.sort((a: any, b: any) => {
+            const tA = b.data()?.timestamp || '';
+            const tB = a.data()?.timestamp || '';
+            return tA.localeCompare(tB);
+          });
+          const limitedDocs = docsCopy.slice(0, 5);
+
+          diagnosticLogs.push('--------------------------------------------------');
+          diagnosticLogs.push('[CRITICAL] RECENT GOOGLE SHEETS PIPELINE FAILURES DETECTED:');
+          limitedDocs.forEach((doc: any, index: number) => {
+            const data = doc.data();
+            const errTime = data.timestamp 
+              ? new Date(data.timestamp).toLocaleTimeString('en-IN', { timeZone: 'Asia/Kolkata' }) 
+              : 'Unknown Time';
+            diagnosticLogs.push(`  (${index + 1}) [${errTime}] Status: ${data.status || '500'} - ${data.message || 'Error occurred'}`);
+            if (data.data) {
+              const cleanedDetail = String(data.data).replace(/[\r\n]+/g, ' ').substring(0, 160);
+              diagnosticLogs.push(`      └ Server response: "${cleanedDetail}"`);
+            }
+          });
+          diagnosticLogs.push('--------------------------------------------------');
+        }
+      } catch (logErr: any) {
+        console.warn('Failed to retrieve sync errors from DB for diagnostics:', logErr.message);
+      }
+
+      diagnosticLogs.push(`[INFO] Diagnostic sequence completed. State: ${hasCriticalError ? 'MISCONFIGURED' : 'CONNECTED'}`);
 
       return res.json({
         urlConfigured,
@@ -652,7 +837,12 @@ async function startServer() {
         syncedBackups,
         pendingBackups,
         registrationsList,
-        connectionTest
+        connectionTest,
+        headerCheck,
+        hasCriticalError,
+        criticalErrorMessage,
+        actionRemedy,
+        diagnosticLogs
       });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
@@ -835,6 +1025,18 @@ async function startServer() {
           failCount++;
           lastError = err.message || 'POST failed';
           console.error(`[Manual Sync] Failed sync for document ID ${doc.id}:`, err.message);
+          const errorStatus = err.response ? err.response.status : '500';
+          const errorData = err.response ? JSON.stringify(err.response.data) : err.message;
+          try {
+            await db.collection('sync_errors').add({
+              timestamp: new Date().toISOString(),
+              message: `Manual sync failed for candidate ${d.name || doc.id}: ${err.message}`,
+              status: String(errorStatus),
+              data: errorData.substring(0, 500)
+            });
+          } catch (logErr: any) {
+            console.warn('Could not log manual sync error to DB:', logErr.message);
+          }
         }
       }
 
