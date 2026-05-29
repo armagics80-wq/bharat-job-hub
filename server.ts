@@ -326,7 +326,8 @@ async function startServer() {
         subscribedCategories
       } = req.body;
       
-      const targetUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      const rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      const targetUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
       const timestampIso = new Date().toISOString();
       const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
@@ -462,7 +463,18 @@ async function startServer() {
       if (targetUrl.includes('sheetdb.io')) {
         let allowedKeys: string[] = [];
         try {
-          const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+          let keysUrl = targetUrl;
+          try {
+            const parsedUrl = new URL(targetUrl);
+            if (parsedUrl.pathname.endsWith('/')) {
+              parsedUrl.pathname = parsedUrl.pathname + 'keys';
+            } else {
+              parsedUrl.pathname = parsedUrl.pathname + '/keys';
+            }
+            keysUrl = parsedUrl.toString();
+          } catch (urlErr) {
+            keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+          }
           const keysRes = await axios.get(keysUrl, { timeout: 4000 });
           if (keysRes.data && Array.isArray(keysRes.data.keys)) {
             allowedKeys = keysRes.data.keys;
@@ -538,7 +550,8 @@ async function startServer() {
   // Diagnostic endpoint for sheets sync
   app.get('/api/sheets-diagnostic', async (req, res) => {
     try {
-      const targetUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      const rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      const targetUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
       
       let urlConfigured = false;
       let obfuscatedUrl = '';
@@ -649,7 +662,8 @@ async function startServer() {
   // Manual synchronizer endpoint
   app.post('/api/sheets-manual-sync', async (req, res) => {
     try {
-      const targetUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      const rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      const targetUrl = rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
       
       if (!targetUrl) {
         return res.status(400).json({ error: 'Spreadsheet Sync URL is not configured in Settings.' });
@@ -669,7 +683,18 @@ async function startServer() {
       let allowedKeys: string[] = [];
       if (targetUrl.includes('sheetdb.io')) {
         try {
-          const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+          let keysUrl = targetUrl;
+          try {
+            const parsedUrl = new URL(targetUrl);
+            if (parsedUrl.pathname.endsWith('/')) {
+              parsedUrl.pathname = parsedUrl.pathname + 'keys';
+            } else {
+              parsedUrl.pathname = parsedUrl.pathname + '/keys';
+            }
+            keysUrl = parsedUrl.toString();
+          } catch (urlErr) {
+            keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+          }
           const keysRes = await axios.get(keysUrl, { timeout: 4000 });
           if (keysRes.data && Array.isArray(keysRes.data.keys)) {
             allowedKeys = keysRes.data.keys;
