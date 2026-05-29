@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { MONITORED_WEBSITES, MonitoredWebsite } from '../data/monitoredWebsites';
-import { RefreshCw, Search, Globe, CheckCircle2, AlertCircle, Sparkles, Clock, Database, ChevronDown, ChevronUp, Server, SearchCheck, Info, ExternalLink } from 'lucide-react';
+import { RefreshCw, Search, Globe, CheckCircle2, AlertCircle, Sparkles, Clock, Database, ChevronDown, ChevronUp, Server, SearchCheck, Info, ExternalLink, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface SyncStatusDashboardProps {
@@ -118,6 +118,62 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
       setIsSyncing(false);
     }
   };
+
+  // Google Sheets Diagnostic & History State Tools
+  const [sheetDiag, setSheetDiag] = useState<any>(null);
+  const [loadingDiag, setLoadingDiag] = useState(false);
+  const [syncingAllRecords, setSyncingAllRecords] = useState(false);
+  const [manualSyncMsg, setManualSyncMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const loadSheetDiagnostic = async () => {
+    setLoadingDiag(true);
+    try {
+      const res = await fetch('/api/sheets-diagnostic');
+      if (res.ok) {
+        const data = await res.json();
+        setSheetDiag(data);
+      }
+    } catch (err) {
+      console.error('[Diagnostic] Error querying sheet status:', err);
+    } finally {
+      setLoadingDiag(false);
+    }
+  };
+
+  const handleManualPush = async () => {
+    setSyncingAllRecords(true);
+    setManualSyncMsg(null);
+    try {
+      const res = await fetch('/api/sheets-manual-sync', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setManualSyncMsg({
+          type: 'success',
+          text: data.message || `Successfully pushed ${data.syncedCount} entries to Google Sheets!`
+        });
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync(`Success: Sync completed! ${data.syncedCount} rows synced.`);
+        }
+      } else {
+        setManualSyncMsg({
+          type: 'error',
+          text: data.error || 'Failed to complete synchronization push.'
+        });
+      }
+    } catch (err: any) {
+      setManualSyncMsg({
+        type: 'error',
+        text: err.message || 'A network error occurred while pushing logs.'
+      });
+    } finally {
+      setSyncingAllRecords(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSheetDiagnostic();
+  }, []);
 
   const filteredWebsites = useMemo(() => {
     return MONITORED_WEBSITES.filter(site => {
@@ -379,33 +435,153 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
 
       {/* Google Sheets Lead Sync Oversight Card */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-4">
-        <div className="flex items-center gap-2 pb-3 border-b border-slate-100">
-          <div className="p-2 bg-emerald-50 rounded text-emerald-600">
-            <Database className="w-5 h-5" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-emerald-50 rounded text-emerald-600">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-900 font-sans tracking-tight">Matches Section Visitor Auto-Sync (Google Sheets)</h3>
+              <p className="text-[10px] text-slate-500 uppercase tracking-tight">Synchronizes matches form registrations directly in real-time</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-extrabold text-slate-900">Matches Section Visitor Auto-Sync (Google Sheets)</h3>
-            <p className="text-[10px] text-slate-500 uppercase tracking-tight">Synchronizes matches form registrations directly in real-time</p>
-          </div>
+          
+          <button
+            onClick={loadSheetDiagnostic}
+            disabled={loadingDiag}
+            className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 hover:bg-slate-200 active:bg-slate-350 text-slate-700 text-xs font-black rounded-lg transition-colors disabled:opacity-50"
+          >
+            <RefreshCw className={`w-3 h-3 ${loadingDiag ? 'animate-spin' : ''}`} />
+            Refresh Diagnostic
+          </button>
         </div>
+
+        {/* Diagnostic Status Box */}
+        {sheetDiag && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 border border-slate-200/80 p-4 rounded-xl">
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Bridge Configuration</span>
+              <div className="flex items-center gap-1.5">
+                {sheetDiag.urlConfigured ? (
+                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase rounded">Configured ({sheetDiag.urlType})</span>
+                ) : (
+                  <span className="px-1.5 py-0.5 bg-amber-100 text-amber-800 text-[9px] font-black uppercase rounded">Simulation Mode</span>
+                )}
+              </div>
+              <p className="text-[9px] font-mono text-slate-500 overflow-hidden text-ellipsis truncate max-w-[200px]" title={sheetDiag.obfuscatedUrl}>
+                {sheetDiag.urlConfigured ? sheetDiag.obfuscatedUrl : 'Missing Env Key SHEETDB_URL'}
+              </p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Database Backup Logs</span>
+              <div className="text-sm font-black text-slate-800">{sheetDiag.totalBackups} visitors</div>
+              <p className="text-[10px] text-slate-500">Saved in backup Firestore</p>
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Sync Stats</span>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-emerald-600">{sheetDiag.syncedBackups} Synced</span>
+                <span className="text-slate-300">|</span>
+                <span className="text-sm font-black text-amber-600">{sheetDiag.pendingBackups} Pending</span>
+              </div>
+              <p className="text-[10px] text-slate-500">Awaiting sheets transfer</p>
+            </div>
+
+            <div className="flex items-center justify-start md:justify-end">
+              <button
+                onClick={handleManualPush}
+                disabled={syncingAllRecords || sheetDiag.pendingBackups === 0}
+                className="w-full md:w-auto px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center justify-center gap-1.5"
+              >
+                {syncingAllRecords ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Piping entries...
+                  </>
+                ) : (
+                  <>
+                    <Database className="w-3.5 h-3.5" />
+                    Sync Pending ({sheetDiag.pendingBackups})
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Sync message output */}
+        {manualSyncMsg && (
+          <div className={`p-3 rounded-lg text-xs font-semibold flex items-start gap-2 ${
+            manualSyncMsg.type === 'success' 
+              ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' 
+              : 'bg-red-50 border border-red-200 text-red-800'
+          }`}>
+            {manualSyncMsg.type === 'success' ? (
+              <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+            )}
+            <div>
+              <p className="font-bold">{manualSyncMsg.type === 'success' ? 'Transfer Action Succeeded' : 'Synchronizer Push Alert'}</p>
+              <p className="text-[10px] opacity-90 leading-relaxed mt-0.5">{manualSyncMsg.text}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Live Active API Connection Scanner results */}
+        {sheetDiag?.connectionTest && sheetDiag.connectionTest.status !== 'idle' && (
+          <div className={`p-4 rounded-xl border text-xs leading-normal ${
+            sheetDiag.connectionTest.status === 'success'
+              ? 'bg-emerald-50/50 border-emerald-200/80 text-emerald-850'
+              : 'bg-rose-50/40 border-rose-200/70 text-rose-900'
+          }`}>
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <span className={`w-1.5 h-1.5 rounded-full ${
+                sheetDiag.connectionTest.status === 'success' ? 'bg-emerald-500' : 'bg-rose-500'
+              }`} />
+              <span className="font-black uppercase tracking-wider text-[9px] text-slate-400">Google Sheets Integration Connection Scanner results</span>
+            </div>
+            
+            {sheetDiag.connectionTest.status === 'success' ? (
+              <div className="space-y-1.5">
+                <p>
+                  <strong>Active Ping Connected !</strong> Spreadsheet API endpoint replied successfully in <span className="font-bold text-emerald-700">{sheetDiag.connectionTest.latencyMs}ms</span>.
+                </p>
+                {sheetDiag.connectionTest.headersDiscovered && sheetDiag.connectionTest.headersDiscovered.length > 0 && (
+                  <div>
+                    <span className="text-[9px] uppercase font-bold text-slate-400 block mb-1">Spreadsheet Column Labels Registered:</span>
+                    <div className="flex flex-wrap gap-1">
+                      {sheetDiag.connectionTest.headersDiscovered.map((col: string) => (
+                        <span key={col} className="text-[9px] bg-emerald-100/50 border border-emerald-200 text-emerald-800 font-mono px-1.5 py-0.5 rounded font-black">{col}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="font-bold">Check-up failure communicating with Spreadsheet Service:</p>
+                <div className="p-2.5 bg-rose-100/40 rounded font-mono text-[10px] text-rose-950 border border-rose-200 whitespace-pre-wrap">
+                  {sheetDiag.connectionTest.message}
+                </div>
+                <div className="text-[10px] leading-relaxed text-slate-600">
+                  💡 <strong>Suggested Fix Actions:</strong><br />
+                  1. Have you set Row 1 yet? If Row 1 of your Google Sheet is fully empty, SheetDB replies with <code className="px-1 py-0.5 bg-slate-100 rounded text-red-500 font-mono text-[9px]">400 Bad Request</code>. Please write headers like **Name**, **Phone**, **State**, and **Timestamp** in Row 1 of your Google sheet first!<br />
+                  2. Check that the SheetDB endpoint URL pasted in the dashboard is the active full URL copy (ends with <code className="font-mono text-[9px]">/api/v1/xyz</code>).
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Column 1: Config Status Oversight & Target Spreadsheet */}
-          <div className="lg:col-span-1 space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-200/60">
-            <div>
-              <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block mb-1">Spreadsheet Connector Status</span>
-              <div className="flex items-center gap-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className="text-xs font-black text-slate-800">Dynamic Multi-Bridge Active</span>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block mb-1">Target Google Sheet</span>
-              <div className="space-y-1.5">
+          <div className="lg:col-span-1 space-y-4 p-4 bg-slate-50 rounded-xl border border-slate-200/60 flex flex-col justify-between">
+            <div className="space-y-3">
+              <div>
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block mb-1">Target Google Sheet link</span>
                 <a 
                   href="https://docs.google.com/spreadsheets/d/1r4oCCNwrTRu26WcBhQlrJk-jyQWjEChpDWvhPPbVpLg/edit?usp=sharing"
                   target="_blank" 
@@ -413,45 +589,90 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
                   className="text-[11px] font-mono font-bold text-indigo-600 hover:underline flex items-center gap-1 leading-snug break-all"
                 >
                   1r4oCCNwr...VpLg
-                  <ExternalLink className="w-3 h-3 inline-shrink-0" />
+                  <ExternalLink className="w-3 h-3 shrink-0" />
                 </a>
-                <span className="text-[10px] text-slate-500 block leading-tight">
-                  All visitor form details filled out during the "Matches" checklist will funnel into this target sheet automatically.
-                </span>
+              </div>
+
+              <div>
+                <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block mb-1.5">Latest Visitor Submissions Backlog</span>
+                {sheetDiag?.registrationsList && sheetDiag.registrationsList.length > 0 ? (
+                  <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
+                    {sheetDiag.registrationsList.map((reg: any) => (
+                      <div key={reg.id} className="bg-white p-2 border border-slate-200 rounded text-[10px] flex justify-between items-center gap-2">
+                        <div className="truncate">
+                          <p className="font-extrabold text-slate-800 truncate leading-none">{reg.name || 'Anonymous Submission'}</p>
+                          <p className="font-mono text-[9px] text-slate-450 mt-1">{reg.phone || 'No Phone'}</p>
+                        </div>
+                        <span className={`px-1 rounded text-[8px] font-black uppercase text-center ${
+                          reg.synced 
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+                            : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                        }`}>
+                          {reg.synced ? 'Synced' : 'Pending'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-5 bg-white border border-dashed border-slate-200 rounded text-slate-400 text-[10px]">
+                    No visitors have registered on the website yet.
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="pt-2 border-t border-slate-200">
-              <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block mb-1.5">Automated Export Columns</span>
+              <span className="text-[9px] uppercase tracking-widest font-black text-slate-400 block mb-1">Columns Registered to Map</span>
               <div className="flex flex-wrap gap-1">
-                {['Timestamp', 'Name', 'Phone', 'Age', 'Gender', 'State', 'District', 'StateCategory', 'Category', 'ExServiceman', 'PwBD', 'Qualifications', 'Documents'].map(col => (
-                  <span key={col} className="text-[9px] bg-slate-200/70 text-slate-700 font-mono px-1.5 py-0.5 rounded font-black">{col}</span>
+                {['Timestamp', 'Name', 'Phone', 'State', 'District', 'Qualifications', 'Category'].map(col => (
+                  <span key={col} className="text-[8px] bg-slate-200 text-slate-700 font-mono px-1 py-0.5 rounded font-black">{col}</span>
                 ))}
               </div>
             </div>
           </div>
 
-          {/* Column 2 & 3: Interactive Tabbed Setup Guidance */}
+          {/* Column 2 & 3: Setup Instructions Tabs */}
           <div className="lg:col-span-2 space-y-3">
             <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
               <Info className="w-4 h-4 text-indigo-500" />
-              Spreadsheet Integration Integration Steps (No-Crash Fail-Safes Installed)
+              Spreadsheet Integration Guidance Manual
             </h4>
             
             <p className="text-xs text-slate-500 leading-relaxed">
-              Our backend has been configured to process the Matches form 100% reliably. To establish live sync, choose one of these simple methods:
+              Our website backs up and saves submissions inside a local database automatically. To push registrations to Google Sheets, use the recommended Option:
             </p>
 
-            <div className="border border-slate-200 rounded-lg overflow-hidden">
+            <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+              <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase rounded">Option B (RECOMMENDED)</span>
+                <span className="text-xs font-bold text-slate-700">SheetDB.io Integration - Seamless Map & Sync</span>
+              </div>
+              <div className="p-4 text-xs text-slate-650 leading-relaxed space-y-2">
+                <p>
+                  1. Visit <a href="https://sheetdb.io" target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline">SheetDB.io</a> and complete a free sign up.
+                </p>
+                <p>
+                  2. Create a new API endpoint. Paste your target Google Sheet URL:<br />
+                  <code className="block mt-1 p-1 bg-slate-100 text-indigo-700 rounded font-mono text-[9px] select-all break-all border overflow-x-hidden max-w-full">
+                    https://docs.google.com/spreadsheets/d/1r4oCCNwrTRu26WcBhQlrJk-jyQWjEChpDWvhPPbVpLg/edit
+                  </code>
+                </p>
+                <p>
+                  3. <strong>CRITICAL FIRST ROW REQUIRED:</strong> SheetDB needs row-headers in Row 1 to map forms. Open your Google Sheet, write **Name** in cell A1, **Phone** in cell B1, **State** in cell C1, and **Timestamp** in cell D1! (You can add **Qualification**, **Category** as well).
+                </p>
+                <p>
+                  4. Copy your new API URL from SheetDB (e.g., <code className="font-mono text-[10px] bg-slate-100 px-1 rounded">https://sheetdb.io/api/v1/your_id</code>) and set it in your **Settings tab** as the environment variable: <code>SHEETDB_URL</code>!
+                </p>
+              </div>
+            </div>
+
+            <div className="border border-slate-200 rounded-lg overflow-hidden grid grid-cols-1 bg-white">
               <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center gap-2">
                 <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[9px] font-black uppercase rounded">Option A</span>
-                <span className="text-xs font-bold text-slate-700">Google Apps Script Method (Free, Zero Limits, Dyn-Headers)</span>
+                <span className="text-xs font-bold text-slate-700">Google Apps Script Web App (Free, Unlimited)</span>
               </div>
-              <div className="p-4 space-y-3 text-xs text-slate-650 leading-relaxed">
-                <ol className="list-decimal pl-4 space-y-2">
-                  <li>Open your Google Sheet and select <strong>Extensions &gt; Apps Script</strong>.</li>
-                  <li>Clear all existing content in the editor and paste the dynamic JSON collector script:</li>
-                </ol>
+              <div className="p-4 space-y-3 text-xs text-slate-655 leading-relaxed">
+                <p>Paste the dynamic payload routing script in your Google Sheet spreadsheet: Select <strong>Extensions &gt; Apps Script</strong> block, remove standard code, paste script below and click <strong>Deploy as Web App</strong> (Execute as: Me, Who has Access: Anyone). Paste script URL into Settings as <code>GOOGLE_SCRIPT_URL</code>.</p>
                 <div className="bg-slate-900 border border-slate-950 p-3 rounded font-mono text-[9px] text-indigo-200 overflow-x-auto max-h-[140px] select-all">
 {`function doPost(e) {
   try {
@@ -492,28 +713,6 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
   }
 }`}
                 </div>
-                <ol className="list-decimal pl-4 space-y-2 start-3" start={3}>
-                  <li>Click <strong>Deploy &gt; New deployment</strong>. Manage as <strong>Web app</strong> (Execute as: <strong>Me</strong>, Who has access: <strong>Anyone</strong>).</li>
-                  <li>Copy the deployed Web App URL and configure it as the Environment Variable <code>GOOGLE_SCRIPT_URL</code> in your Settings tab.</li>
-                </ol>
-              </div>
-            </div>
-
-            <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[9px] font-black uppercase rounded">Option B</span>
-                <span className="text-xs font-bold text-slate-700">SheetDB.io Method (Instant, 500 rows free/mo)</span>
-              </div>
-              <div className="p-4 text-xs text-slate-650 leading-relaxed space-y-2">
-                <p>
-                  1. Visit <a href="https://sheetdb.io" target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline">SheetDB.io</a> and login.
-                </p>
-                <p>
-                  2. Create a new API, paste your Google Sheet link: <code className="font-mono bg-slate-100 px-1 border rounded text-[10px]">https://docs.google.com/spreadsheets/d/1r4oCCNwrTRu26WcBhQlrJk-jyQWjEChpDWvhPPbVpLg/edit</code>
-                </p>
-                <p>
-                  3. Copy your API URL (e.g., <code className="font-mono text-[10px]">https://sheetdb.io/api/v1/your_id</code>) and add it as the environmental key <code>SHEETDB_URL</code> in the settings! Columns will map dynamically.
-                </p>
               </div>
             </div>
           </div>

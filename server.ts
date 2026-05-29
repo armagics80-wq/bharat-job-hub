@@ -302,6 +302,7 @@ async function startServer() {
 
   // Save profile data into a Google Sheet via SheetDB API, Google Apps Script, or other connection URL
   app.post('/api/save-user', async (req, res) => {
+    let docRef: any = null;
     try {
       const {
         name,
@@ -322,11 +323,12 @@ async function startServer() {
       } = req.body;
       
       const targetUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
-      
+      const timestampIso = new Date().toISOString();
+      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+
       // Keep a clean backup log database entry for safety in Firestore if available
       try {
-        const timestampIso = new Date().toISOString();
-        await db.collection('registrations').add({
+        docRef = await db.collection('registrations').add({
           name: name || '',
           phone: phone || '',
           age: age ? Number(age) : '',
@@ -342,14 +344,13 @@ async function startServer() {
           otherCertificates: otherCertificates || '',
           subscribedRegions: subscribedRegions || '',
           subscribedCategories: subscribedCategories || '',
-          timestamp: timestampIso
+          timestamp: timestampIso,
+          synced: false
         });
-        console.log('[Sheets Sync] Successfully saved a local database backup of user submission in Firestore.');
+        console.log(`[Sheets Sync] Saved backup in Firestore database. Document ID: ${docRef.id}`);
       } catch (backupErr: any) {
         console.warn('[Sheets Sync] Local backup DB skip/fallback:', backupErr.message);
       }
-
-      const timestamp = new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 
       // All candidate profile fields mapped to flexible keys for maximum header compatibility
       const candidateFields: Record<string, any> = {
@@ -412,33 +413,28 @@ async function startServer() {
         return res.status(200).json({ 
           success: true, 
           simulated: true, 
-          message: 'Saved successfully in primary state database.' 
+          message: 'Saved successfully in local backup database. Configure your SHEETDB_URL in settings to pipe directly to Sheets.' 
         });
       }
 
       // Check if they configured a direct Google Sheets edit/view link.
-      // Direct Google Sheet URLs (docs.google.com/spreadsheets) do not support direct JSON POST,
-      // and will return a 400 Bad Request if hit. We catch it here to instruct them.
       if (targetUrl.includes('docs.google.com/spreadsheets')) {
         console.warn(`[Sheets Sync] WARNING: SHEETDB_URL or GOOGLE_SCRIPT_URL is configured as a direct Google Sheets URL: "${targetUrl}".`);
-        console.warn('[Sheets Sync] Direct cell links do not accept form HTTP POST. Please use SheetDB.io or Google Apps Script to write to Sheets.');
-        
         return res.status(200).json({ 
           success: true, 
           sheetSyncWarning: true,
           directSheetLinkDetected: true,
-          message: 'Profile registered successfully! Note: Google Sheets sync requires Web app endpoint configuration.'
+          message: 'Profile registered successfully in backup database! Note: Direct Google Sheets URL is set. You need to create a SheetDB.io API or Google App Script to post.'
         });
       }
 
       let payload: any;
+      let syncPassed = false;
 
       if (targetUrl.includes('sheetdb.io')) {
-        // Query SheetDB metadata first to find correct columns to avoid causing a 400 Bad Request error.
         let allowedKeys: string[] = [];
         try {
           const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
-          console.log(`[Sheets Sync] Fetching SheetDB keys from: ${keysUrl}`);
           const keysRes = await axios.get(keysUrl, { timeout: 4000 });
           if (keysRes.data && Array.isArray(keysRes.data.keys)) {
             allowedKeys = keysRes.data.keys;
@@ -446,39 +442,31 @@ async function startServer() {
             allowedKeys = keysRes.data;
           }
         } catch (e: any) {
-          console.warn('[Sheets Sync] Failed to fetch SheetDB keys via /keys endpoint, attempting primary endpoint GET:', e.message);
           try {
             const primaryRes = await axios.get(targetUrl, { timeout: 4000 });
             if (Array.isArray(primaryRes.data) && primaryRes.data.length > 0) {
               allowedKeys = Object.keys(primaryRes.data[0]);
             }
-          } catch (e2: any) {
-            console.warn('[Sheets Sync] Failed to fetch SheetDB keys from primary URL:', e2.message);
-          }
+          } catch (e2: any) {}
         }
 
         let row: Record<string, any> = {};
 
         if (allowedKeys && allowedKeys.length > 0) {
-          console.log(`[Sheets Sync] Spreadsheet column headers verified:`, allowedKeys);
-          // Build row mapping only valid column names present on spreadsheet
           allowedKeys.forEach(col => {
             if (col in candidateFields) {
               row[col] = candidateFields[col];
             } else {
-              // Normalized search to bridge differences like "Qualification" vs "Qualifications" or "Phone Number" vs "Phone"
               const normalizedCol = col.toLowerCase().replace(/[^a-z0-9]/g, '');
               const matchedKey = Object.keys(candidateFields).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedCol);
               if (matchedKey) {
                 row[col] = candidateFields[matchedKey];
               } else {
-                row[col] = ''; // blank if unexpected header
+                row[col] = '';
               }
             }
           });
         } else {
-          // Default fallbacks with standard columns to proceed when keys are non-discoverable
-          console.log(`[Sheets Sync] Falling back to standard column-subset model.`);
           row = {
             Timestamp: timestamp,
             Name: name || '',
@@ -491,12 +479,8 @@ async function startServer() {
 
         payload = { data: [row] };
       } else {
-        // Direct Google Apps Script or other Webhook flat webhook payload
         payload = candidateFields;
       }
-
-      console.log(`[Sheets Sync] Forwarding profile details to Google Sheets sync URL: ${targetUrl.replace(/:.+@/, ':***@')}`);
-      console.log(`[Sheets Sync] Payload:`, JSON.stringify(payload, null, 2));
 
       const response = await axios.post(targetUrl, payload, {
         headers: { 'Content-Type': 'application/json' },
@@ -504,6 +488,17 @@ async function startServer() {
       });
 
       console.log('[Sheets Sync] Successfully saved candidate row to spreadsheet payload response:', response.data);
+      syncPassed = true;
+
+      if (docRef) {
+        try {
+          await db.collection('registrations').doc(docRef.id).update({ synced: true });
+          console.log('[Sheets Sync] Marked registration as synced: true in database');
+        } catch (dbErr: any) {
+          console.warn('[Sheets Sync] Error updating synced status in DB:', dbErr.message);
+        }
+      }
+
       return res.status(200).json({ success: true, response: response.data });
     } catch (err: any) {
       console.error('[Sheets Sync] Error occurred while saving user details to spreadsheet:', err.message);
@@ -511,14 +506,270 @@ async function startServer() {
         console.error('[Sheets Sync] Destination response status:', err.response.status);
         console.error('[Sheets Sync] Destination response body:', JSON.stringify(err.response.data));
       }
-      
-      // Yield success: true so the frontend does not show a crash/error pop-up to visitors submitting their data.
-      // This is a premium design decision supporting complete fault tolerance under configuration turbulence.
       return res.status(200).json({ 
         success: true, 
         sheetSyncError: true, 
         error: err.message || 'Failed to save to Google Sheets' 
       });
+    }
+  });
+
+  // Diagnostic endpoint for sheets sync
+  app.get('/api/sheets-diagnostic', async (req, res) => {
+    try {
+      const targetUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      
+      let urlConfigured = false;
+      let obfuscatedUrl = '';
+      let urlType = 'none';
+
+      if (targetUrl) {
+        urlConfigured = true;
+        if (targetUrl.includes('sheetdb.io')) {
+          urlType = 'sheetdb';
+          obfuscatedUrl = targetUrl.replace(/\/api\/v1\/[a-zA-Z0-9]+/, '/api/v1/*****');
+        } else if (targetUrl.includes('script.google.com')) {
+          urlType = 'apps-script';
+          obfuscatedUrl = 'https://script.google.com/macros/s/*****';
+        } else if (targetUrl.includes('docs.google.com/spreadsheets')) {
+          urlType = 'direct-sheet';
+          obfuscatedUrl = 'https://docs.google.com/spreadsheets/d/*****';
+        } else {
+          urlType = 'custom-webhook';
+          obfuscatedUrl = targetUrl.substring(0, Math.min(25, targetUrl.length)) + '...';
+        }
+      }
+
+      // Fetch registration status
+      let totalBackups = 0;
+      let syncedBackups = 0;
+      let pendingBackups = 0;
+      let registrationsList: any[] = [];
+
+      try {
+        const snapshot = await db.collection('registrations').get();
+        totalBackups = snapshot.docs.length;
+        
+        snapshot.docs.forEach(doc => {
+          const d = doc.data();
+          const isSynced = d.synced === true;
+          if (isSynced) {
+            syncedBackups++;
+          } else {
+            pendingBackups++;
+          }
+          registrationsList.push({
+            id: doc.id,
+            name: d.name || '',
+            phone: d.phone || '',
+            timestamp: d.timestamp || '',
+            synced: isSynced
+          });
+        });
+
+        // Sort by newest first
+        registrationsList.sort((a: any, b: any) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        // Limit list size returned
+        registrationsList = registrationsList.slice(0, 10);
+      } catch (dbErr: any) {
+        console.warn('[Diagnostic] DB fetch failed:', dbErr.message);
+      }
+
+      // Test active ping connection to the SheetDB/AppsScript API
+      let connectionTest: any = { status: 'idle' };
+      if (urlConfigured && urlType !== 'direct-sheet' && targetUrl) {
+        try {
+          const startTime = Date.now();
+          if (urlType === 'sheetdb') {
+            const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+            const keysRes = await axios.get(keysUrl, { timeout: 3000 });
+            connectionTest = {
+              status: 'success',
+              latencyMs: Date.now() - startTime,
+              headersDiscovered: keysRes.data.keys || keysRes.data || [],
+              message: 'Successfully connected and pulled active headers!'
+            };
+          } else {
+            // Apps Script can be pinged with GET
+            await axios.get(targetUrl, { timeout: 3000 });
+            connectionTest = {
+              status: 'success',
+              latencyMs: Date.now() - startTime,
+              message: 'Successfully reached Google Apps Script webhook!'
+            };
+          }
+        } catch (pingErr: any) {
+          connectionTest = {
+            status: 'failed',
+            error: pingErr.message,
+            statusCode: pingErr.response?.status,
+            message: pingErr.response?.status === 400 
+              ? 'SheetDB replied with 400 Bad Request. This usually happens when Row 1 of your spreadsheet is completely blank. SheetDB requires you to input column headers in the very first row!'
+              : `Connection test failed: ${pingErr.message}. Double-check your setting url permissions and access.`
+          };
+        }
+      }
+
+      return res.json({
+        urlConfigured,
+        urlType,
+        obfuscatedUrl,
+        totalBackups,
+        syncedBackups,
+        pendingBackups,
+        registrationsList,
+        connectionTest
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Manual synchronizer endpoint
+  app.post('/api/sheets-manual-sync', async (req, res) => {
+    try {
+      const targetUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL;
+      
+      if (!targetUrl) {
+        return res.status(400).json({ error: 'Spreadsheet Sync URL is not configured in Settings.' });
+      }
+      if (targetUrl.includes('docs.google.com/spreadsheets')) {
+        return res.status(400).json({ error: 'Direct Spreadsheet links are not supported. Use SheetDB.io or Google Apps Script Web App URL.' });
+      }
+
+      const snapshot = await db.collection('registrations').get();
+      const unsyncedDocs = snapshot.docs.filter(doc => doc.data().synced !== true);
+      
+      if (unsyncedDocs.length === 0) {
+        return res.json({ success: true, syncedCount: 0, message: 'All registrations are already synchronized!' });
+      }
+
+      // Sync columns headers discovery for SheetDB
+      let allowedKeys: string[] = [];
+      if (targetUrl.includes('sheetdb.io')) {
+        try {
+          const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+          const keysRes = await axios.get(keysUrl, { timeout: 4000 });
+          if (keysRes.data && Array.isArray(keysRes.data.keys)) {
+            allowedKeys = keysRes.data.keys;
+          } else if (Array.isArray(keysRes.data)) {
+            allowedKeys = keysRes.data;
+          }
+        } catch (e: any) {
+          try {
+            const primaryRes = await axios.get(targetUrl, { timeout: 4000 });
+            if (Array.isArray(primaryRes.data) && primaryRes.data.length > 0) {
+              allowedKeys = Object.keys(primaryRes.data[0]);
+            }
+          } catch (e2: any) {}
+        }
+      }
+
+      let successCount = 0;
+      let failCount = 0;
+      let lastError = '';
+
+      for (const doc of unsyncedDocs) {
+        const d = doc.data();
+        const timestamp = d.timestamp ? new Date(d.timestamp).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) : new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
+
+        const candidateFields: Record<string, any> = {
+          Timestamp: timestamp,
+          'Time': timestamp,
+          'Date': timestamp,
+          Name: d.name || '',
+          'Full Name': d.name || '',
+          'Name/Phone': d.name || '',
+          Phone: d.phone || '',
+          'Phone Number': d.phone || '',
+          'Mobile': d.phone || '',
+          'Mobile Number': d.phone || '',
+          Age: d.age !== undefined ? Number(d.age) : '',
+          Gender: d.gender || '',
+          State: d.state || '',
+          'State Domicile': d.state || '',
+          'Domicile': d.state || '',
+          District: d.district || '',
+          StateCategory: d.stateCategory || '',
+          'State Category': d.stateCategory || '',
+          Category: d.category || '',
+          'National Category': d.category || '',
+          'Reservation': d.category || '',
+          ExServiceman: d.isExServiceman || 'No',
+          'Ex-Serviceman': d.isExServiceman || 'No',
+          PwBD: d.isPWD || 'No',
+          'PwD': d.isPWD || 'No',
+          'is PWD': d.isPWD || 'No',
+          Qualifications: d.qualifications || '',
+          Qualification: d.qualifications || '',
+          'Educational Qualifications': d.qualifications || '',
+          Documents: d.documents || '',
+          'Uploaded Documents': d.documents || '',
+          'Documents Provided': d.documents || '',
+          OtherCertificates: d.otherCertificates || '',
+          'Other Certificates': d.otherCertificates || '',
+          SubscribedRegions: d.subscribedRegions || '',
+          'Subscribed Regions': d.subscribedRegions || '',
+          SubscribedCategories: d.subscribedCategories || '',
+          'Subscribed Categories': d.subscribedCategories || ''
+        };
+
+        let payload: any;
+        if (targetUrl.includes('sheetdb.io')) {
+          let row: Record<string, any> = {};
+          if (allowedKeys && allowedKeys.length > 0) {
+            allowedKeys.forEach(col => {
+              if (col in candidateFields) {
+                row[col] = candidateFields[col];
+              } else {
+                const normalizedCol = col.toLowerCase().replace(/[^a-z0-9]/g, '');
+                const matchedKey = Object.keys(candidateFields).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedCol);
+                if (matchedKey) {
+                  row[col] = candidateFields[matchedKey];
+                } else {
+                  row[col] = '';
+                }
+              }
+            });
+          } else {
+            row = {
+              Timestamp: timestamp,
+              Name: d.name || '',
+              Phone: d.phone || '',
+              State: d.state || '',
+              Qualification: d.qualifications || '',
+              Category: d.category || ''
+            };
+          }
+          payload = { data: [row] };
+        } else {
+          payload = candidateFields;
+        }
+
+        try {
+          await axios.post(targetUrl, payload, {
+            headers: { 'Content-Type': 'application/json' },
+            timeout: 5000
+          });
+          
+          await db.collection('registrations').doc(doc.id).update({ synced: true });
+          successCount++;
+        } catch (err: any) {
+          failCount++;
+          lastError = err.message || 'POST failed';
+          console.error(`[Manual Sync] Failed sync for document ID ${doc.id}:`, err.message);
+        }
+      }
+
+      return res.json({
+        success: true,
+        syncedCount: successCount,
+        failedCount: failCount,
+        lastError: lastError,
+        message: `Synced ${successCount} registrations to Google Sheets successfully!`
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
     }
   });
 
