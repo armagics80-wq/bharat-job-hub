@@ -862,11 +862,26 @@ async function startServer() {
         return res.status(400).json({ error: 'Direct Spreadsheet links are not supported. Use SheetDB.io or Google Apps Script Web App URL.' });
       }
 
+      const { reSyncAll, docId } = req.body || {};
+
       const snapshot = await db.collection('registrations').get();
-      const unsyncedDocs = snapshot.docs.filter(doc => doc.data().synced !== true);
+      let targetDocs = snapshot.docs;
+
+      if (docId) {
+        targetDocs = targetDocs.filter(doc => doc.id === docId);
+      } else if (!reSyncAll) {
+        targetDocs = targetDocs.filter(doc => doc.data().synced !== true);
+      }
       
-      if (unsyncedDocs.length === 0) {
-        return res.json({ success: true, syncedCount: 0, message: 'All registrations are already synchronized!' });
+      if (targetDocs.length === 0) {
+        if (docId) {
+          return res.status(404).json({ error: 'Selected submission record not found in backup logs.' });
+        }
+        return res.json({ 
+          success: true, 
+          syncedCount: 0, 
+          message: reSyncAll ? 'No registrations found in the backup logs.' : 'All registrations are already synchronized!' 
+        });
       }
 
       // Sync columns headers discovery for SheetDB
@@ -905,7 +920,7 @@ async function startServer() {
       let failCount = 0;
       let lastError = '';
 
-      for (const doc of unsyncedDocs) {
+      for (const doc of targetDocs) {
         const d = doc.data();
         const timestamp = d.timestamp ? new Date(d.timestamp).toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }) : new Date().toLocaleString('en-US', { timeZone: 'Asia/Kolkata' });
 

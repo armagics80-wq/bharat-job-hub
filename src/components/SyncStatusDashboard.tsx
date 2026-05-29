@@ -123,6 +123,8 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
   const [sheetDiag, setSheetDiag] = useState<any>(null);
   const [loadingDiag, setLoadingDiag] = useState(false);
   const [syncingAllRecords, setSyncingAllRecords] = useState(false);
+  const [syncingAllRecordsForce, setSyncingAllRecordsForce] = useState(false);
+  const [syncingSingleId, setSyncingSingleId] = useState<string | null>(null);
   const [manualSyncMsg, setManualSyncMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const loadSheetDiagnostic = async () => {
@@ -137,6 +139,76 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
       console.error('[Diagnostic] Error querying sheet status:', err);
     } finally {
       setLoadingDiag(false);
+    }
+  };
+
+  const handleManualPushSingle = async (docId: string) => {
+    setSyncingSingleId(docId);
+    setManualSyncMsg(null);
+    try {
+      const res = await fetch('/api/sheets-manual-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ docId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setManualSyncMsg({
+          type: 'success',
+          text: `Successfully synced entry to Google Sheets!`
+        });
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync(`Success: Synced entry.`);
+        }
+      } else {
+        setManualSyncMsg({
+          type: 'error',
+          text: data.error || 'Failed to sync selected entry.'
+        });
+      }
+    } catch (err: any) {
+      setManualSyncMsg({
+        type: 'error',
+        text: err.message || 'A network error occurred while syncing entry.'
+      });
+    } finally {
+      setSyncingSingleId(null);
+    }
+  };
+
+  const handleManualPushForceAll = async () => {
+    setSyncingAllRecordsForce(true);
+    setManualSyncMsg(null);
+    try {
+      const res = await fetch('/api/sheets-manual-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reSyncAll: true })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setManualSyncMsg({
+          type: 'success',
+          text: data.message || `Successfully forced sync for all ${data.syncedCount} entries in Google Sheets!`
+        });
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync(`Success: Force sync complete! ${data.syncedCount} rows processed.`);
+        }
+      } else {
+        setManualSyncMsg({
+          type: 'error',
+          text: data.error || 'Failed to complete force sync push.'
+        });
+      }
+    } catch (err: any) {
+      setManualSyncMsg({
+        type: 'error',
+        text: err.message || 'A network error occurred while pushing forced sync.'
+      });
+    } finally {
+      setSyncingAllRecordsForce(false);
     }
   };
 
@@ -489,21 +561,40 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
               <p className="text-[10px] text-slate-500">Awaiting sheets transfer</p>
             </div>
 
-            <div className="flex items-center justify-start md:justify-end">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-start md:justify-end gap-2">
               <button
                 onClick={handleManualPush}
-                disabled={syncingAllRecords || sheetDiag.pendingBackups === 0}
-                className="w-full md:w-auto px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-xs font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center justify-center gap-1.5"
+                disabled={syncingAllRecords || syncingAllRecordsForce || sheetDiag.pendingBackups === 0}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-[11px] font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center justify-center gap-1.5"
               >
                 {syncingAllRecords ? (
                   <>
                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    Piping entries...
+                    Piping...
                   </>
                 ) : (
                   <>
                     <Database className="w-3.5 h-3.5" />
                     Sync Pending ({sheetDiag.pendingBackups})
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleManualPushForceAll}
+                disabled={syncingAllRecords || syncingAllRecordsForce || sheetDiag.totalBackups === 0}
+                title="Force-synchronize ALL user registrations inside local database directly to Google Sheet"
+                className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-200 disabled:text-slate-400 text-white text-[11px] font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center justify-center gap-1.5"
+              >
+                {syncingAllRecordsForce ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    Forcing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="w-3 h-3" />
+                    Force Re-Sync All ({sheetDiag.totalBackups})
                   </>
                 )}
               </button>
@@ -685,17 +776,32 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
                   <div className="space-y-1.5 max-h-[140px] overflow-y-auto pr-1">
                     {sheetDiag.registrationsList.map((reg: any) => (
                       <div key={reg.id} className="bg-white p-2 border border-slate-200 rounded text-[10px] flex justify-between items-center gap-2">
-                        <div className="truncate">
-                          <p className="font-extrabold text-slate-800 truncate leading-none">{reg.name || 'Anonymous Submission'}</p>
+                        <div className="truncate flex-1">
+                          <p className="font-extrabold text-slate-800 truncate leading-none">{reg.name || 'Anonymous'}</p>
                           <p className="font-mono text-[9px] text-slate-450 mt-1">{reg.phone || 'No Phone'}</p>
                         </div>
-                        <span className={`px-1 rounded text-[8px] font-black uppercase text-center ${
-                          reg.synced 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
-                            : 'bg-amber-50 text-amber-700 border border-amber-200/60'
-                        }`}>
-                          {reg.synced ? 'Synced' : 'Pending'}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={`px-1 rounded text-[8px] font-black uppercase text-center ${
+                            reg.synced 
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/60' 
+                              : 'bg-amber-50 text-amber-700 border border-amber-200/60'
+                          }`}>
+                            {reg.synced ? 'Synced' : 'Pending'}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleManualPushSingle(reg.id)}
+                            disabled={syncingAllRecords || syncingAllRecordsForce || syncingSingleId !== null}
+                            title={reg.synced ? "Re-sync this visitor details to Google Sheet" : "Sync this visitor details to Google Sheet"}
+                            className="p-1 hover:bg-slate-100 rounded border border-slate-200 text-slate-500 hover:text-slate-900 transition-colors disabled:opacity-55"
+                          >
+                            {syncingSingleId === reg.id ? (
+                              <Loader2 className="w-2.5 h-2.5 animate-spin text-indigo-600" />
+                            ) : (
+                              <Database className="w-2.5 h-2.5" />
+                            )}
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
