@@ -495,14 +495,7 @@ async function startServer() {
             }
           });
         } else {
-          row = {
-            Timestamp: timestamp,
-            Name: name || '',
-            Phone: phone || '',
-            State: state || '',
-            Qualification: qualifications || '',
-            Category: category || ''
-          };
+          row = candidateFields;
         }
 
         payload = { data: [row] };
@@ -798,14 +791,7 @@ async function startServer() {
               }
             });
           } else {
-            row = {
-              Timestamp: timestamp,
-              Name: d.name || '',
-              Phone: d.phone || '',
-              State: d.state || '',
-              Qualification: d.qualifications || '',
-              Category: d.category || ''
-            };
+            row = candidateFields;
           }
           payload = { data: [row] };
         } else {
