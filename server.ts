@@ -6,6 +6,10 @@ import admin from 'firebase-admin';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
 import https from 'https';
+import dotenv from 'dotenv';
+
+// Initialize environment variables
+dotenv.config();
 
 // Initialize Firebase Admin
 import firebaseConfig from './firebase-applet-config.json';
@@ -357,55 +361,79 @@ async function startServer() {
         Timestamp: timestamp,
         'Time': timestamp,
         'Date': timestamp,
+        timestamp: timestamp,
+        time: timestamp,
+        date: timestamp,
         
         Name: name || '',
         'Full Name': name || '',
         'Name/Phone': name || '',
+        name: name || '',
+        fullname: name || '',
         
         Phone: phone || '',
         'Phone Number': phone || '',
         'Mobile': phone || '',
         'Mobile Number': phone || '',
+        phone: phone || '',
+        phonenumber: phone || '',
+        mobile: phone || '',
         
         Age: age !== undefined ? Number(age) : '',
+        age: age !== undefined ? Number(age) : '',
         Gender: gender || '',
+        gender: gender || '',
         
         State: state || '',
         'State Domicile': state || '',
         'Domicile': state || '',
+        state: state || '',
+        domicile: state || '',
         
         District: district || '',
+        district: district || '',
         
         StateCategory: stateCategory || '',
         'State Category': stateCategory || '',
+        statecategory: stateCategory || '',
         
         Category: category || '',
         'National Category': category || '',
         'Reservation': category || '',
+        category: category || '',
         
         ExServiceman: isExServiceman || 'No',
         'Ex-Serviceman': isExServiceman || 'No',
+        exserviceman: isExServiceman || 'No',
         
         PwBD: isPWD || 'No',
         'PwD': isPWD || 'No',
         'is PWD': isPWD || 'No',
+        pwbd: isPWD || 'No',
+        pwd: isPWD || 'No',
         
         Qualifications: qualifications || '',
         Qualification: qualifications || '',
         'Educational Qualifications': qualifications || '',
+        qualifications: qualifications || '',
+        qualification: qualifications || '',
         
         Documents: documents || '',
         'Uploaded Documents': documents || '',
         'Documents Provided': documents || '',
+        documents: documents || '',
         
         OtherCertificates: otherCertificates || '',
         'Other Certificates': otherCertificates || '',
+        othercertificates: otherCertificates || '',
         
         SubscribedRegions: subscribedRegions || '',
         'Subscribed Regions': subscribedRegions || '',
+        subscribedregions: subscribedRegions || '',
         
         SubscribedCategories: subscribedCategories || '',
-        'Subscribed Categories': subscribedCategories || ''
+        'Subscribed Categories': subscribedCategories || '',
+        subscribedcategories: subscribedCategories || ''
       };
 
       if (!targetUrl) {
@@ -677,41 +705,79 @@ async function startServer() {
           Timestamp: timestamp,
           'Time': timestamp,
           'Date': timestamp,
+          timestamp: timestamp,
+          time: timestamp,
+          date: timestamp,
+          
           Name: d.name || '',
           'Full Name': d.name || '',
           'Name/Phone': d.name || '',
+          name: d.name || '',
+          fullname: d.name || '',
+          
           Phone: d.phone || '',
           'Phone Number': d.phone || '',
           'Mobile': d.phone || '',
           'Mobile Number': d.phone || '',
+          phone: d.phone || '',
+          phonenumber: d.phone || '',
+          mobile: d.phone || '',
+          
           Age: d.age !== undefined ? Number(d.age) : '',
+          age: d.age !== undefined ? Number(d.age) : '',
           Gender: d.gender || '',
+          gender: d.gender || '',
+          
           State: d.state || '',
           'State Domicile': d.state || '',
           'Domicile': d.state || '',
+          state: d.state || '',
+          domicile: d.state || '',
+          
           District: d.district || '',
+          district: d.district || '',
+          
           StateCategory: d.stateCategory || '',
           'State Category': d.stateCategory || '',
+          statecategory: d.stateCategory || '',
+          
           Category: d.category || '',
           'National Category': d.category || '',
           'Reservation': d.category || '',
+          category: d.category || '',
+          
           ExServiceman: d.isExServiceman || 'No',
           'Ex-Serviceman': d.isExServiceman || 'No',
+          exserviceman: d.isExServiceman || 'No',
+          
           PwBD: d.isPWD || 'No',
           'PwD': d.isPWD || 'No',
           'is PWD': d.isPWD || 'No',
+          pwbd: d.isPWD || 'No',
+          pwd: d.isPWD || 'No',
+          
           Qualifications: d.qualifications || '',
           Qualification: d.qualifications || '',
           'Educational Qualifications': d.qualifications || '',
+          qualifications: d.qualifications || '',
+          qualification: d.qualifications || '',
+          
           Documents: d.documents || '',
           'Uploaded Documents': d.documents || '',
           'Documents Provided': d.documents || '',
+          documents: d.documents || '',
+          
           OtherCertificates: d.otherCertificates || '',
           'Other Certificates': d.otherCertificates || '',
+          othercertificates: d.otherCertificates || '',
+          
           SubscribedRegions: d.subscribedRegions || '',
           'Subscribed Regions': d.subscribedRegions || '',
+          subscribedregions: d.subscribedRegions || '',
+          
           SubscribedCategories: d.subscribedCategories || '',
-          'Subscribed Categories': d.subscribedCategories || ''
+          'Subscribed Categories': d.subscribedCategories || '',
+          subscribedcategories: d.subscribedCategories || ''
         };
 
         let payload: any;
