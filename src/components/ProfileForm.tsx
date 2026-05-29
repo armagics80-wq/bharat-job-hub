@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { UserProfile, QualificationType } from '../types';
-import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info, Download } from 'lucide-react';
 import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
 
@@ -63,6 +63,79 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       q.category.toLowerCase().includes(qualSearch.toLowerCase())
     );
   }, [qualSearch]);
+
+  const handleExportJSON = () => {
+    try {
+      const dataStr = JSON.stringify(formData, null, 2);
+      const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
+      
+      const fileName = `${formData.fullName ? formData.fullName.trim().replace(/\s+/g, '_') : 'profile'}_eligibility.json`;
+      
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', dataUri);
+      linkElement.setAttribute('download', fileName);
+      linkElement.click();
+    } catch (err: any) {
+      console.error('[Export Profile] JSON export failed:', err);
+      alert('Failed to export profile to JSON: ' + err.message);
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const qualificationLabels = formData.qualifications.map(id => {
+        try {
+          return getQualificationById(id)?.label || id;
+        } catch {
+          return id;
+        }
+      });
+
+      const fields = [
+        { label: 'Full Name', value: formData.fullName || '' },
+        { label: 'Phone Number', value: formData.phoneNumber || '' },
+        { label: 'Age', value: formData.age },
+        { label: 'Gender', value: formData.gender },
+        { label: 'National Category', value: formData.nationalCategory || formData.category || 'UR' },
+        { label: 'State Category', value: formData.stateCategory || '' },
+        { label: 'Domicile State', value: formData.state || '' },
+        { label: 'Domicile District', value: formData.district || '' },
+        { label: 'Ex-Serviceman', value: formData.isExServiceman ? 'Yes' : 'No' },
+        { label: 'Person with Disability', value: formData.isPWD ? 'Yes' : 'No' },
+        { label: 'Qualifications', value: qualificationLabels.join('; ') },
+        { label: 'Skills', value: (formData.skills || []).join('; ') },
+        { label: 'Essential Documents', value: (formData.documents || []).join('; ') },
+        { label: 'Preferred Region', value: formData.preferredRegion || 'All' },
+        { label: 'Subscribed Regions', value: (formData.subscriptions?.regions || []).join('; ') },
+        { label: 'Subscribed Categories', value: (formData.subscriptions?.categories || []).join('; ') },
+      ];
+
+      const escapeCSV = (val: any) => {
+        let str = String(val === undefined || val === null ? '' : val);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          str = '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+      };
+
+      const headers = fields.map(f => escapeCSV(f.label)).join(',');
+      const rowValues = fields.map(f => escapeCSV(f.value)).join(',');
+      const csvContent = `${headers}\n${rowValues}`;
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const fileName = `${formData.fullName ? formData.fullName.trim().replace(/\s+/g, '_') : 'profile'}_eligibility.csv`;
+
+      const linkElement = document.createElement('a');
+      linkElement.setAttribute('href', url);
+      linkElement.setAttribute('download', fileName);
+      linkElement.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      console.error('[Export Profile] CSV export failed:', err);
+      alert('Failed to export profile to CSV: ' + err.message);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,13 +230,39 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
 
   return (
     <form id="profile-form" onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-5">
-        <div className="p-2 bg-indigo-50 rounded">
-          <User className="w-4 h-4 text-indigo-600" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-4 border-b border-slate-100">
+        <div className="flex items-center gap-2">
+          <div className="p-2 bg-indigo-50 rounded">
+            <User className="w-4 h-4 text-indigo-600" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Eligibility Profile</h2>
+            <p className="text-[10px] text-slate-500 uppercase tracking-tight">Configure location and reservation parameters first to check matching vacancies</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-sm font-bold text-slate-900">Eligibility Profile</h2>
-          <p className="text-[10px] text-slate-500 uppercase tracking-tight">Configure location and reservation parameters first to check matching vacancies</p>
+
+        {/* Export Profile Buttons */}
+        <div className="flex items-center gap-1.5 self-start sm:self-center">
+          <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+            <Download className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+            Export profile:
+          </span>
+          <button
+            type="button"
+            onClick={handleExportJSON}
+            title="Export full profile data to formatted JSON"
+            className="px-2.5 py-1.5 bg-slate-50 hover:bg-indigo-50 hover:border-indigo-200 border border-slate-200 text-slate-700 hover:text-indigo-700 rounded text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+          >
+            JSON
+          </button>
+          <button
+            type="button"
+            onClick={handleExportCSV}
+            title="Export profile data to a structured spreadsheet CSV file"
+            className="px-2.5 py-1.5 bg-slate-50 hover:bg-emerald-50 hover:border-emerald-200 border border-slate-200 text-slate-700 hover:text-emerald-700 rounded text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+          >
+            CSV
+          </button>
         </div>
       </div>
 

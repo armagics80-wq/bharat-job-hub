@@ -126,14 +126,36 @@ function createInMemoryDb() {
 async function getTargetUrl() {
   let rawUrl = '';
   
-  // 1. Try reading from persistent local file in workspace
+  // 1. Prioritize reading from Cloud Firestore database (live settings across all connected devices)
+  try {
+    const settingsDoc = await db.collection('settings').doc('sheets_config').get();
+    if (settingsDoc && settingsDoc.exists) {
+      const s = settingsDoc.data();
+      rawUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+      if (rawUrl) {
+        console.log('[Sheets Config] Loaded live configuration from Cloud Firestore settings doc.');
+        return rawUrl.trim().replace(/^["']|["']$/g, '');
+      }
+    }
+  } catch (err: any) {
+    console.warn('[Sheets Config] Failed to fetch settings from Firestore, trying fallback:', err.message);
+  }
+
+  // 2. Try reading from environment variable settings (configured dynamically in AI Studio settings)
+  rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL || '';
+  if (rawUrl) {
+    console.log('[Sheets Config] Using environment variables from system settings.');
+    return rawUrl.trim().replace(/^["']|["']$/g, '');
+  }
+
+  // 3. Try reading from persistent local file in workspace (as a hard fallback of last resort)
   const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
   if (fs.existsSync(localConfigPath)) {
     try {
       const configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf8'));
       rawUrl = configObj?.SHEETDB_URL || configObj?.GOOGLE_SCRIPT_URL || '';
       if (rawUrl) {
-        console.log('[Sheets Config] Using baked workspace configuration from sheets_config.json');
+        console.log('[Sheets Config] Using baked fallback workspace configuration from sheets_config.json');
         return rawUrl.trim().replace(/^["']|["']$/g, '');
       }
     } catch (fsErr: any) {
@@ -141,22 +163,7 @@ async function getTargetUrl() {
     }
   }
 
-  // 2. Try reading from Cloud Firestore database
-  try {
-    const settingsDoc = await db.collection('settings').doc('sheets_config').get();
-    if (settingsDoc && settingsDoc.exists) {
-      const s = settingsDoc.data();
-      rawUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
-    }
-  } catch (err: any) {
-    console.warn('[Sheets Config] Failed to fetch settings from Firestore, using fallback:', err.message);
-  }
-  
-  // 3. Try reading from environment variable settings
-  if (!rawUrl) {
-    rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL || '';
-  }
-  return rawUrl ? rawUrl.trim().replace(/^["']|["']$/g, '') : '';
+  return '';
 }
 
 // Safely initialize firebase-admin and default to the in-memory fallback until proved live on start
@@ -643,28 +650,33 @@ async function startServer() {
       let sheetdbUrl = '';
       let googleScriptUrl = '';
       
-      // Try to load prefilled configs from local sheets_config.json or Firestore settings
-      const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
-      if (fs.existsSync(localConfigPath)) {
-        try {
-          const configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf8'));
-          sheetdbUrl = configObj?.SHEETDB_URL || '';
-          googleScriptUrl = configObj?.GOOGLE_SCRIPT_URL || '';
-        } catch (fsErr) {
-          console.warn('[Diagnostics] Failed loading prefill url from sheets_config.json file');
+      // Load prefilled configs from Firestore settings, environment variables, or local sheets_config.json
+      try {
+        const settingsDoc = await db.collection('settings').doc('sheets_config').get();
+        if (settingsDoc && settingsDoc.exists) {
+          const s = settingsDoc.data();
+          sheetdbUrl = s?.SHEETDB_URL || '';
+          googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
         }
+      } catch (settingsError: any) {
+        console.warn('Could not read raw configuration from Firestore for response pre-fill:', settingsError.message);
       }
 
       if (!sheetdbUrl && !googleScriptUrl) {
-        try {
-          const settingsDoc = await db.collection('settings').doc('sheets_config').get();
-          if (settingsDoc && settingsDoc.exists) {
-            const s = settingsDoc.data();
-            sheetdbUrl = s?.SHEETDB_URL || '';
-            googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+        sheetdbUrl = process.env.SHEETDB_URL || '';
+        googleScriptUrl = process.env.GOOGLE_SCRIPT_URL || '';
+      }
+
+      if (!sheetdbUrl && !googleScriptUrl) {
+        const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
+        if (fs.existsSync(localConfigPath)) {
+          try {
+            const configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf8'));
+            sheetdbUrl = configObj?.SHEETDB_URL || '';
+            googleScriptUrl = configObj?.GOOGLE_SCRIPT_URL || '';
+          } catch (fsErr) {
+            console.warn('[Diagnostics] Failed loading prefill url from sheets_config.json file');
           }
-        } catch (settingsError: any) {
-          console.warn('Could not read raw configuration for response pre-fill:', settingsError.message);
         }
       }
       
