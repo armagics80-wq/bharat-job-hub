@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { UserProfile, QualificationType } from '../types';
-import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase } from 'lucide-react';
+import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info } from 'lucide-react';
 import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
 
@@ -49,6 +49,11 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
 
   const [qualSearch, setQualSearch] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [syncFeedback, setSyncFeedback] = useState<{
+    status: 'success' | 'warning' | 'simulated' | 'error' | null;
+    message: string;
+    details?: string;
+  }>({ status: null, message: '' });
 
   const filteredQuals = useMemo(() => {
     if (!qualSearch) return QUALIFICATIONS;
@@ -105,18 +110,41 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       }
 
       const resData = await response.json();
-      if (resData.directSheetLinkDetected) {
-        console.warn('[SheetDB Webhook] Direct Google Sheets URL detected. Advised on Apps Script setup.');
+      if (resData.simulated) {
+        setSyncFeedback({
+          status: 'simulated',
+          message: 'Saved in Local Database Only (Simulation Mode)',
+          details: 'We registered you in our system successfully. However, SHEETDB_URL is not yet set in settings, so your details could not sync instantly to a live Google Sheet.'
+        });
+      } else if (resData.directSheetLinkDetected) {
+        setSyncFeedback({
+          status: 'warning',
+          message: 'Saved in Local Database, but Sheets Sync Bypassed',
+          details: 'Note: You registered successfully, but a direct Google Sheet link is configured in Settings. Direct links do not support webhook submissions. Please create a SheetDB.io URL or Google App Script to post.'
+        });
       } else if (resData.sheetSyncError) {
-        console.warn('[SheetDB Webhook] Sheet syncing failed on backend but user was successfully registered locally:', resData.error);
+        setSyncFeedback({
+          status: 'error',
+          message: 'Saved Locally, but failed to sync to Google Sheets',
+          details: `Destination Error: ${resData.error || 'Connection timed out.'} Tip: To use SheetDB, make sure Row 1 of your Google Sheet has column headers (like Name, Phone, State) so columns can be dynamically mapped!`
+        });
       } else {
-        console.log('[SheetDB] Successfully synced registration with Google Sheets.');
+        setSyncFeedback({
+          status: 'success',
+          message: 'Successfully Saved & Synced to Google Sheet!',
+          details: 'Your eligibility details were appended directly to your synced Google Sheet row!'
+        });
       }
       
       // Trigger parent save which invokes local/AI match fetching sequence immediately
       await onSave(formData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ProfileForm] Error saving user to spreadsheet:', err);
+      setSyncFeedback({
+        status: 'error',
+        message: 'Network Error saving profile and syncing',
+        details: err?.message || 'Server connection issue.'
+      });
       // Fallback: still run onSave so that eligibility matching is never blocked
       await onSave(formData);
     } finally {
@@ -656,6 +684,44 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           </div>
         </div>
       </div>
+
+      {syncFeedback.status && (
+        <div id="sync-feedback-card" className={`p-4 rounded-xl border text-xs gap-3 flex items-start mb-4 ${
+          syncFeedback.status === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-850' : 
+          syncFeedback.status === 'warning' ? 'bg-amber-50 border-amber-200 text-amber-900' :
+          syncFeedback.status === 'simulated' ? 'bg-indigo-50 border-indigo-200 text-indigo-900' :
+          'bg-rose-50 border-rose-200 text-rose-900'
+        }`}>
+          {syncFeedback.status === 'success' ? (
+            <Check className="w-4 h-4 shrink-0 text-emerald-600 mt-0.5" />
+          ) : syncFeedback.status === 'warning' ? (
+            <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 mt-0.5" />
+          ) : syncFeedback.status === 'simulated' ? (
+            <Info className="w-4 h-4 shrink-0 text-indigo-600 mt-0.5" />
+          ) : (
+            <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+          )}
+          <div className="space-y-1">
+            <p className="font-extrabold">{syncFeedback.message}</p>
+            <p className="text-[10px] leading-relaxed opacity-90">{syncFeedback.details}</p>
+            {syncFeedback.status === 'simulated' && (
+              <p className="text-[10px] text-indigo-700/80 mt-1">
+                💡 To feed these entries instantly to your Google Sheets tab, please configure your <strong>SHEETDB_URL</strong> or <strong>GOOGLE_SCRIPT_URL</strong> environmental keys inside the settings. You can review all backup logs & manual trigger buttons in the <strong>Sync Status</strong> dashboard tab.
+              </p>
+            )}
+            {syncFeedback.status === 'warning' && (
+              <p className="text-[10px] text-amber-800/80 mt-1">
+                💡 Direct links cannot receive HTTP form data. To fix, please read the step-by-step setup guides inside our <strong>Sync Status</strong> dashboard tab.
+              </p>
+            )}
+            {syncFeedback.status === 'error' && (
+              <p className="text-[10px] text-rose-800/80 mt-1">
+                💡 Double check your SheetDB_URL or script permissions. If you created a new SheetDB API, <strong>make sure you have written headers (e.g. Name, Phone, State) in Row 1 of your Google Sheet first!</strong>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       <button
         disabled={isSubmitting || isLoading}
