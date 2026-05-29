@@ -1,5 +1,6 @@
 import express from 'express';
 import path from 'path';
+import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import cron from 'node-cron';
 import admin from 'firebase-admin';
@@ -124,6 +125,23 @@ function createInMemoryDb() {
 
 async function getTargetUrl() {
   let rawUrl = '';
+  
+  // 1. Try reading from persistent local file in workspace
+  const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
+  if (fs.existsSync(localConfigPath)) {
+    try {
+      const configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf8'));
+      rawUrl = configObj?.SHEETDB_URL || configObj?.GOOGLE_SCRIPT_URL || '';
+      if (rawUrl) {
+        console.log('[Sheets Config] Using baked workspace configuration from sheets_config.json');
+        return rawUrl.trim().replace(/^["']|["']$/g, '');
+      }
+    } catch (fsErr: any) {
+      console.warn('[Sheets Config] Failed to parse local config file sheets_config.json:', fsErr.message);
+    }
+  }
+
+  // 2. Try reading from Cloud Firestore database
   try {
     const settingsDoc = await db.collection('settings').doc('sheets_config').get();
     if (settingsDoc && settingsDoc.exists) {
@@ -134,6 +152,7 @@ async function getTargetUrl() {
     console.warn('[Sheets Config] Failed to fetch settings from Firestore, using fallback:', err.message);
   }
   
+  // 3. Try reading from environment variable settings
   if (!rawUrl) {
     rawUrl = process.env.SHEETDB_URL || process.env.GOOGLE_SCRIPT_URL || '';
   }
@@ -143,6 +162,7 @@ async function getTargetUrl() {
 // Safely initialize firebase-admin and default to the in-memory fallback until proved live on start
 let db: any = createInMemoryDb();
 let isFirestoreAvailable = false;
+let firestoreErrorLog = '';
 
 try {
   if (!admin.apps.length) {
@@ -159,6 +179,7 @@ try {
     console.log('[Firestore] Connected to default database');
   }
 } catch (error: any) {
+  firestoreErrorLog = `Init Error: ${error.message}`;
   console.warn('[Firestore] Standard admin.firestore() initialization failed. Using memory database.', error.message);
   db = createInMemoryDb();
 }
@@ -589,12 +610,24 @@ async function startServer() {
   app.post('/api/save-sheets-config', async (req, res) => {
     try {
       const { SHEETDB_URL, GOOGLE_SCRIPT_URL } = req.body;
+      
+      // 1. Save to online Firestore database settings
       await db.collection('settings').doc('sheets_config').set({
         SHEETDB_URL: (SHEETDB_URL || '').trim(),
         GOOGLE_SCRIPT_URL: (GOOGLE_SCRIPT_URL || '').trim(),
         updatedAt: new Date().toISOString()
       });
       console.log('[Sheets Config] Updated spreadsheet sync URLs in Firestore settings.');
+
+      // 2. Write to persistent workspace file sheets_config.json so it is baked into shared builds
+      const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
+      fs.writeFileSync(localConfigPath, JSON.stringify({
+        SHEETDB_URL: (SHEETDB_URL || '').trim(),
+        GOOGLE_SCRIPT_URL: (GOOGLE_SCRIPT_URL || '').trim(),
+        updatedAt: new Date().toISOString()
+      }, null, 2), 'utf8');
+      console.log('[Sheets Config] Baked configuration settings locally into sheets_config.json.');
+
       res.json({ success: true, message: 'Spreadsheet synchronization settings updated successfully!' });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -608,15 +641,30 @@ async function startServer() {
       
       let sheetdbUrl = '';
       let googleScriptUrl = '';
-      try {
-        const settingsDoc = await db.collection('settings').doc('sheets_config').get();
-        if (settingsDoc && settingsDoc.exists) {
-          const s = settingsDoc.data();
-          sheetdbUrl = s?.SHEETDB_URL || '';
-          googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+      
+      // Try to load prefilled configs from local sheets_config.json or Firestore settings
+      const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
+      if (fs.existsSync(localConfigPath)) {
+        try {
+          const configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf8'));
+          sheetdbUrl = configObj?.SHEETDB_URL || '';
+          googleScriptUrl = configObj?.GOOGLE_SCRIPT_URL || '';
+        } catch (fsErr) {
+          console.warn('[Diagnostics] Failed loading prefill url from sheets_config.json file');
         }
-      } catch (settingsError: any) {
-        console.warn('Could not read raw configuration for response pre-fill:', settingsError.message);
+      }
+
+      if (!sheetdbUrl && !googleScriptUrl) {
+        try {
+          const settingsDoc = await db.collection('settings').doc('sheets_config').get();
+          if (settingsDoc && settingsDoc.exists) {
+            const s = settingsDoc.data();
+            sheetdbUrl = s?.SHEETDB_URL || '';
+            googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+          }
+        } catch (settingsError: any) {
+          console.warn('Could not read raw configuration for response pre-fill:', settingsError.message);
+        }
       }
       
       let urlConfigured = false;
@@ -898,7 +946,9 @@ async function startServer() {
         hasCriticalError,
         criticalErrorMessage,
         actionRemedy,
-        diagnosticLogs
+        diagnosticLogs,
+        isFirestoreAvailable,
+        firestoreErrorLog
       });
     } catch (err: any) {
       return res.status(500).json({ error: err.message });
@@ -1160,6 +1210,7 @@ async function startServer() {
       isFirestoreAvailable = true;
       console.log(`[Firestore] Successfully established live connection to Firestore DB ID: ${dbId || '(default)'}`);
     } catch (dbError: any) {
+      firestoreErrorLog = (firestoreErrorLog ? (firestoreErrorLog + " | ") : "") + `Probe Error: ${dbError.message}`;
       console.warn('[Firestore] Firestore API not accessible or permission denied. Defaulting to local in-memory fallback. Server will continue operating securely.', dbError.message);
       db = createInMemoryDb();
       isFirestoreAvailable = false;

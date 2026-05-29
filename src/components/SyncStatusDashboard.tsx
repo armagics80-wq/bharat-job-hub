@@ -590,7 +590,13 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
             <div className="space-y-1">
               <span className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400 block">Database Backup Logs</span>
               <div className="text-sm font-black text-slate-800">{sheetDiag.totalBackups} visitors</div>
-              <p className="text-[10px] text-slate-500">Saved in backup Firestore</p>
+              <p className="text-[10px] flex items-center gap-1">
+                {sheetDiag.isFirestoreAvailable ? (
+                  <span className="text-emerald-600 font-bold">● Active Cloud Firestore</span>
+                ) : (
+                  <span className="text-amber-600 font-bold">● Cache-Only Mode (Local)</span>
+                )}
+              </p>
             </div>
 
             <div className="space-y-1">
@@ -641,6 +647,24 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
                 )}
               </button>
             </div>
+          </div>
+        )}
+
+        {sheetDiag && !sheetDiag.isFirestoreAvailable && (
+          <div className="bg-amber-50 border border-amber-200/80 rounded-xl p-4 space-y-2.5">
+            <div className="flex items-center gap-2 text-amber-900 font-extrabold text-xs">
+              <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Cloud Database is offline/in-cache (Using Local Workspace Synchronization)</span>
+            </div>
+            
+            <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
+              We detected that live Cloud Firestore database synchronization is currently offline or in cache fallback mode: 
+              <code className="mx-1 px-1 py-0.5 bg-amber-100/60 rounded text-[10px] font-mono text-amber-800">{sheetDiag.firestoreErrorLog || 'Standard API credentials not accepted yet'}</code>.
+            </p>
+            
+            <p className="text-[11px] text-slate-700 leading-relaxed">
+              <strong>✨ Solved!</strong> To make sure your settings are fully persistent and available on guest phones, alternative devices, and other members' links, we have implemented a <strong>Dual-Save workspace engine</strong>. When you hit &ldquo;Save &amp; Enable Sync&rdquo; below, the URLs are baked directly into the active app project files so that every phone, visitor, and member's link routes successfully to your Google Sheet!
+            </p>
           </div>
         )}
 
