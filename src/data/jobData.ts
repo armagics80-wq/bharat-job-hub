@@ -55,6 +55,17 @@ export const STATIC_JOBS: Job[] = [
       'Step 8: After submission, download the application PDF copy and take a printout.',
       'Step 9: You can check your application status later by logging into the same portal under "Application Status" tab.'
     ],
+    lineByLineApplicationSteps: [
+      'Go to the official portal ssc.gov.in and click "Login/Register" on the homepage.',
+      'Fill in basic details (Aadhaar, Name, DOB) to generate your One-Time Registration (OTR) credentials.',
+      'Log in with your OTR Registration Number and Password, then change your default password.',
+      'Click the "Apply" link under Combined Graduate Level Examination, 2026.',
+      'Verify pre-filled matriculation details and choose your 3 preferred Exam Centers.',
+      'Tick your category status (EWS/OBC/SC/ST) and confirm physical limitation or ex-serviceman options.',
+      'Provide your highest educational qualification and standard details of graduation degree.',
+      'Upload a live, clear photograph with a white background and your signature (between 10–20 KB).',
+      'Preview your complete form, pay the application fee of ₹100 online, and click "Submit".'
+    ],
     documentRequired: ['Degree Marksheet', 'Category Certificate', 'Aadhar Card', 'Scanned Photo'],
     status: 'Active',
     sourceType: 'Official Notification',
@@ -101,6 +112,17 @@ export const STATIC_JOBS: Job[] = [
       'Step 7: Provide your choice of examination center and finalize the OTR verification.',
       'Step 8: Submit the application and download the Part-II registration slip for confirmation.',
       'Step 9: Regularly visit the site to check for the admit card and application acceptance status.'
+    ],
+    lineByLineApplicationSteps: [
+      'Open upsconline.nic.in and click "One Time Registration (OTR) for UPSC".',
+      'Enter Aadhaar/ID proof, matriculation roll number, and verify via email/mobile OTP.',
+      'Login to the portal using your OTR ID, password, and active OTP code verification.',
+      'Navigate to "Latest Notification" tab and click "Part-I Registration" for CAPF (AC) 2026.',
+      'Set preference choices for forces (BSF, CRPF, CISF, ITBP, SSB) and claim category relaxations.',
+      'Complete Part-I, note down your CAPF Registration ID, and proceed to Part-II payment.',
+      'Pay individual fee of ₹200 using Netbanking, any Visa/Mastercard/UPI, or SBI pay-in-slip.',
+      'Upload a clean portrait JPG photo and scanned signature matching UPSC dimension specifications.',
+      'Select your desired exam test-center location, read the declaration, and hit "Agree" for Final Submit.'
     ],
     documentRequired: ['Degree Certificate', 'Age Proof', 'Category Certificate'],
     status: 'Active',

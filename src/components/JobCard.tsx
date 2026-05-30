@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Job, UserProfile } from '../types';
-import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark, Eye, Share2 } from 'lucide-react';
+import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark, Eye, Share2, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { getDepartmentById } from '../data/departments';
@@ -168,6 +168,51 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
       return updated;
     });
   };
+
+  // Active application step checklist state tracking
+  const [completedAppSteps, setCompletedAppSteps] = useState<Record<number, boolean>>(() => {
+    try {
+      const stored = localStorage.getItem(`app_steps_${job.id}`);
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const toggleAppStep = (index: number) => {
+    setCompletedAppSteps(prev => {
+      const updated = { ...prev, [index]: !prev[index] };
+      try {
+        localStorage.setItem(`app_steps_${job.id}`, JSON.stringify(updated));
+      } catch (err) {
+        console.error("Localstorage save failed:", err);
+      }
+      return updated;
+    });
+  };
+
+  const resetAppSteps = () => {
+    setCompletedAppSteps({});
+    try {
+      localStorage.removeItem(`app_steps_${job.id}`);
+    } catch (err) {
+      console.error("Localstorage remove failed:", err);
+    }
+  };
+
+  const appSteps = useMemo(() => {
+    return job.lineByLineApplicationSteps || job.howToApplySteps || job.application_steps || [
+      'Step 1: One-Time Registration (OTR) - Navigate to the official portal page and complete your OTR. Key in exact identity proof variables.',
+      `Step 2: Profile Submission - Access active notification "${job.title}", provide school metrics, upload passport photo & structural details.`,
+      'Step 3: Pay Fees online - Submit applications using standard online gateway mechanisms and keep confirmation PDF receipts stored safely.'
+    ];
+  }, [job]);
+
+  const totalAppSteps = appSteps.length;
+  const checkedAppStepsCount = useMemo(() => {
+    return Object.values(completedAppSteps).filter(Boolean).length;
+  }, [completedAppSteps]);
+  const progressPercentage = totalAppSteps > 0 ? Math.round((checkedAppStepsCount / totalAppSteps) * 100) : 0;
 
   const hasExam = useMemo(() => {
     const textToSearch = `${job.title} ${job.selectionProcess} ${job.examPattern || ''} ${job.examDate || ''}`.toLowerCase();
@@ -680,49 +725,105 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
                 </div>
               </div>
 
-              {/* Application instructions area */}
-              <div>
-                <h4 className="text-xs font-black text-[#0a192f] uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b border-indigo-50 pb-1.5">
-                  <ExternalLink className="w-4 h-4 text-indigo-500 shrink-0" />
-                  Line-by-Line Portal Application Guide
-                </h4>
-                <div className="bg-slate-50 border border-slate-150 rounded-2xl p-4 md:p-5 text-slate-700 text-xs space-y-4 text-left" id={`steps-details-${job.id}`}>
-                  <p className="text-[10px] text-indigo-950 font-extrabold flex items-center gap-1 uppercase tracking-tight bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100">
-                    <AlertCircle className="w-4 h-4 text-indigo-650 shrink-0" />
-                    IMPORTANT: Follow these exact application steps line-by-line on the official portal:
-                  </p>
-                  <div className="space-y-4">
-                    {(job.application_steps || job.howToApplySteps || []).length > 0 ? (
-                      (job.application_steps || job.howToApplySteps).map((step, index) => (
-                        <div key={index} className="flex gap-3 items-start border-b border-slate-100 last:border-0 pb-3.5 last:pb-0">
-                          <span className="w-6 h-6 rounded-full bg-slate-900 text-white flex items-center justify-center text-xs font-black shrink-0 mt-0.5">
-                            {index + 1}
-                          </span>
-                          <div className="space-y-1">
-                            <span className="font-extrabold text-[#0a192f] text-xs uppercase tracking-wider block">Line {index + 1}: Portal Action</span>
-                            <p className="font-semibold text-slate-750 leading-relaxed text-xs">{step}</p>
-                            <span className="text-[10px] text-slate-505 block leading-tight border-l-2 border-indigo-300 pl-2 mt-0.5 italic text-indigo-950/80 bg-indigo-50/10 p-1.5 rounded-r">
-                              Verification Check: Double check your inputs against original academic certificates for Line {index + 1} before moving forward.
+              {/* Standardized 'Line-by-Line Application Steps' Walkthrough Tracker Component */}
+              <div className="space-y-4" id={`line-by-line-guide-container-${job.id}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-indigo-50 pb-2.5">
+                  <h4 className="text-xs font-black text-[#0a192f] uppercase tracking-wider flex items-center gap-1.5 leading-none">
+                    <ExternalLink className="w-4 h-4 text-indigo-500 shrink-0" />
+                    Line-by-Line Application Walkthrough
+                  </h4>
+                  
+                  {checkedAppStepsCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={resetAppSteps}
+                      className="text-[10px] font-extrabold uppercase tracking-widest text-[#0a192f] hover:text-indigo-650 transition-colors flex items-center gap-1 bg-indigo-50/55 hover:bg-indigo-100/50 px-2.5 py-1 rounded-lg border border-indigo-150/40"
+                    >
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Reset Progression
+                    </button>
+                  )}
+                </div>
+
+                <div className="bg-slate-50/70 border border-slate-150 rounded-2xl p-4 md:p-5 text-left" id={`steps-details-${job.id}`}>
+                  {/* Progress Header */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4.5 bg-white p-3.5 rounded-xl border border-slate-150/50 shadow-sm">
+                    <div className="w-full sm:w-auto">
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">Application Progress</span>
+                      <span className="text-xs font-extrabold text-[#0a192f]">
+                        {checkedAppStepsCount === totalAppSteps 
+                          ? '🎉 Ready to Apply! All Steps Checked' 
+                          : `${checkedAppStepsCount} of ${totalAppSteps} line steps checked off`}
+                      </span>
+                    </div>
+
+                    {/* Sleek Progress Bar */}
+                    <div className="w-full sm:w-48 flex items-center gap-2.5">
+                      <div className="h-2 bg-slate-100 rounded-full grow overflow-hidden border border-slate-150/40">
+                        <motion.div 
+                          className="h-full bg-gradient-to-r from-indigo-500 to-indigo-650"
+                          initial={{ width: 0 }}
+                          animate={{ width: `${progressPercentage}%` }}
+                          transition={{ duration: 0.3 }}
+                        />
+                      </div>
+                      <span className="font-mono text-[10.5px] font-black text-indigo-600 shrink-0 w-8 text-right">
+                        {progressPercentage}%
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* List of Steps */}
+                  <div className="space-y-3">
+                    {appSteps.map((step, index) => {
+                      const isStepChecked = !!completedAppSteps[index];
+                      return (
+                        <label
+                          key={index}
+                          className={`flex items-start gap-3.5 p-3.5 rounded-xl border transition-all cursor-pointer text-left select-none relative ${
+                            isStepChecked
+                              ? 'bg-slate-50/90 border-slate-200 text-slate-450'
+                              : 'bg-white border-slate-150/70 text-slate-700 hover:border-indigo-200 hover:shadow-2xs'
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isStepChecked}
+                            onChange={() => toggleAppStep(index)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 h-4.5 w-4.5 shrink-0 cursor-pointer"
+                          />
+                          <div className="space-y-1 my-[-2px] flex-1">
+                            <div className="flex items-center justify-between flex-wrap gap-2">
+                              <span className={`font-black text-[10px] uppercase tracking-wider ${
+                                isStepChecked ? 'text-indigo-900/50' : 'text-indigo-900'
+                              }`}>
+                                Line {index + 1}: Portal Step
+                              </span>
+                              <span className={`text-[9px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                                isStepChecked ? 'bg-indigo-100/30 text-indigo-950/60' : 'bg-indigo-50 text-indigo-700'
+                              }`}>
+                                {isStepChecked ? 'Checked' : 'SOP Action Required'}
+                              </span>
+                            </div>
+                            <p className={`text-xs leading-relaxed font-semibold ${
+                              isStepChecked ? 'line-through text-slate-400 font-medium' : 'text-slate-850 font-bold'
+                            }`}>
+                              {step}
+                            </p>
+                            
+                            {/* Specialized Verification Check Tip */}
+                            <span className={`text-[10px] block leading-tight border-l-2 pl-2.5 mt-2 italic font-semibold py-1 rounded-r ${
+                              isStepChecked 
+                                ? 'border-slate-300 text-slate-450 bg-slate-100/10' 
+                                : 'border-indigo-400 text-indigo-950 bg-indigo-50/30'
+                            }`}>
+                              Verify Check: Make sure inputs on line {index + 1} exactly reflect your certificates.
                             </span>
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="space-y-3.5">
-                        <div className="p-3 bg-white rounded-lg border border-slate-150">
-                          <span className="font-black text-indigo-700 block text-[9.5px] uppercase tracking-wider mb-1">Step 1: One-Time Registration (OTR)</span>
-                          Navigate to the official portal page and complete your OTR. Key in exact identity proof variables.
-                        </div>
-                        <div className="p-3 bg-white rounded-lg border border-slate-150">
-                          <span className="font-black text-[#0a192f] block text-[9.5px] uppercase tracking-wider mb-1">Step 2: Profile Submission</span>
-                          Access active notification <code>{job.title}</code>, provide school metrics, upload passport photo & structural details.
-                        </div>
-                        <div className="p-3 bg-white rounded-lg border border-slate-150">
-                          <span className="font-black text-indigo-750 block text-[9.5px] uppercase tracking-wider mb-1">Step 3: Pay Fees online</span>
-                          Submit applications using standard online gateway mechanisms and keep confirmation PDF receipts stored safely.
-                        </div>
-                      </div>
-                    )}
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

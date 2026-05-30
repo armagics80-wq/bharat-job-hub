@@ -62,6 +62,7 @@ export interface Job {
   district?: string;
   howToApplySteps: string[];
   application_steps?: string[];
+  lineByLineApplicationSteps?: string[];
   tags?: string[];
   applicationFee?: string;
   documentRequired: string[];
