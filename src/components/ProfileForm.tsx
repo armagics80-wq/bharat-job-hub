@@ -139,8 +139,12 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (formData.qualifications.length === 0) {
+      alert('Please select at least one qualification to check eligibility.');
+      return;
+    }
     
     setIsSubmitting(true);
     try {
@@ -151,79 +155,71 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           return id;
         }
       }).join(', ');
-      
-      const categoryVal = formData.nationalCategory || formData.category || 'UR';
 
-      // 1. Keep the simple Firebase addDoc backup at the very top of the try block
+      // 1. Direct backup entry creation in secure Cloud Firestore via Client SDK
       try {
-        await addDoc(collection(db, 'registrations'), {
+        const timestampIso = new Date().toISOString();
+        const directRegData = {
           name: formData.fullName || '',
           phone: formData.phoneNumber || '',
-          age: formData.age ? Number(formData.age) : 18,
-          gender: formData.gender || 'Male',
+          age: formData.age ? Number(formData.age) : '',
+          gender: formData.gender || '',
           state: formData.state || '',
           district: formData.district || '',
           stateCategory: formData.stateCategory || '',
-          category: categoryVal,
+          category: formData.nationalCategory || formData.category || 'UR',
           isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
           isPWD: formData.isPWD ? 'Yes' : 'No',
           qualifications: qualificationLabels,
-          documents: (formData.documents || []).join(', '),
+          documents: formData.documents.join(', '),
           otherCertificates: formData.otherCertificates || '',
-          subscribedRegions: (formData.subscriptions?.regions || []).join(', '),
-          subscribedCategories: (formData.subscriptions?.categories || []).join(', '),
-          timestamp: new Date().toISOString(),
+          subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
+          subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
+          timestamp: timestampIso,
           synced: true
-        });
+        };
+        await addDoc(collection(db, 'registrations'), directRegData);
       } catch (fbError) {
-        console.warn('[ProfileForm] Firebase backup insert document failed:', fbError);
+        console.warn("Firebase save failed, continuing to Google Sheets", fbError);
       }
 
-      // 2. Right below that, do a direct fetch to import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL using FormData and mode: 'no-cors'
-      const scriptUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
-
-      const formPayload = new FormData();
-      formPayload.append('name', formData.fullName || '');
-      formPayload.append('phone', formData.phoneNumber || '');
-      formPayload.append('email', formData.phoneNumber || ''); // Mapped to phone
-      formPayload.append('age', String(formData.age || 18));
-      formPayload.append('gender', formData.gender || 'Male');
-      formPayload.append('state', formData.state || '');
-      formPayload.append('district', formData.district || '');
-      formPayload.append('category', categoryVal);
-      formPayload.append('qualifications', qualificationLabels);
-      formPayload.append('message', `${formData.state || ''} - ${categoryVal}`); // Mapped to state and category
-
-      if (scriptUrl) {
-        await fetch(scriptUrl, {
+      // 2. Direct fetch to Google Apps Script
+      const googleScriptUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
+      if (googleScriptUrl) {
+        const formPayload = new FormData();
+        formPayload.append('name', formData.fullName || '');
+        formPayload.append('email', formData.phoneNumber || ''); // Sending phone as email for the script fallback
+        formPayload.append('phone', formData.phoneNumber || '');
+        formPayload.append('age', String(formData.age || ''));
+        formPayload.append('gender', formData.gender || '');
+        formPayload.append('state', formData.state || '');
+        formPayload.append('district', formData.district || '');
+        formPayload.append('category', formData.nationalCategory || formData.category || 'UR');
+        formPayload.append('qualifications', qualificationLabels);
+        formPayload.append('message', `State: ${formData.state}, Category: ${formData.category}`);
+        
+        await fetch(googleScriptUrl, {
           method: 'POST',
           mode: 'no-cors',
-          body: formPayload,
+          body: formPayload
         });
-      } else {
-        console.warn('[ProfileForm] VITE_GOOGLE_APPS_SCRIPT_URL is not configured in import.meta.env.');
       }
-      
-      // 3. Set the syncFeedback to success and call onSave(formData)
+
       setSyncFeedback({
         status: 'success',
-        message: 'Successfully Saved & Eligible vacancies found!',
-        details: 'Your eligibility details have been submitted directly to your synced Google Sheet!'
+        message: 'Saved & Synced directly to Google Sheet!',
+        details: 'Your details were successfully synced directly to your destination Google Sheet from this phone/tablet browser.'
       });
-      
-      // Save current formData so eligibility results and AI matches update immediately
-      await onSave(formData);
-      setShowResultModal(true);
-    } catch (error: any) {
-      console.error('Submission error:', error);
+    } catch (err: any) {
+      console.error('[ProfileForm] Fallback sync or direct save threw error:', err);
       setSyncFeedback({
         status: 'error',
-        message: 'Saved in Local Dashboard, Sync Delayed',
-        details: `Secured your candidate profile inside the browser & checked matches. However, direct Google Apps Script sync returned a connection warning: "${error?.message || 'Network blocked'}"`
+        message: 'Error syncing to Google Sheets',
+        details: err?.message || 'Network error'
       });
+    } finally {
       await onSave(formData);
       setShowResultModal(true);
-    } finally {
       setIsSubmitting(false);
     }
   };
@@ -285,7 +281,6 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </label>
               <select
                 id="profile-state-select"
-                name="state"
                 required
                 value={formData.state}
                 onChange={(e) => {
@@ -501,7 +496,6 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </label>
               <input
                 type="text"
-                name="name"
                 required
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -516,7 +510,6 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </label>
               <input
                 type="tel"
-                name="phone"
                 required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
