@@ -156,73 +156,74 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         }
       }).join(', ');
 
-      // 1. Direct backup entry creation in secure Cloud Firestore via Client SDK
       try {
-        const timestampIso = new Date().toISOString();
-        const directRegData = {
-          name: formData.fullName || '',
-          phone: formData.phoneNumber || '',
-          age: formData.age ? Number(formData.age) : '',
-          gender: formData.gender || '',
-          state: formData.state || '',
-          district: formData.district || '',
-          stateCategory: formData.stateCategory || '',
-          category: formData.nationalCategory || formData.category || 'UR',
-          isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
-          isPWD: formData.isPWD ? 'Yes' : 'No',
-          qualifications: qualificationLabels,
-          documents: formData.documents.join(', '),
-          otherCertificates: formData.otherCertificates || '',
-          subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
-          subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
-          timestamp: timestampIso,
-          synced: true
-        };
-        await addDoc(collection(db, 'registrations'), directRegData);
-      } catch (fbError) {
-        console.warn("Firebase save failed, continuing to Google Sheets", fbError);
-      }
+        // 1. Direct backup entry creation in secure Cloud Firestore via Client SDK
+        try {
+          const timestampIso = new Date().toISOString();
+          const directRegData = {
+            name: formData.fullName || '',
+            phone: formData.phoneNumber || '',
+            age: formData.age ? Number(formData.age) : '',
+            gender: formData.gender || '',
+            state: formData.state || '',
+            district: formData.district || '',
+            stateCategory: formData.stateCategory || '',
+            category: formData.nationalCategory || formData.category || 'UR',
+            isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
+            isPWD: formData.isPWD ? 'Yes' : 'No',
+            qualifications: qualificationLabels,
+            documents: formData.documents.join(', '),
+            otherCertificates: formData.otherCertificates || '',
+            subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
+            subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
+            timestamp: timestampIso,
+            synced: true
+          };
+          await addDoc(collection(db, 'registrations'), directRegData);
+        } catch (fbError) {
+          console.warn("Firebase save failed, continuing to Google Sheets", fbError);
+        }
 
-      // 2. Direct fetch to Google Apps Script
-      const googleScriptUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
-      if (googleScriptUrl) {
-        const formPayload = new FormData();
-        formPayload.append('name', formData.fullName || '');
-        formPayload.append('email', formData.phoneNumber || ''); // Sending phone as email for the script fallback
-        formPayload.append('phone', formData.phoneNumber || '');
-        formPayload.append('age', String(formData.age || ''));
-        formPayload.append('gender', formData.gender || '');
-        formPayload.append('state', formData.state || '');
-        formPayload.append('district', formData.district || '');
-        formPayload.append('category', formData.nationalCategory || formData.category || 'UR');
-        formPayload.append('qualifications', qualificationLabels);
-        formPayload.append('message', `State: ${formData.state}, Category: ${formData.category}`);
-        
-        await fetch(googleScriptUrl, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: formPayload
+        // 2. Direct fetch to Google Apps Script
+        const googleScriptUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+        if (googleScriptUrl) {
+          const formPayload = new FormData();
+          formPayload.append('name', formData.fullName || '');
+          formPayload.append('email', formData.phoneNumber || ''); // Sending phone as email for the script fallback
+          formPayload.append('phone', formData.phoneNumber || '');
+          formPayload.append('age', String(formData.age || ''));
+          formPayload.append('gender', formData.gender || '');
+          formPayload.append('state', formData.state || '');
+          formPayload.append('district', formData.district || '');
+          formPayload.append('category', formData.nationalCategory || formData.category || 'UR');
+          formPayload.append('qualifications', qualificationLabels);
+          formPayload.append('message', `State: ${formData.state}, Category: ${formData.category}`);
+          
+          await fetch(googleScriptUrl, {
+            method: 'POST',
+            mode: 'no-cors',
+            body: formPayload
+          });
+        }
+
+        setSyncFeedback({
+          status: 'success',
+          message: 'Saved & Synced directly to Google Sheet!',
+          details: 'Your details were successfully synced directly to your destination Google Sheet from this phone/tablet browser.'
         });
+      } catch (err: any) {
+        console.error('[ProfileForm] Fallback sync or direct save threw error:', err);
+        setSyncFeedback({
+          status: 'error',
+          message: 'Error syncing to Google Sheets',
+          details: err?.message || 'Network error'
+        });
+      } finally {
+        await onSave(formData);
+        setShowResultModal(true);
+        setIsSubmitting(false);
       }
-
-      setSyncFeedback({
-        status: 'success',
-        message: 'Saved & Synced directly to Google Sheet!',
-        details: 'Your details were successfully synced directly to your destination Google Sheet from this phone/tablet browser.'
-      });
-    } catch (err: any) {
-      console.error('[ProfileForm] Fallback sync or direct save threw error:', err);
-      setSyncFeedback({
-        status: 'error',
-        message: 'Error syncing to Google Sheets',
-        details: err?.message || 'Network error'
-      });
-    } finally {
-      await onSave(formData);
-      setShowResultModal(true);
-      setIsSubmitting(false);
-    }
-  };
+    };
 
   return (
     <form id="profile-form" onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
