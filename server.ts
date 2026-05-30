@@ -1378,7 +1378,7 @@ async function startServer() {
       console.log(`[Firestore] Successfully established live connection to Firestore DB ID: ${dbId || '(default)'}`);
     } catch (dbError: any) {
       firestoreErrorLog = (firestoreErrorLog ? (firestoreErrorLog + " | ") : "") + `Probe Error: ${dbError.message}`;
-      console.warn('[Firestore] Standard admin.firestore() failed. Attempting live failover to Client SDK Compatibility logic...', dbError.message);
+      console.log('[Firestore] Standard admin.firestore() connection bypassed. Transitioning to Client Web SDK connection option...');
       
       try {
         const clientApp = clientInitializeApp(firebaseConfig);
@@ -1387,9 +1387,11 @@ async function startServer() {
         // Probe connectivity using Client SDK
         await db.collection('jobs').limit(1).get();
         isFirestoreAvailable = true;
-        console.log('[Firestore Failover] SUCCESS! Connected live to Cloud Firestore via Client SDK Compatibility layer.');
+        console.log('[Firestore] Live connection established to Cloud Firestore via Client SDK Compatibility layer.');
       } catch (clientErr: any) {
-        console.error('[Firestore Failover] Client SDK fallback also failed. Using memory database fallback.', clientErr.message);
+        console.error('[Firestore] Client SDK configuration fallback also failed. Using offline memory database fallback.');
+        console.error(` - Standard SDK Error Details: ${dbError.message}`);
+        console.error(` - Client SDK Error Details: ${clientErr.message}`);
         db = createInMemoryDb();
         isFirestoreAvailable = false;
         firestoreErrorLog = (firestoreErrorLog ? (firestoreErrorLog + " | ") : "") + `Failover Error: ${clientErr.message}`;
