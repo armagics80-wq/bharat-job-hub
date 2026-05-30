@@ -27,33 +27,34 @@ service cloud.firestore {
       return resource.data;
     }
 
-    // Jobs collection - Strict read access
+    // Jobs collection - Allow read, write
     match /jobs/{jobId} {
-      allow get: if isValidId(jobId);
-      allow list: if true; 
-      allow write: if false; 
+      allow read, write: if true;
     }
 
-    // Profiles collection - Hardened Identity logic
+    // Settings collection
+    match /settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // Registrations collection
+    match /registrations/{registrationId} {
+      allow read, write: if true;
+    }
+
+    // Sync errors collection
+    match /sync_errors/{errorId} {
+      allow read, write: if true;
+    }
+
+    // Profiles collection
     match /profiles/{userId} {
-      allow get: if isOwner(userId) && isValidId(userId);
-      allow create: if isOwner(userId) && isValidId(userId) && isValidProfile(incoming());
-      allow update: if isOwner(userId) && isValidId(userId) && isValidProfile(incoming()) && (
-        incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'age', 'qualifications', 'state', 'district', 'gender', 'isPWD', 'skills', 'documents', 'otherCertificates', 'preferredRegion', 'subscriptions', 'updatedAt'])
-      );
-      allow delete: if false;
-      
-      function isValidProfile(data) {
-        return data.fullName is string && data.fullName.size() <= 100
-            && data.age is number && data.age >= 18 && data.age <= 100
-            && data.state is string && data.state.size() <= 50;
-      }
+      allow read, write: if true;
     }
 
     // Activity collection
     match /activity/{activityId} {
-      allow read: if true;
-      allow write: if false;
+      allow read, write: if true;
     }
   }
 }

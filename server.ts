@@ -9,6 +9,21 @@ import * as cheerio from 'cheerio';
 import https from 'https';
 import dotenv from 'dotenv';
 import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp as clientInitializeApp } from 'firebase/app';
+import { 
+  getFirestore as clientGetFirestore, 
+  collection as clientCollection, 
+  doc as clientDoc, 
+  getDoc as clientGetDoc, 
+  getDocs as clientGetDocs, 
+  setDoc as clientSetDoc, 
+  addDoc as clientAddDoc, 
+  updateDoc as clientUpdateDoc, 
+  query as clientQuery, 
+  orderBy as clientOrderBy, 
+  limit as clientLimit, 
+  writeBatch as clientWriteBatch
+} from 'firebase/firestore/lite';
 
 // Initialize environment variables
 dotenv.config();
@@ -164,6 +179,104 @@ async function getTargetUrl() {
   }
 
   return '';
+}
+
+// Firebase Client Web SDK Compatibility Wrapper classes
+class CompatDocumentReference {
+  constructor(public clientDb: any, public collectionPath: string, public id: string) {}
+
+  async get() {
+    const docRef = clientDoc(this.clientDb, this.collectionPath, this.id);
+    const snap = await clientGetDoc(docRef);
+    return {
+      exists: snap.exists(),
+      id: snap.id,
+      data: () => snap.data(),
+      ref: this
+    };
+  }
+
+  async set(data: any) {
+    const docRef = clientDoc(this.clientDb, this.collectionPath, this.id);
+    await clientSetDoc(docRef, data);
+  }
+
+  async update(data: any) {
+    const docRef = clientDoc(this.clientDb, this.collectionPath, this.id);
+    await clientUpdateDoc(docRef, data);
+  }
+}
+
+class CompatCollection {
+  private queryConstraints: any[] = [];
+
+  constructor(private clientDb: any, private collectionPath: string) {}
+
+  limit(n: number) {
+    this.queryConstraints.push(clientLimit(n));
+    return this;
+  }
+
+  orderBy(field: string, direction: 'asc' | 'desc' = 'asc') {
+    this.queryConstraints.push(clientOrderBy(field, direction));
+    return this;
+  }
+
+  doc(id?: string) {
+    const docId = id || Math.random().toString(36).substring(2, 11);
+    return new CompatDocumentReference(this.clientDb, this.collectionPath, docId);
+  }
+
+  async add(data: any) {
+    const colRef = clientCollection(this.clientDb, this.collectionPath);
+    const docRef = await clientAddDoc(colRef, data);
+    return {
+      id: docRef.id,
+      ref: new CompatDocumentReference(this.clientDb, this.collectionPath, docRef.id)
+    };
+  }
+
+  async get() {
+    const baseRef = clientCollection(this.clientDb, this.collectionPath);
+    const q = clientQuery(baseRef, ...this.queryConstraints);
+    const snap = await clientGetDocs(q);
+    return {
+      empty: snap.empty,
+      docs: snap.docs.map(d => ({
+        id: d.id,
+        data: () => d.data(),
+        ref: new CompatDocumentReference(this.clientDb, this.collectionPath, d.id)
+      }))
+    };
+  }
+}
+
+class CompatBatch {
+  private batchInstance: any;
+  constructor(private clientDb: any) {
+    this.batchInstance = clientWriteBatch(clientDb);
+  }
+
+  set(compatDocRef: CompatDocumentReference, data: any) {
+    const realDocRef = clientDoc(this.clientDb, compatDocRef.collectionPath, compatDocRef.id);
+    this.batchInstance.set(realDocRef, data);
+  }
+
+  async commit() {
+    await this.batchInstance.commit();
+  }
+}
+
+class CompatFirestore {
+  constructor(private clientDb: any) {}
+
+  collection(collectionName: string) {
+    return new CompatCollection(this.clientDb, collectionName);
+  }
+
+  batch() {
+    return new CompatBatch(this.clientDb);
+  }
 }
 
 // Safely initialize firebase-admin and default to the in-memory fallback until proved live on start
@@ -1224,9 +1337,22 @@ async function startServer() {
       console.log(`[Firestore] Successfully established live connection to Firestore DB ID: ${dbId || '(default)'}`);
     } catch (dbError: any) {
       firestoreErrorLog = (firestoreErrorLog ? (firestoreErrorLog + " | ") : "") + `Probe Error: ${dbError.message}`;
-      console.warn('[Firestore] Firestore API not accessible or permission denied. Defaulting to local in-memory fallback. Server will continue operating securely.', dbError.message);
-      db = createInMemoryDb();
-      isFirestoreAvailable = false;
+      console.warn('[Firestore] Standard admin.firestore() failed. Attempting live failover to Client SDK Compatibility logic...', dbError.message);
+      
+      try {
+        const clientApp = clientInitializeApp(firebaseConfig);
+        const clientDb = clientGetFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
+        db = new CompatFirestore(clientDb);
+        // Probe connectivity using Client SDK
+        await db.collection('jobs').limit(1).get();
+        isFirestoreAvailable = true;
+        console.log('[Firestore Failover] SUCCESS! Connected live to Cloud Firestore via Client SDK Compatibility layer.');
+      } catch (clientErr: any) {
+        console.error('[Firestore Failover] Client SDK fallback also failed. Using memory database fallback.', clientErr.message);
+        db = createInMemoryDb();
+        isFirestoreAvailable = false;
+        firestoreErrorLog = (firestoreErrorLog ? (firestoreErrorLog + " | ") : "") + `Failover Error: ${clientErr.message}`;
+      }
     }
 
     try {

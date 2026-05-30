@@ -68,6 +68,18 @@
     "/profiles/{userId}": {
       "schema": "UserProfile",
       "description": "Private user eligibility profiles"
+    },
+    "/settings/{settingId}": {
+      "schema": "object",
+      "description": "Dynamic spreadsheet synchronization variables"
+    },
+    "/registrations/{registrationId}": {
+      "schema": "object",
+      "description": "Registered candidate forms"
+    },
+    "/sync_errors/{errorId}": {
+      "schema": "object",
+      "description": "Error logs printed during sheets sync pipeline"
     }
   }
 }
