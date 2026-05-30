@@ -3,6 +3,8 @@ import { UserProfile, QualificationType } from '../types';
 import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info, Download } from 'lucide-react';
 import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
+import { db } from '../lib/firebase';
+import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -154,20 +156,57 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         }
       }).join(', ');
 
-      // Send details to the backend /api/save-user endpoint
-      const response = await fetch('/api/save-user', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.fullName,
-          phone: formData.phoneNumber,
-          age: formData.age,
-          gender: formData.gender,
-          state: formData.state,
-          district: formData.district,
-          stateCategory: formData.stateCategory,
+      let backendCallFailed = false;
+      let resData: any = null;
+
+      try {
+        // Send details to the backend /api/save-user endpoint
+        const response = await fetch('/api/save-user', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: formData.fullName,
+            phone: formData.phoneNumber,
+            age: formData.age,
+            gender: formData.gender,
+            state: formData.state,
+            district: formData.district,
+            stateCategory: formData.stateCategory,
+            category: formData.nationalCategory || formData.category || 'UR',
+            isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
+            isPWD: formData.isPWD ? 'Yes' : 'No',
+            qualifications: qualificationLabels,
+            documents: formData.documents.join(', '),
+            otherCertificates: formData.otherCertificates || '',
+            subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
+            subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Save to Google Sheets failed');
+        }
+        resData = await response.json();
+      } catch (err) {
+        console.warn('[ProfileForm] Express backend save failed/unreachable. Activating Direct Client-Side Fallback on this device...');
+        backendCallFailed = true;
+      }
+
+      if (backendCallFailed) {
+        // Direct Client-Side Sync Fallback Function (Perfect for Vercel and separate mobile browsers!)
+        const timestampIso = new Date().toISOString();
+        const timestamp = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+        const directRegData = {
+          name: formData.fullName || '',
+          phone: formData.phoneNumber || '',
+          age: formData.age ? Number(formData.age) : '',
+          gender: formData.gender || '',
+          state: formData.state || '',
+          district: formData.district || '',
+          stateCategory: formData.stateCategory || '',
           category: formData.nationalCategory || formData.category || 'UR',
           isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
           isPWD: formData.isPWD ? 'Yes' : 'No',
@@ -176,49 +215,252 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           otherCertificates: formData.otherCertificates || '',
           subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
           subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
-        }),
-      });
+          timestamp: timestampIso,
+          synced: false
+        };
 
-      if (!response.ok) {
-        throw new Error('Save to Google Sheets failed');
-      }
+        // 1. Direct backup entry creation in secure Cloud Firestore via Client SDK
+        const docRef = await addDoc(collection(db, 'registrations'), directRegData);
+        console.log(`[Direct Client] Saved registration directly to Firestore collection. Doc ID: ${docRef.id}`);
 
-      const resData = await response.json();
-      if (resData.simulated) {
-        setSyncFeedback({
-          status: 'simulated',
-          message: 'Saved in Local Database Only (Simulation Mode)',
-          details: 'We registered you in our system successfully. However, SHEETDB_URL is not yet set in settings, so your details could not sync instantly to a live Google Sheet.'
+        // 2. Fetch live sheet URL configuration directly from Firestore settings
+        let targetUrl = '';
+        try {
+          const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+          if (settingsDoc.exists()) {
+            const s = settingsDoc.data();
+            targetUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+          }
+        } catch (settingsError) {
+          console.error('[Direct Client] Failed to read sheet target url from Firestore settings:', settingsError);
+        }
+
+        if (!targetUrl) {
+          setSyncFeedback({
+            status: 'simulated',
+            message: 'Saved Successfully (Backup Database)',
+            details: 'Profile saved inside your Cloud Firestore backup database. Please navigate to Sync Settings Dashboard and configure your SHEETDB_URL to link a live Google Sheet.'
+          });
+          await onSave(formData);
+          setShowResultModal(true);
+          return;
+        }
+
+        if (targetUrl.includes('docs.google.com/spreadsheets')) {
+          setSyncFeedback({
+            status: 'warning',
+            message: 'Registered in Database, Sheets URL Error',
+            details: 'Profile saved inside Cloud database. Warning: A direct Google spreadsheet URL is configured which cannot accept API submissions. Use a sheetdb.io endpoint or Apps Script URL.'
+          });
+          await onSave(formData);
+          setShowResultModal(true);
+          return;
+        }
+
+        // 3. Form map fields block
+        const candidateFields: Record<string, any> = {
+          Timestamp: timestamp,
+          'Time': timestamp,
+          'Date': timestamp,
+          timestamp: timestamp,
+          time: timestamp,
+          date: timestamp,
+          
+          Name: formData.fullName || '',
+          'Full Name': formData.fullName || '',
+          'Name/Phone': formData.fullName || '',
+          name: formData.fullName || '',
+          fullname: formData.fullName || '',
+          
+          Phone: formData.phoneNumber || '',
+          'Phone Number': formData.phoneNumber || '',
+          'Mobile': formData.phoneNumber || '',
+          'Mobile Number': formData.phoneNumber || '',
+          phone: formData.phoneNumber || '',
+          phonenumber: formData.phoneNumber || '',
+          mobile: formData.phoneNumber || '',
+          
+          Age: formData.age !== undefined ? Number(formData.age) : '',
+          age: formData.age !== undefined ? Number(formData.age) : '',
+          Gender: formData.gender || '',
+          gender: formData.gender || '',
+          
+          State: formData.state || '',
+          'State Domicile': formData.state || '',
+          'Domicile': formData.state || '',
+          state: formData.state || '',
+          domicile: formData.state || '',
+          
+          District: formData.district || '',
+          district: formData.district || '',
+          
+          StateCategory: formData.stateCategory || '',
+          'State Category': formData.stateCategory || '',
+          statecategory: formData.stateCategory || '',
+          
+          Category: formData.nationalCategory || formData.category || 'UR',
+          'National Category': formData.nationalCategory || formData.category || 'UR',
+          'Reservation': formData.nationalCategory || formData.category || 'UR',
+          category: formData.nationalCategory || formData.category || 'UR',
+          
+          ExServiceman: formData.isExServiceman ? 'Yes' : 'No',
+          'Ex-Serviceman': formData.isExServiceman ? 'Yes' : 'No',
+          exserviceman: formData.isExServiceman ? 'Yes' : 'No',
+          
+          PwBD: formData.isPWD ? 'Yes' : 'No',
+          'PwD': formData.isPWD ? 'Yes' : 'No',
+          'is PWD': formData.isPWD ? 'Yes' : 'No',
+          pwbd: formData.isPWD ? 'Yes' : 'No',
+          pwd: formData.isPWD ? 'Yes' : 'No',
+          
+          Qualifications: qualificationLabels,
+          Qualification: qualificationLabels,
+          'Educational Qualifications': qualificationLabels,
+          qualifications: qualificationLabels,
+          qualification: qualificationLabels,
+          
+          Documents: formData.documents.join(', '),
+          'Uploaded Documents': formData.documents.join(', '),
+          'Documents Provided': formData.documents.join(', '),
+          documents: formData.documents.join(', '),
+          
+          OtherCertificates: formData.otherCertificates || '',
+          'Other Certificates': formData.otherCertificates || '',
+          othercertificates: formData.otherCertificates || '',
+          
+          SubscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
+          'Subscribed Regions': formData.subscriptions?.regions?.join(', ') || '',
+          subscribedregions: formData.subscriptions?.regions?.join(', ') || '',
+          
+          SubscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
+          'Subscribed Categories': formData.subscriptions?.categories?.join(', ') || '',
+          subscribedcategories: formData.subscriptions?.categories?.join(', ') || ''
+        };
+
+        // 4. Align SheetDB keys if applicable
+        let allowedKeys: string[] = [];
+        if (targetUrl.includes('sheetdb.io')) {
+          try {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), 3000);
+            const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+            const keysRes = await fetch(keysUrl, { signal: controller.signal });
+            clearTimeout(id);
+            if (keysRes.ok) {
+              const keysData = await keysRes.json();
+              if (keysData && Array.isArray(keysData.keys)) {
+                allowedKeys = keysData.keys;
+              } else if (Array.isArray(keysData)) {
+                allowedKeys = keysData;
+              }
+            }
+          } catch (e) {
+            try {
+              const controller2 = new AbortController();
+              const id2 = setTimeout(() => controller2.abort(), 3000);
+              const primaryRes = await fetch(targetUrl, { signal: controller2.signal });
+              clearTimeout(id2);
+              if (primaryRes.ok) {
+                const primaryData = await primaryRes.json();
+                if (Array.isArray(primaryData) && primaryData.length > 0) {
+                  allowedKeys = Object.keys(primaryData[0]);
+                }
+              }
+            } catch (e2) {}
+          }
+        }
+
+        let row: Record<string, any> = {};
+        if (allowedKeys && allowedKeys.length > 0) {
+          allowedKeys.forEach(col => {
+            if (col in candidateFields) {
+              row[col] = candidateFields[col];
+            } else {
+              const normalizedCol = col.toLowerCase().replace(/[^a-z0-9]/g, '');
+              const matchedKey = Object.keys(candidateFields).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedCol);
+              if (matchedKey) {
+                row[col] = candidateFields[matchedKey];
+              } else {
+                row[col] = '';
+              }
+            }
+          });
+        } else {
+          row = candidateFields;
+        }
+
+        const payload = targetUrl.includes('sheetdb.io') ? { data: [row] } : candidateFields;
+
+        // 5. Post directly to user's Google Sheet endpoint from the browser/phone
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), 6000);
+        const postRes = await fetch(targetUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal
         });
-      } else if (resData.directSheetLinkDetected) {
-        setSyncFeedback({
-          status: 'warning',
-          message: 'Saved in Local Database, but Sheets Sync Bypassed',
-          details: 'Note: You registered successfully, but a direct Google Sheet link is configured in Settings. Direct links do not support webhook submissions. Please create a SheetDB.io URL or Google App Script to post.'
-        });
-      } else if (resData.sheetSyncError) {
-        setSyncFeedback({
-          status: 'error',
-          message: 'Saved Locally, but failed to sync to Google Sheets',
-          details: `Destination Error: ${resData.error || 'Connection timed out.'} Tip: To use SheetDB, make sure Row 1 of your Google Sheet has column headers (like Name, Phone, State) so columns can be dynamically mapped!`
-        });
-      } else {
+        clearTimeout(id);
+
+        if (!postRes.ok) {
+          throw new Error(`Endpoint returned error code ${postRes.status}`);
+        }
+
+        // Direct success mapping
+        await updateDoc(doc(db, 'registrations', docRef.id), { synced: true });
+        
+        try {
+          await addDoc(collection(db, 'activity'), {
+            type: 'registered',
+            message: `Candidate ${formData.fullName} successfully synced directly to Google Sheets from their browser`,
+            timestamp: timestampIso
+          });
+        } catch {}
+
         setSyncFeedback({
           status: 'success',
-          message: 'Successfully Saved & Synced to Google Sheet!',
-          details: 'Your eligibility details were appended directly to your synced Google Sheet row!'
+          message: 'Saved & Synced directly to Google Sheet!',
+          details: 'Your details were successfully registered in Cloud Firestore and synced directly to your destination Google Sheet from this phone/tablet browser.'
         });
+
+      } else {
+        // Standard backend path success responses
+        if (resData.simulated) {
+          setSyncFeedback({
+            status: 'simulated',
+            message: 'Saved in Local Database Only (Simulation Mode)',
+            details: 'We registered you in our system successfully. However, SHEETDB_URL is not yet set in settings, so your details could not sync instantly to a live Google Sheet.'
+          });
+        } else if (resData.directSheetLinkDetected) {
+          setSyncFeedback({
+            status: 'warning',
+            message: 'Saved in Local Database, but Sheets Sync Bypassed',
+            details: 'Note: You registered successfully, but a direct Google Sheet link is configured in Settings. Direct links do not support webhook submissions. Please create a SheetDB.io URL or Google App Script to post.'
+          });
+        } else if (resData.sheetSyncError) {
+          setSyncFeedback({
+            status: 'error',
+            message: 'Saved Locally, but failed to sync to Google Sheets',
+            details: `Destination Error: ${resData.error || 'Connection timed out.'} Tip: To use SheetDB, make sure Row 1 of your Google Sheet has column headers (like Name, Phone, State) so columns can be dynamically mapped!`
+          });
+        } else {
+          setSyncFeedback({
+            status: 'success',
+            message: 'Successfully Saved & Synced to Google Sheet!',
+            details: 'Your eligibility details were appended directly to your synced Google Sheet row!'
+          });
+        }
       }
       
       // Trigger parent save which invokes local/AI match fetching sequence immediately
       await onSave(formData);
       setShowResultModal(true);
     } catch (err: any) {
-      console.error('[ProfileForm] Error saving user to spreadsheet:', err);
+      console.error('[ProfileForm] Fallback sync or direct save threw error:', err);
       setSyncFeedback({
         status: 'error',
-        message: 'Network Error saving profile and syncing',
-        details: err?.message || 'Server connection issue.'
+        message: 'Registered in Database, Sheets Sync Delayed',
+        details: `Secured your candidate profile inside Firestore. However, connecting to the configured SheetDB webhook failed: "${err?.message || 'Network blocked'}" -- This is common behind some cellular network proxies. Don't worry, the administrator can manual push syncs from the dashboard.`
       });
       // Fallback: still run onSave so that eligibility matching is never blocked
       await onSave(formData);

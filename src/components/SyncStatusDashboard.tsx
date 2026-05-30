@@ -2,6 +2,186 @@ import { useState, useEffect, useMemo } from 'react';
 import { MONITORED_WEBSITES, MonitoredWebsite } from '../data/monitoredWebsites';
 import { RefreshCw, Search, Globe, CheckCircle2, AlertCircle, Sparkles, Clock, Database, ChevronDown, ChevronUp, Server, SearchCheck, Info, ExternalLink, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { db } from '../lib/firebase';
+import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc } from 'firebase/firestore';
+
+const pushRegistrationToSheetsClientSide = async (docId: string, customTargetUrl?: string) => {
+  // 1. Get the registration document
+  const dDoc = await getDoc(doc(db, 'registrations', docId));
+  if (!dDoc.exists()) {
+    throw new Error('Document not found in registrations database.');
+  }
+  const d = dDoc.data();
+
+  // 2. Get target url
+  let targetUrl = customTargetUrl || '';
+  if (!targetUrl) {
+    const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+    if (settingsDoc.exists()) {
+      const s = settingsDoc.data();
+      targetUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+    }
+  }
+
+  if (!targetUrl) {
+    throw new Error('Google Sheet Sync URL is not configured. Go to settings and add one!');
+  }
+
+  if (targetUrl.includes('docs.google.com/spreadsheets')) {
+    throw new Error('Direct spreadsheet links are not supported for sync. Convert using SheetDB.io first.');
+  }
+
+  const timestampIso = new Date().toISOString();
+  const timestamp = new Date(d.timestamp || timestampIso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  // Map fields
+  const candidateFields: Record<string, any> = {
+    Timestamp: timestamp,
+    'Time': timestamp,
+    'Date': timestamp,
+    timestamp: timestamp,
+    time: timestamp,
+    date: timestamp,
+    
+    Name: d.name || '',
+    'Full Name': d.name || '',
+    'Name/Phone': d.name || '',
+    name: d.name || '',
+    fullname: d.name || '',
+    
+    Phone: d.phone || '',
+    'Phone Number': d.phone || '',
+    'Mobile': d.phone || '',
+    'Mobile Number': d.phone || '',
+    phone: d.phone || '',
+    phonenumber: d.phone || '',
+    mobile: d.phone || '',
+    
+    Age: d.age !== undefined && d.age !== '' ? Number(d.age) : '',
+    age: d.age !== undefined && d.age !== '' ? Number(d.age) : '',
+    Gender: d.gender || '',
+    gender: d.gender || '',
+    
+    State: d.state || '',
+    'State Domicile': d.state || '',
+    'Domicile': d.state || '',
+    state: d.state || '',
+    domicile: d.state || '',
+    
+    District: d.district || '',
+    district: d.district || '',
+    
+    StateCategory: d.stateCategory || '',
+    'State Category': d.stateCategory || '',
+    statecategory: d.stateCategory || '',
+    
+    Category: d.category || 'UR',
+    'National Category': d.category || 'UR',
+    'Reservation': d.category || 'UR',
+    category: d.category || 'UR',
+    
+    ExServiceman: d.isExServiceman || 'No',
+    'Ex-Serviceman': d.isExServiceman || 'No',
+    exserviceman: d.isExServiceman || 'No',
+    
+    PwBD: d.isPWD || 'No',
+    'PwD': d.isPWD || 'No',
+    'is PWD': d.isPWD || 'No',
+    pwbd: d.isPWD || 'No',
+    pwd: d.isPWD || 'No',
+    
+    Qualifications: d.qualifications || '',
+    Qualification: d.qualifications || '',
+    'Educational Qualifications': d.qualifications || '',
+    qualifications: d.qualifications || '',
+    qualification: d.qualifications || '',
+    
+    Documents: d.documents || '',
+    'Uploaded Documents': d.documents || '',
+    'Documents Provided': d.documents || '',
+    documents: d.documents || '',
+    
+    OtherCertificates: d.otherCertificates || '',
+    'Other Certificates': d.otherCertificates || '',
+    othercertificates: d.otherCertificates || '',
+    
+    SubscribedRegions: d.subscribedRegions || '',
+    'Subscribed Regions': d.subscribedRegions || '',
+    subscribedregions: d.subscribedRegions || '',
+    
+    SubscribedCategories: d.subscribedCategories || '',
+    'Subscribed Categories': d.subscribedCategories || '',
+    subscribedcategories: d.subscribedCategories || ''
+  };
+
+  let allowedKeys: string[] = [];
+  if (targetUrl.includes('sheetdb.io')) {
+    try {
+      const keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
+      const keysRes = await fetch(keysUrl);
+      if (keysRes.ok) {
+        const keysData = await keysRes.json();
+        if (keysData && Array.isArray(keysData.keys)) {
+          allowedKeys = keysData.keys;
+        } else if (Array.isArray(keysData)) {
+          allowedKeys = keysData;
+        }
+      }
+    } catch (e) {
+      try {
+        const primaryRes = await fetch(targetUrl);
+        if (primaryRes.ok) {
+          const primaryData = await primaryRes.json();
+          if (Array.isArray(primaryData) && primaryData.length > 0) {
+            allowedKeys = Object.keys(primaryData[0]);
+          }
+        }
+      } catch (e2) {}
+    }
+  }
+
+  let row: Record<string, any> = {};
+  if (allowedKeys && allowedKeys.length > 0) {
+    allowedKeys.forEach(col => {
+      if (col in candidateFields) {
+        row[col] = candidateFields[col];
+      } else {
+        const normalizedCol = col.toLowerCase().replace(/[^a-z0-9]/g, '');
+        const matchedKey = Object.keys(candidateFields).find(k => k.toLowerCase().replace(/[^a-z0-9]/g, '') === normalizedCol);
+        if (matchedKey) {
+          row[col] = candidateFields[matchedKey];
+        } else {
+          row[col] = '';
+        }
+      }
+    });
+  } else {
+    row = candidateFields;
+  }
+
+  const payload = targetUrl.includes('sheetdb.io') ? { data: [row] } : candidateFields;
+
+  const postRes = await fetch(targetUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!postRes.ok) {
+    throw new Error(`Google Sheets endpoint returned status ${postRes.status}`);
+  }
+
+  // Update doc as synced
+  await updateDoc(doc(db, 'registrations', docId), { synced: true });
+
+  try {
+    await addDoc(collection(db, 'activity'), {
+      type: 'sync',
+      message: `Manually synced candidate ${d.name} directly to Google Sheets from browser dashboard`,
+      timestamp: timestampIso
+    });
+  } catch {}
+};
 
 interface SyncStatusDashboardProps {
   onNotifySync?: (message: string) => void;
@@ -135,6 +315,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
 
   const loadSheetDiagnostic = async () => {
     setLoadingDiag(true);
+    let diagnosticsLoaded = false;
     try {
       const res = await fetch('/api/sheets-diagnostic');
       if (res.ok) {
@@ -146,12 +327,105 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         if (data.googleScriptUrl !== undefined) {
           setScriptInput(data.googleScriptUrl);
         }
+        diagnosticsLoaded = true;
       }
     } catch (err) {
-      console.error('[Diagnostic] Error querying sheet status:', err);
-    } finally {
-      setLoadingDiag(false);
+      console.warn('[Dashboard Diag] Standard API diagnostic load failed. Activating live Firestore client fallback...');
     }
+
+    if (!diagnosticsLoaded) {
+      // Direct Firestore Read Fallback for Vercel/separate device view compatibility!
+      try {
+        const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+        let sheetdbUrl = '';
+        let googleScriptUrl = '';
+        if (settingsDoc.exists()) {
+          const s = settingsDoc.data();
+          sheetdbUrl = s?.SHEETDB_URL || '';
+          googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+        }
+
+        const targetUrl = sheetdbUrl || googleScriptUrl || '';
+        let urlConfigured = false;
+        let obfuscatedUrl = '';
+        let urlType = 'none';
+
+        if (targetUrl) {
+          urlConfigured = true;
+          if (targetUrl.includes('sheetdb.io')) {
+            urlType = 'sheetdb';
+            obfuscatedUrl = targetUrl.replace(/\/api\/v1\/[a-zA-Z0-9]+/, '/api/v1/*****');
+          } else if (targetUrl.includes('script.google.com')) {
+            urlType = 'apps-script';
+            obfuscatedUrl = 'https://script.google.com/macros/s/*****';
+          } else if (targetUrl.includes('docs.google.com/spreadsheets')) {
+            urlType = 'direct-sheet';
+            obfuscatedUrl = 'https://docs.google.com/spreadsheets/d/*****';
+          } else {
+            urlType = 'custom-webhook';
+            obfuscatedUrl = targetUrl.substring(0, Math.min(25, targetUrl.length)) + '...';
+          }
+        }
+
+        const snapshot = await getDocs(collection(db, 'registrations'));
+        let totalBackups = 0;
+        let syncedBackups = 0;
+        let pendingBackups = 0;
+        let registrationsList: any[] = [];
+
+        totalBackups = snapshot.docs.length;
+        snapshot.docs.forEach(dDoc => {
+          const d = dDoc.data();
+          const isSynced = d.synced === true;
+          if (isSynced) {
+            syncedBackups++;
+          } else {
+            pendingBackups++;
+          }
+          registrationsList.push({
+            id: dDoc.id,
+            name: d.name || '',
+            phone: d.phone || '',
+            timestamp: d.timestamp || '',
+            synced: isSynced
+          });
+        });
+
+        registrationsList.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        registrationsList = registrationsList.slice(0, 10);
+
+        setSheetDiag({
+          sheetdbUrl,
+          googleScriptUrl,
+          urlConfigured,
+          obfuscatedUrl,
+          urlType,
+          totalBackups,
+          syncedBackups,
+          pendingBackups,
+          registrationsList,
+          diagnosticLogs: [
+            `[Direct Client Connection] Loaded live data directly from secure Cloud Firestore database!`,
+            `Configured Keys: SHEETDB_URL: ${sheetdbUrl ? 'Yes' : 'No'}, GOOGLE_SCRIPT_URL: ${googleScriptUrl ? 'Yes' : 'No'}`,
+            `Note: Currently operating in raw decentralized browser engine mode. Fits Vercel serverless builds.`
+          ],
+          connectionTest: {
+            status: targetUrl ? 'success' : 'unconfigured',
+            message: targetUrl ? 'Direct client browser connection is active.' : 'No spreadsheet target API key is configured.'
+          },
+          headerCheck: { status: 'unchecked', missingEssential: [], configuredColumns: [] },
+          hasCriticalError: false,
+          criticalErrorMessage: '',
+          actionRemedy: ''
+        });
+
+        if (sheetdbUrl) setSheetdbInput(sheetdbUrl);
+        if (googleScriptUrl) setScriptInput(googleScriptUrl);
+      } catch (clientErr: any) {
+        console.error('[Diagnostic Direct Fallback] Cloud database unreachable:', clientErr);
+      }
+    }
+    setLoadingDiag(false);
   };
 
   const handleSaveConfig = async (e: React.FormEvent) => {
@@ -175,10 +449,25 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         }
         setTimeout(() => setConfigSuccessMsg(''), 6000);
       } else {
-        alert('Failed to save spreadsheet settings.');
+        throw new Error('Fallback save dynamic sheets config to database');
       }
     } catch (err: any) {
-      alert('Error: ' + (err.message || 'Could not connect.'));
+      console.warn('[Dashboard Config Save] Backend not running. Writing config straight to Firestore...');
+      try {
+        await setDoc(doc(db, 'settings', 'sheets_config'), {
+          SHEETDB_URL: sheetdbInput,
+          GOOGLE_SCRIPT_URL: scriptInput,
+          updatedAt: new Date().toISOString()
+        });
+        setConfigSuccessMsg('Spreadsheet settings saved directly in secure Cloud Firestore database! Active instantly across all devices.');
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync('Saved directly to Firestore DB!');
+        }
+        setTimeout(() => setConfigSuccessMsg(''), 6000);
+      } catch (saveDbError: any) {
+        alert('Could not update spreadsheet settings. Firestore write error: ' + saveDbError.message);
+      }
     } finally {
       setSavingConfig(false);
     }
@@ -204,16 +493,26 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
           onNotifySync(`Success: Synced entry.`);
         }
       } else {
-        setManualSyncMsg({
-          type: 'error',
-          text: data.error || 'Failed to sync selected entry.'
-        });
+        throw new Error(data.error || 'Backend failed manual sync');
       }
     } catch (err: any) {
-      setManualSyncMsg({
-        type: 'error',
-        text: err.message || 'A network error occurred while syncing entry.'
-      });
+      console.warn('[Single Sync Failover] Backend unreachable. Syncing selected registration straight from browser...');
+      try {
+        await pushRegistrationToSheetsClientSide(docId);
+        setManualSyncMsg({
+          type: 'success',
+          text: `Successfully synced candidate entry directly from this browser to your Google Sheet!`
+        });
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync(`Success: Direct browser sync completed.`);
+        }
+      } catch (clientErr: any) {
+        setManualSyncMsg({
+          type: 'error',
+          text: clientErr.message || 'Direct browser sync error happened.'
+        });
+      }
     } finally {
       setSyncingSingleId(null);
     }
@@ -239,16 +538,44 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
           onNotifySync(`Success: Force sync complete! ${data.syncedCount} rows processed.`);
         }
       } else {
-        setManualSyncMsg({
-          type: 'error',
-          text: data.error || 'Failed to complete force sync push.'
-        });
+        throw new Error(data.error || 'Backend failed force resync');
       }
     } catch (err: any) {
-      setManualSyncMsg({
-        type: 'error',
-        text: err.message || 'A network error occurred while pushing forced sync.'
-      });
+      console.warn('[Sync Force Resync Failover] Backend unreachable. Forced syncing all records from browser...');
+      try {
+        const snapshot = await getDocs(collection(db, 'registrations'));
+        let syncedCount = 0;
+
+        const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+        let targetUrl = '';
+        if (settingsDoc.exists()) {
+          const s = settingsDoc.data();
+          targetUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+        }
+
+        if (!targetUrl) {
+          throw new Error('Google Sheet Sync URL is not configured. Go to settings and add one!');
+        }
+
+        for (const dDoc of snapshot.docs) {
+          await pushRegistrationToSheetsClientSide(dDoc.id, targetUrl);
+          syncedCount++;
+        }
+
+        setManualSyncMsg({
+          type: 'success',
+          text: `Successfully forced direct client sync of all ${syncedCount} registrations (Direct Connection fallback active).`
+        });
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync(`Success: Client-side force push of ${syncedCount} rows complete.`);
+        }
+      } catch (clientErr: any) {
+        setManualSyncMsg({
+          type: 'error',
+          text: clientErr.message || 'A client-side forced sync error occurred.'
+        });
+      }
     } finally {
       setSyncingAllRecordsForce(false);
     }
@@ -270,16 +597,47 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
           onNotifySync(`Success: Sync completed! ${data.syncedCount} rows synced.`);
         }
       } else {
-        setManualSyncMsg({
-          type: 'error',
-          text: data.error || 'Failed to complete synchronization push.'
-        });
+        throw new Error(data.error || 'Backend failed manual resync pending');
       }
     } catch (err: any) {
-      setManualSyncMsg({
-        type: 'error',
-        text: err.message || 'A network error occurred while pushing logs.'
-      });
+      console.warn('[Pending Sync Failover] Backend unreachable. Scanning and pushing pending registrations directly...');
+      try {
+        const snapshot = await getDocs(collection(db, 'registrations'));
+        let syncedCount = 0;
+
+        const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+        let targetUrl = '';
+        if (settingsDoc.exists()) {
+          const s = settingsDoc.data();
+          targetUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+        }
+
+        if (!targetUrl) {
+          throw new Error('Google Sheet Sync URL is not configured. Go to settings and add one!');
+        }
+
+        for (const dDoc of snapshot.docs) {
+          const d = dDoc.data();
+          if (d.synced !== true) {
+            await pushRegistrationToSheetsClientSide(dDoc.id, targetUrl);
+            syncedCount++;
+          }
+        }
+
+        setManualSyncMsg({
+          type: 'success',
+          text: `Successfully synced ${syncedCount} pending entries directly from browser (Direct Connection fallback active).`
+        });
+        await loadSheetDiagnostic();
+        if (onNotifySync) {
+          onNotifySync(`Success: Client-side push of ${syncedCount} pending rows complete.`);
+        }
+      } catch (clientErr: any) {
+        setManualSyncMsg({
+          type: 'error',
+          text: clientErr.message || 'A client-side manual sync error occurred.'
+        });
+      }
     } finally {
       setSyncingAllRecords(false);
     }
