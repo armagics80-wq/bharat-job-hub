@@ -144,22 +144,6 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
     
     setIsSubmitting(true);
     try {
-      const form = e.currentTarget;
-      const scriptUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
-      
-      const formPayload = new FormData(form);
-      // Set all the custom expected keys inside the FormData payload for Google Sheets mapping
-      formPayload.set('name', formData.fullName || '');
-      formPayload.set('phone', formData.phoneNumber || '');
-      formPayload.set('age', String(formData.age || 18));
-      formPayload.set('gender', formData.gender || 'Male');
-      formPayload.set('state', formData.state || '');
-      formPayload.set('district', formData.district || '');
-      formPayload.set('stateCategory', formData.stateCategory || '');
-      formPayload.set('category', formData.nationalCategory || formData.category || 'UR');
-      formPayload.set('isExServiceman', formData.isExServiceman ? 'Yes' : 'No');
-      formPayload.set('isPWD', formData.isPWD ? 'Yes' : 'No');
-      
       const qualificationLabels = formData.qualifications.map(id => {
         try {
           return getQualificationById(id)?.label || id;
@@ -167,11 +151,48 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           return id;
         }
       }).join(', ');
-      formPayload.set('qualifications', qualificationLabels);
-      formPayload.set('documents', (formData.documents || []).join(', '));
-      formPayload.set('otherCertificates', formData.otherCertificates || '');
-      formPayload.set('subscribedRegions', (formData.subscriptions?.regions || []).join(', '));
-      formPayload.set('subscribedCategories', (formData.subscriptions?.categories || []).join(', '));
+      
+      const categoryVal = formData.nationalCategory || formData.category || 'UR';
+
+      // 1. Keep the simple Firebase addDoc backup at the very top of the try block
+      try {
+        await addDoc(collection(db, 'registrations'), {
+          name: formData.fullName || '',
+          phone: formData.phoneNumber || '',
+          age: formData.age ? Number(formData.age) : 18,
+          gender: formData.gender || 'Male',
+          state: formData.state || '',
+          district: formData.district || '',
+          stateCategory: formData.stateCategory || '',
+          category: categoryVal,
+          isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
+          isPWD: formData.isPWD ? 'Yes' : 'No',
+          qualifications: qualificationLabels,
+          documents: (formData.documents || []).join(', '),
+          otherCertificates: formData.otherCertificates || '',
+          subscribedRegions: (formData.subscriptions?.regions || []).join(', '),
+          subscribedCategories: (formData.subscriptions?.categories || []).join(', '),
+          timestamp: new Date().toISOString(),
+          synced: true
+        });
+      } catch (fbError) {
+        console.warn('[ProfileForm] Firebase backup insert document failed:', fbError);
+      }
+
+      // 2. Right below that, do a direct fetch to import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL using FormData and mode: 'no-cors'
+      const scriptUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
+
+      const formPayload = new FormData();
+      formPayload.append('name', formData.fullName || '');
+      formPayload.append('phone', formData.phoneNumber || '');
+      formPayload.append('email', formData.phoneNumber || ''); // Mapped to phone
+      formPayload.append('age', String(formData.age || 18));
+      formPayload.append('gender', formData.gender || 'Male');
+      formPayload.append('state', formData.state || '');
+      formPayload.append('district', formData.district || '');
+      formPayload.append('category', categoryVal);
+      formPayload.append('qualifications', qualificationLabels);
+      formPayload.append('message', `${formData.state || ''} - ${categoryVal}`); // Mapped to state and category
 
       if (scriptUrl) {
         await fetch(scriptUrl, {
@@ -183,6 +204,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
         console.warn('[ProfileForm] VITE_GOOGLE_APPS_SCRIPT_URL is not configured in import.meta.env.');
       }
       
+      // 3. Set the syncFeedback to success and call onSave(formData)
       setSyncFeedback({
         status: 'success',
         message: 'Successfully Saved & Eligible vacancies found!',
