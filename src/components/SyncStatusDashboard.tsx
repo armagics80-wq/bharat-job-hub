@@ -996,7 +996,33 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
                 <span className="text-xs font-bold text-slate-700">Google Apps Script Web App (Free, Unlimited)</span>
               </div>
               <div className="p-4 space-y-3 text-xs text-slate-655 leading-relaxed">
-                <p>Paste the dynamic payload routing script in your Google Sheet spreadsheet: Select <strong>Extensions &gt; Apps Script</strong> block, remove standard code, paste script below and click <strong>Deploy as Web App</strong> (Execute as: Me, Who has Access: Anyone). Paste script URL into Settings as <code>GOOGLE_SCRIPT_URL</code>.</p>
+                <p>Paste the dynamic payload routing script in your Google Sheet spreadsheet: Select <strong>Extensions &gt; Apps Script</strong> block, remove standard code, paste script below and click <strong>Deploy as Web App</strong>.</p>
+                
+                {/* Apps Script Essential Setup Warning Box */}
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-950 space-y-2">
+                  <div className="flex items-center gap-1.5 font-black text-amber-900 text-xs">
+                    <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 animate-pulse" />
+                    EXPLANATION: Why form submissions from another phone/tablet might not reach Google Sheets!
+                  </div>
+                  <p className="text-[11px] leading-relaxed">
+                    If registrations only arrive in Google Sheets when submitted from your development preview, but do not show up when typed from another phone or tablet, your Google Deployment has restrictions:
+                  </p>
+                  <ul className="list-disc pl-4 space-y-1 text-[11px] leading-relaxed text-amber-900">
+                    <li>
+                      <strong>Check Your Code URL Type (Most Common):</strong> Check the URL you posted into Settings. It MUST end in <code className="bg-amber-100 px-1 font-bold font-mono">/exec</code>. If your link ends in <code className="bg-amber-100 px-1 font-bold font-mono">/dev</code>, Google will <strong>completely block</strong> anonymous requests from other phones, tablets, or our backend server!
+                    </li>
+                    <li>
+                      <strong>"Who has access" setting:</strong> In the Apps Script deployment screen, this MUST be set to <strong>"Anyone"</strong> (NOT "Only myself" or "Anyone within organization").
+                    </li>
+                    <li>
+                      <strong>"Execute as" setting:</strong> This MUST be set to <strong>"Me" (your-email@gmail.com)</strong>. Do not use "User accessing the web app".
+                    </li>
+                    <li>
+                      <strong>Apply Changes to Deployment:</strong> When you change security rules in your script, you must deploy a <code className="font-bold">New Version</code> (Click <em>Deploy &gt; Manage Deployments &gt; Edit (pencil icon) &gt; Version: New Version</em>, and then hit <em>Deploy</em>) to activate those changes. Simply saving the code file is not enough.
+                    </li>
+                  </ul>
+                </div>
+
                 <div className="bg-slate-900 border border-slate-950 p-3 rounded font-mono text-[9px] text-indigo-200 overflow-x-auto max-h-[140px] select-all">
 {`function doPost(e) {
   try {
