@@ -139,91 +139,55 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (formData.qualifications.length === 0) {
-      alert('Please select at least one qualification to check eligibility.');
-      return;
-    }
     
     setIsSubmitting(true);
     try {
-      const qualificationLabels = formData.qualifications.map(id => {
-        try {
-          return getQualificationById(id)?.label || id;
-        } catch {
-          return id;
+      const form = e.currentTarget;
+      const scriptUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
+      
+      await fetch(scriptUrl, {
+        method: 'POST',
+        mode: 'no-cors',
+        body: new FormData(form),
+      });
+      
+      alert('Form submitted successfully!');
+      
+      const defaultData: UserProfile = {
+        fullName: '',
+        phoneNumber: '',
+        age: 18,
+        category: 'UR',
+        nationalCategory: 'UR',
+        stateCategory: 'STATE_GEN',
+        isExServiceman: false,
+        qualifications: [],
+        state: '',
+        district: '',
+        gender: 'Male',
+        isPWD: false,
+        skills: [],
+        documents: [],
+        otherCertificates: '',
+        preferredRegion: 'All',
+        subscriptions: {
+          regions: [],
+          categories: []
         }
-      }).join(', ');
-
-      try {
-        // 1. Direct backup entry creation in secure Cloud Firestore via Client SDK
-        try {
-          const timestampIso = new Date().toISOString();
-          const directRegData = {
-            name: formData.fullName || '',
-            phone: formData.phoneNumber || '',
-            age: formData.age ? Number(formData.age) : '',
-            gender: formData.gender || '',
-            state: formData.state || '',
-            district: formData.district || '',
-            stateCategory: formData.stateCategory || '',
-            category: formData.nationalCategory || formData.category || 'UR',
-            isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
-            isPWD: formData.isPWD ? 'Yes' : 'No',
-            qualifications: qualificationLabels,
-            documents: formData.documents.join(', '),
-            otherCertificates: formData.otherCertificates || '',
-            subscribedRegions: formData.subscriptions?.regions?.join(', ') || '',
-            subscribedCategories: formData.subscriptions?.categories?.join(', ') || '',
-            timestamp: timestampIso,
-            synced: true
-          };
-          await addDoc(collection(db, 'registrations'), directRegData);
-        } catch (fbError) {
-          console.warn("Firebase save failed, continuing to Google Sheets", fbError);
-        }
-
-        // 2. Direct fetch to Google Apps Script
-        const googleScriptUrl = import.meta.env.VITE_GOOGLE_APPS_SCRIPT_URL;
-        if (googleScriptUrl) {
-          const formPayload = new FormData();
-          formPayload.append('name', formData.fullName || '');
-          formPayload.append('email', formData.phoneNumber || ''); // Sending phone as email for the script fallback
-          formPayload.append('phone', formData.phoneNumber || '');
-          formPayload.append('age', String(formData.age || ''));
-          formPayload.append('gender', formData.gender || '');
-          formPayload.append('state', formData.state || '');
-          formPayload.append('district', formData.district || '');
-          formPayload.append('category', formData.nationalCategory || formData.category || 'UR');
-          formPayload.append('qualifications', qualificationLabels);
-          formPayload.append('message', `State: ${formData.state}, Category: ${formData.category}`);
-          
-          await fetch(googleScriptUrl, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: formPayload
-          });
-        }
-
-        setSyncFeedback({
-          status: 'success',
-          message: 'Saved & Synced directly to Google Sheet!',
-          details: 'Your details were successfully synced directly to your destination Google Sheet from this phone/tablet browser.'
-        });
-      } catch (err: any) {
-        console.error('[ProfileForm] Fallback sync or direct save threw error:', err);
-        setSyncFeedback({
-          status: 'error',
-          message: 'Error syncing to Google Sheets',
-          details: err?.message || 'Network error'
-        });
-      } finally {
-        await onSave(formData);
-        setShowResultModal(true);
-        setIsSubmitting(false);
-      }
-    };
+      };
+      
+      setFormData(defaultData);
+      setQualSearch('');
+      await onSave(defaultData);
+    } catch (error: any) {
+      console.error('Submission error:', error);
+      alert('Error submitting form: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <form id="profile-form" onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
@@ -282,6 +246,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </label>
               <select
                 id="profile-state-select"
+                name="state"
                 required
                 value={formData.state}
                 onChange={(e) => {
@@ -497,6 +462,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </label>
               <input
                 type="text"
+                name="name"
                 required
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
@@ -511,6 +477,7 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               </label>
               <input
                 type="tel"
+                name="phone"
                 required
                 value={formData.phoneNumber}
                 onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
