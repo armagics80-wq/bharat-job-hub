@@ -4,6 +4,7 @@ import { RefreshCw, Search, Globe, CheckCircle2, AlertCircle, Sparkles, Clock, D
 import { motion, AnimatePresence } from 'motion/react';
 import { db } from '../lib/firebase';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { getApiUrl } from '../utils/apiUrl';
 
 const pushRegistrationToSheetsClientSide = async (docId: string, customTargetUrl?: string) => {
   // 1. Get the registration document
@@ -282,7 +283,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
   const triggerSync = async () => {
     setIsSyncing(true);
     try {
-      const response = await fetch('/api/sync/trigger', { method: 'POST' });
+      const response = await fetch(getApiUrl('/api/sync/trigger'), { method: 'POST' });
       const data = await response.json();
       setLastSyncTime(new Date());
       if (onNotifySync) {
@@ -317,7 +318,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setLoadingDiag(true);
     let diagnosticsLoaded = false;
     try {
-      const res = await fetch('/api/sheets-diagnostic');
+      const res = await fetch(getApiUrl('/api/sheets-diagnostic'));
       if (res.ok) {
         const data = await res.json();
         setSheetDiag(data);
@@ -433,7 +434,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSavingConfig(true);
     setConfigSuccessMsg('');
     try {
-      const res = await fetch('/api/save-sheets-config', {
+      const res = await fetch(getApiUrl('/api/save-sheets-config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -477,7 +478,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSyncingSingleId(docId);
     setManualSyncMsg(null);
     try {
-      const res = await fetch('/api/sheets-manual-sync', {
+      const res = await fetch(getApiUrl('/api/sheets-manual-sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ docId })
@@ -522,7 +523,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSyncingAllRecordsForce(true);
     setManualSyncMsg(null);
     try {
-      const res = await fetch('/api/sheets-manual-sync', {
+      const res = await fetch(getApiUrl('/api/sheets-manual-sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reSyncAll: true })
@@ -585,7 +586,7 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSyncingAllRecords(true);
     setManualSyncMsg(null);
     try {
-      const res = await fetch('/api/sheets-manual-sync', { method: 'POST' });
+      const res = await fetch(getApiUrl('/api/sheets-manual-sync'), { method: 'POST' });
       const data = await res.json();
       if (res.ok && data.success) {
         setManualSyncMsg({

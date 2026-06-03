@@ -1,5 +1,6 @@
 import { Job, UserProfile } from '../types';
 import { STATIC_JOBS } from '../data/jobData';
+import { getApiUrl } from '../utils/apiUrl';
 
 // Helper to filter and sort jobs according to real-time aggregation rules
 const processJobs = (jobs: Job[]): Job[] => {
@@ -58,7 +59,7 @@ export const jobService = {
     let active = true;
     const fetchJobs = async () => {
       try {
-        const res = await fetch('/api/jobs');
+        const res = await fetch(getApiUrl('/api/jobs'));
         if (!res.ok) throw new Error('API server down');
         const data = await res.json();
         if (active) callback(processJobs(data));
@@ -81,7 +82,7 @@ export const jobService = {
     let active = true;
     const fetchActivity = async () => {
       try {
-        const res = await fetch('/api/activity');
+        const res = await fetch(getApiUrl('/api/activity'));
         if (!res.ok) throw new Error('API server down');
         const data = await res.json();
         if (active) callback(data);
@@ -105,7 +106,7 @@ export const jobService = {
 
   async getJobById(id: string): Promise<Job | null> {
     try {
-      const res = await fetch('/api/jobs');
+      const res = await fetch(getApiUrl('/api/jobs'));
       if (res.ok) {
         const jobsList = await res.json();
         const found = jobsList.find((j: any) => j.id === id);
@@ -130,7 +131,7 @@ export const profileService = {
         localStorage.setItem('temp_profile', JSON.stringify(profile));
       }
 
-      const res = await fetch(`/api/profile/${userId}`, {
+      const res = await fetch(getApiUrl(`/api/profile/${userId}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(profile)
@@ -147,7 +148,7 @@ export const profileService = {
     // 1. For real authenticated users, we want to prioritize active server load to allow true cross-device synchronization
     if (!isGuest) {
       try {
-        const res = await fetch(`/api/profile/${userId}`);
+        const res = await fetch(getApiUrl(`/api/profile/${userId}`));
         if (res.ok) {
           const data = await res.json();
           // Keep cache in sync

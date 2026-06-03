@@ -5,6 +5,7 @@ import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
 import { db } from '../lib/firebase';
 import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { getApiUrl } from '../utils/apiUrl';
 
 interface ProfileFormProps {
   initialData?: UserProfile | null;
@@ -169,19 +170,39 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           subscribedCategories: (formData.subscriptions?.categories || []).join(', ')
         };
 
-        const response = await fetch('/api/save-user', {
+        const response = await fetch(getApiUrl('/api/save-user'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
 
         if (response.ok) {
-          isSyncedGlobally = true;
-          setSyncFeedback({
-            status: 'success',
-            message: 'Successfully Synchronized!',
-            details: 'Your eligibility criteria was safely synced with your Google Sheet tab and backed up in our secure cloud storage.'
-          });
+          try {
+            const resData = await response.json();
+            if (resData.simulated || resData.sheetSyncError || resData.sheetSyncWarning || resData.directSheetLinkDetected) {
+              // Server succeeded in writing the backup to Firestore, but sheet post failed/simulated
+              isSyncedGlobally = true;
+              setSyncFeedback({
+                status: 'simulated',
+                message: 'Saved in Local Backup Logs!',
+                details: resData.message || resData.error || 'Your eligibility was saved. Spreadsheet direct post timed out or bypassed, but registration was safely recorded locally on our cloud.'
+              });
+            } else {
+              isSyncedGlobally = true;
+              setSyncFeedback({
+                status: 'success',
+                message: 'Successfully Synchronized!',
+                details: 'Your eligibility criteria was safely synced with your Google Sheet tab and backed up in our secure cloud storage.'
+              });
+            }
+          } catch (jsonErr) {
+            isSyncedGlobally = true;
+            setSyncFeedback({
+              status: 'success',
+              message: 'Successfully Synchronized!',
+              details: 'Your eligibility criteria was safely saved in our secure cloud storage.'
+            });
+          }
         } else {
           try {
             const resErr = await response.json();

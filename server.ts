@@ -379,6 +379,18 @@ async function startServer() {
   // Enable JSON request body parsing
   app.use(express.json());
 
+  // CORS Middleware to allow requests from external domains like Vercel and phones/browsers
+  app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,Content-Type,Accept,Authorization');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
   // API Routes
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), firestoreSupported: isFirestoreAvailable });
@@ -647,7 +659,7 @@ async function startServer() {
           } catch (urlErr) {
             keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
           }
-          const keysRes = await axios.get(keysUrl, { timeout: 4000 });
+          const keysRes = await axios.get(keysUrl, { timeout: 10000 });
           if (keysRes.data && Array.isArray(keysRes.data.keys)) {
             allowedKeys = keysRes.data.keys;
           } else if (Array.isArray(keysRes.data)) {
@@ -655,7 +667,7 @@ async function startServer() {
           }
         } catch (e: any) {
           try {
-            const primaryRes = await axios.get(targetUrl, { timeout: 4000 });
+            const primaryRes = await axios.get(targetUrl, { timeout: 10000 });
             if (Array.isArray(primaryRes.data) && primaryRes.data.length > 0) {
               allowedKeys = Object.keys(primaryRes.data[0]);
             }
@@ -691,7 +703,7 @@ async function startServer() {
       try {
         response = await axios.post(targetUrl, payload, {
           headers: { 'Content-Type': 'application/json' },
-          timeout: 4000 // Fast 4-second timeout for registration responsiveness
+          timeout: 10000 // Safer 10-second timeout for registration responsiveness and remote sheets cold boot
         });
         console.log('[Sheets Sync] Successfully saved candidate row to spreadsheet payload response:', response.data);
         syncPassed = true;
@@ -935,7 +947,7 @@ async function startServer() {
               }
 
               diagnosticLogs.push(`[INFO] Sending HTTP GET request to discover headers schema: ${keysUrl}`);
-              const keysRes = await axios.get(keysUrl, { timeout: 4000 });
+              const keysRes = await axios.get(keysUrl, { timeout: 10000 });
               const latency = Date.now() - startTime;
               diagnosticLogs.push(`[SUCCESS] Connected to SheetDB with healthy response in ${latency}ms.`);
 
@@ -947,7 +959,7 @@ async function startServer() {
                 throw new Error(keysRes.data.error);
               } else {
                 diagnosticLogs.push(`[INFO] Keys URL did not return structural keys array. Fetching top rows as fallback...`);
-                const primaryRes = await axios.get(targetUrl, { timeout: 4000 });
+                const primaryRes = await axios.get(targetUrl, { timeout: 10000 });
                 if (Array.isArray(primaryRes.data) && primaryRes.data.length > 0) {
                   headersList = Object.keys(primaryRes.data[0]);
                 }
@@ -1004,7 +1016,7 @@ async function startServer() {
             } else {
               // Apps Script URL
               diagnosticLogs.push(`[INFO] Requesting Google Web App deployment trigger...`);
-              const scriptRes = await axios.get(targetUrl, { timeout: 4000 });
+              const scriptRes = await axios.get(targetUrl, { timeout: 10000 });
               const latency = Date.now() - startTime;
               diagnosticLogs.push(`[SUCCESS] Apps Script reached successfully in ${latency}ms (HTTP ${scriptRes.status}).`);
 
@@ -1167,7 +1179,7 @@ async function startServer() {
           } catch (urlErr) {
             keysUrl = targetUrl.endsWith('/') ? `${targetUrl}keys` : `${targetUrl}/keys`;
           }
-          const keysRes = await axios.get(keysUrl, { timeout: 4000 });
+          const keysRes = await axios.get(keysUrl, { timeout: 10000 });
           if (keysRes.data && Array.isArray(keysRes.data.keys)) {
             allowedKeys = keysRes.data.keys;
           } else if (Array.isArray(keysRes.data)) {
@@ -1175,7 +1187,7 @@ async function startServer() {
           }
         } catch (e: any) {
           try {
-            const primaryRes = await axios.get(targetUrl, { timeout: 4000 });
+            const primaryRes = await axios.get(targetUrl, { timeout: 10000 });
             if (Array.isArray(primaryRes.data) && primaryRes.data.length > 0) {
               allowedKeys = Object.keys(primaryRes.data[0]);
             }
@@ -1299,7 +1311,7 @@ async function startServer() {
           // Attempt the remote webhook synchronization with web-level safety timeouts
           await axios.post(targetUrl, payload, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 3000 // 3 seconds timeout to prevent long hanging queries
+            timeout: 10000 // Safer 10-second timeout to prevent false alarms on slower script boots
           });
           
           await db.collection('registrations').doc(doc.id).update({ synced: true });
