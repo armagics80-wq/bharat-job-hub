@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Job, UserProfile } from '../types';
-import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark, Eye, Share2, RefreshCw } from 'lucide-react';
+import { Calendar, ExternalLink, BadgeInfo, Sparkles, ChevronDown, ChevronUp, BellRing, ShieldCheck, Zap, Globe, AlertCircle, Clock, CheckCircle2, GraduationCap, Bookmark, Eye, Share2, RefreshCw, Coins, FileText, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format, isToday, differenceInDays, formatDistanceToNow } from 'date-fns';
 import { getDepartmentById } from '../data/departments';
@@ -272,8 +272,11 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      className={`bg-white shadow-md rounded-xl border border-slate-100 p-4 md:p-5 transition-all duration-300 hover:shadow-lg ${
-        showHowToApply ? 'ring-2 ring-indigo-505 bg-slate-50/50' : 'hover:bg-slate-50/30'
+      onClick={() => setShowHowToApply(!showHowToApply)}
+      className={`bg-white shadow-md rounded-xl border select-text transition-all duration-300 hover:shadow-lg cursor-pointer ${
+        showHowToApply 
+          ? 'ring-2 ring-indigo-505 bg-slate-50 border-indigo-200' 
+          : 'border-slate-100 hover:bg-slate-50/30'
       } ${isMatch ? 'border-indigo-100 bg-indigo-50/10' : ''}`}
     >
       <div className="flex flex-col gap-3">
@@ -305,7 +308,7 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
 
         {/* Card Header: Job Title (Dark Navy) & Department (Gray) */}
         <div className="flex flex-col md:flex-row md:items-start justify-between gap-3">
-          <div className="flex-1 min-w-0" onClick={() => setShowHowToApply(!showHowToApply)}>
+          <div className="flex-1 min-w-0">
             <div className="space-y-0.5 cursor-pointer">
               <h3 className="text-sm md:text-base font-extrabold text-[#0a192f] hover:text-indigo-600 transition-colors leading-snug flex flex-wrap items-center gap-1.5">
                 <span>{job.title}</span>
@@ -440,6 +443,17 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
             </span>
           </div>
         </div>
+
+        {/* Dynamic expansion indicator hint for best UX */}
+        {!showHowToApply && (
+          <div className="flex items-center justify-center gap-1.5 text-indigo-600/80 text-[10.5px] font-bold border-t border-slate-100 pt-2.5 mt-1">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+            </span>
+            <span>Click card to expand eligibility, PDF notification, and salary breakdown</span>
+          </div>
+        )}
       </div>
 
       {/* 2. THE "LEARN MORE" SECTION (Expanded State) */}
@@ -450,7 +464,11 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: 'easeInOut' }}
-            className="overflow-hidden"
+            className="overflow-hidden cursor-default"
+            onClick={(e) => {
+              // Stop collapse trigger if clicking anywhere inside the expanded details
+              e.stopPropagation();
+            }}
             id={`learn-more-expanded-${job.id}`}
           >
             <div className="border-t border-slate-100 mt-5 pt-5 space-y-6">
@@ -605,31 +623,91 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
 
               </div>
 
-              {/* Quick Eligibility - bento-like grid box with icons */}
-              <div>
+              {/* Comprehensive Eligibility, Salary & Documents Ledger */}
+              <div className="space-y-4">
                 <h4 className="text-xs font-black text-[#0a192f] uppercase tracking-wider mb-3 flex items-center gap-1.5 border-b border-indigo-50 pb-1.5">
                   <ShieldCheck className="w-4 h-4 text-indigo-650 shrink-0" />
-                  Quick Eligibility
+                  Full Eligibility Details & Salary Scale Breakdown
                 </h4>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4" id={`eligibility-grid-${job.id}`}>
-                  {/* Age Limits box */}
-                  <div className="bg-slate-50/80 border border-slate-150/60 rounded-xl p-4 flex gap-3.5 items-start text-left">
-                    <div className="h-9 w-9 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0 border border-indigo-100">
-                      <Clock className="w-5 h-5 col-span-1" />
+                  
+                  {/* 1. Salary & Emoluments box */}
+                  <div className="bg-slate-50/85 border border-slate-150 rounded-xl p-4 flex gap-3.5 items-start text-left hover:shadow-xs transition duration-200">
+                    <div className="h-9 w-9 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center shrink-0 border border-amber-100 shadow-sm">
+                      <Coins className="w-5 h-5 animate-pulse" />
                     </div>
-                    <div className="space-y-1">
-                      <h5 className="text-[10px] font-black text-slate-450 uppercase tracking-widest leading-none">Age limits</h5>
+                    <div className="space-y-1.5 flex-1">
+                      <h5 className="text-[10px] font-black text-rose-800 uppercase tracking-widest leading-none">Salary scale & perks</h5>
+                      <span className="font-extrabold text-slate-900 text-sm block leading-tight mt-0.5">
+                        {job.salary}
+                      </span>
+                      <p className="text-[10px] text-slate-500 font-semibold leading-normal">
+                        Grade Pay, Basic Pay and applicable DA, HRA, and medical allowances are governed directly under state/central level commission acts.
+                      </p>
+                      
+                      <div className="pt-1.5 border-t border-dashed border-slate-200 mt-2 text-[9.5px] space-y-1 text-slate-700">
+                        <div>
+                          <span className="font-semibold text-slate-400">Probation Period:</span>{' '}
+                          <span className="font-bold text-slate-700">{job.probationPeriod || 'Standard Government 24-Month Trial Period'}</span>
+                        </div>
+                        <div>
+                          <span className="font-semibold text-slate-400">Position Level:</span>{' '}
+                          <span className="font-bold text-slate-705 uppercase">{job.jobCategory ? `${job.jobCategory} Services Group` : 'Central Merit Officer'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 2. Educational Standard & Degree requirements box */}
+                  <div className="bg-slate-50/85 border border-slate-150 rounded-xl p-4 flex gap-3.5 items-start text-left hover:shadow-xs transition duration-200">
+                    <div className="h-9 w-9 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0 border border-emerald-100 shadow-sm">
+                      <GraduationCap className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <h5 className="text-[10px] font-black text-emerald-850 uppercase tracking-widest leading-none">Full Academic Standard</h5>
+                      <span className="font-extrabold text-slate-900 text-sm block leading-snug mt-0.5">
+                        {job.deep_guidance?.quick_eligibility?.qualification || job.qualification}
+                      </span>
+                      
+                      {job.allowedQualifications && job.allowedQualifications.length > 0 && (
+                        <div className="mt-1 text-[9.5px]">
+                          <span className="text-slate-400 font-semibold uppercase block mb-0.5">Allowed Equivalent Streams:</span>
+                          <p className="font-bold text-slate-705">{job.allowedQualifications.join(', ')}</p>
+                        </div>
+                      )}
+
+                      {job.specialRequirements && job.specialRequirements.length > 0 && (
+                        <div className="pt-1.5 border-t border-dashed border-slate-201 mt-2 text-[9.5px]">
+                          <span className="text-slate-450 font-bold uppercase block mb-0.5">Special Parameters / Certificates Required:</span>
+                          <p className="font-semibold text-slate-700 leading-tight">{job.specialRequirements.join(', ')}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 3. Age Limits & Category Relaxations box */}
+                  <div className="bg-slate-50/85 border border-slate-150 rounded-xl p-4 flex gap-3.5 items-start text-left hover:shadow-xs transition duration-200">
+                    <div className="h-9 w-9 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0 border border-indigo-100 shadow-sm">
+                      <Clock className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1.5 flex-1">
+                      <h5 className="text-[10px] font-black text-indigo-800 uppercase tracking-widest leading-none">Full Age Thresholds</h5>
                       <span className="font-extrabold text-[#0a192f] text-sm block leading-normal mt-0.5">
                         {job.deep_guidance?.quick_eligibility?.age_limit || `${job.minAge} - ${job.maxAge} Years`}
                       </span>
+                      <p className="text-[9px] text-slate-500 font-bold leading-none select-none">
+                        Age cutoff is verified as of the active notification date.
+                      </p>
+
                       {job.detailedReservation?.ageRelaxation && (
                         <div className="pt-2 border-t border-dashed border-slate-200 mt-2">
-                          <span className="text-[9px] font-semibold text-indigo-950 uppercase tracking-wider block mb-1">Standard Government Relaxations:</span>
-                          <div className="grid grid-cols-2 gap-1.5">
+                          <span className="text-[9px] font-bold text-indigo-950 uppercase tracking-wider block mb-1">Standard Government Relaxations:</span>
+                          <div className="grid grid-cols-2 gap-1 px-1.5 py-1 bg-white border border-slate-100 rounded-lg shadow-2xs">
                             {Object.entries(job.detailedReservation.ageRelaxation).map(([cat, yrs]) => (
-                              <div key={cat} className="text-[9.5px] bg-white rounded border border-slate-100 p-1 flex justify-between">
-                                <span className="text-slate-500 font-semibold uppercase">{cat.replace('_', ' ')}:</span>
-                                <span className="text-indigo-655 font-black text-indigo-700">+{yrs}y</span>
+                              <div key={cat} className="text-[9px] font-semibold text-slate-750 flex justify-between uppercase">
+                                <span className="text-slate-500">{cat.replace(/_/g, ' ')}:</span>
+                                <span className="text-indigo-650 font-black">+{yrs} Years</span>
                               </div>
                             ))}
                           </div>
@@ -638,24 +716,36 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
                     </div>
                   </div>
 
-                  {/* Qualification box */}
-                  <div className="bg-slate-50/80 border border-slate-150/60 rounded-xl p-4 flex gap-3.5 items-start text-left">
-                    <div className="h-9 w-9 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center shrink-0 border border-emerald-100">
-                      <GraduationCap className="w-5 h-5 col-span-1" />
+                  {/* 4. Required Verification Documents Ledger */}
+                  <div className="bg-slate-50/85 border border-slate-150 rounded-xl p-4 flex gap-3.5 items-start text-left hover:shadow-xs transition duration-200 font-sans">
+                    <div className="h-9 w-9 bg-sky-50 text-sky-600 rounded-lg flex items-center justify-center shrink-0 border border-sky-100 shadow-sm">
+                      <FileText className="w-5 h-5" />
                     </div>
-                    <div className="space-y-1">
-                      <h5 className="text-[10px] font-black text-slate-455 uppercase tracking-widest leading-none">Qualification</h5>
-                      <span className="font-extrabold text-[#0a192f] text-sm block leading-snug mt-0.5">
-                        {job.deep_guidance?.quick_eligibility?.qualification || job.qualification}
+                    <div className="space-y-1.5 flex-1">
+                      <h5 className="text-[10px] font-black text-sky-850 uppercase tracking-widest leading-none">Required Document Checks Ledger</h5>
+                      <span className="font-extrabold text-slate-900 text-sm block mt-0.5">
+                        {job.documentRequired && job.documentRequired.length > 0 ? `${job.documentRequired.length} Crucial Documents` : 'Mandatory Files checklist'}
                       </span>
-                      {job.specialRequirements && job.specialRequirements.length > 0 && (
-                        <div className="pt-2 border-t border-dashed border-slate-201 mt-2 text-[9.5px]">
-                          <span className="text-slate-450 font-bold uppercase block mb-0.5">Specialized parameters required</span>
-                          <p className="font-semibold text-slate-700 leading-tight">{job.specialRequirements.join(', ')}</p>
-                        </div>
-                      )}
+                      
+                      <div className="pt-1.5 border-t border-dashed border-slate-200 mt-1 max-h-36 overflow-y-auto text-[9.5px]">
+                        <ul className="space-y-1 font-semibold text-slate-700 list-disc list-inside">
+                          {(job.documentRequired && job.documentRequired.length > 0 ? job.documentRequired : [
+                            '10th Matriculation Marklist for proof of birth date',
+                            'Degree / Diploma / Qualifying School level marksheets',
+                            'Active Caste certificate (for OBC/SC/ST/EWS relaxations)',
+                            'Valid Domicile / Resident registry cert (where applicable)',
+                            'Ex-Serviceman Discharge record / proof (where applicable)',
+                            'PwBD Civil Medical Authority certificate (where applicable)'
+                          ]).map((docItem, dIdx) => (
+                            <li key={dIdx} className="leading-tight text-slate-655 truncate" title={docItem}>
+                              {docItem}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
+
                 </div>
               </div>
 
