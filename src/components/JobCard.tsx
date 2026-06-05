@@ -140,12 +140,34 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
   const statusInfo = getStatusDisplay(job.status, job.lastDate, job.notificationDate);
   const isVerified = job.verificationStatus === 'Verified' || (department?.verified && job.officialSource);
   const isUpcoming = job.status === 'Upcoming' || new Date(job.notificationDate) > new Date();
-  const isExpired = new Date(job.lastDate) < new Date();
+  
+  const lastDateObj = job.lastDate ? new Date(job.lastDate) : null;
+  let isExpired = false;
+  let isClosingSoon = false;
+  let daysRemaining = -1;
+
+  if (lastDateObj) {
+    const lastDateTime = new Date(lastDateObj);
+    lastDateTime.setHours(23, 59, 59, 999);
+    const today = new Date();
+    isExpired = today.getTime() > lastDateTime.getTime();
+
+    const todayStart = new Date(today);
+    todayStart.setHours(0, 0, 0, 0);
+    const lastDateStart = new Date(lastDateObj);
+    lastDateStart.setHours(0, 0, 0, 0);
+
+    const diffTime = lastDateStart.getTime() - todayStart.getTime();
+    daysRemaining = Math.round(diffTime / (1000 * 60 * 60 * 24));
+    isClosingSoon = !isExpired && daysRemaining >= 0 && daysRemaining <= 7;
+  } else {
+    isExpired = job.status === 'Expired';
+  }
+
   const isActive = job.status === 'Active' && !isExpired && !isUpcoming;
   
   const isJobNewToday = job.lastUpdatedAt ? (new Date().getTime() - new Date(job.lastUpdatedAt).getTime()) <= (24 * 60 * 60 * 1000) : false;
   const isRecentlyUpdated = job.lastUpdatedAt ? differenceInDays(new Date(), new Date(job.lastUpdatedAt)) <= 3 && !isJobNewToday : false;
-  const isClosingSoon = !isExpired && differenceInDays(new Date(job.lastDate), new Date()) <= 3 && differenceInDays(new Date(job.lastDate), new Date()) >= 0;
 
   // Active preparation checklist state tracking
   const [completedStudySteps, setCompletedStudySteps] = useState<Record<number, boolean>>(() => {
@@ -297,6 +319,12 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
                 <Zap className="w-2.5 h-2.5 fill-white" /> New Today
               </span>
             )}
+            {isClosingSoon && (
+              <span className="text-[10px] px-2 py-0.5 bg-amber-50 text-amber-700 border border-amber-200 rounded-full font-bold uppercase tracking-wider flex items-center gap-1 animate-pulse">
+                <Clock className="w-2.5 h-2.5 text-amber-500" />
+                {daysRemaining === 0 ? 'Closes Today' : daysRemaining === 1 ? 'Closes Tomorrow' : `Closing Soon (In ${daysRemaining} days)`}
+              </span>
+            )}
           </div>
 
           {/* 100% Verified Official Source badge with checkmark icon */}
@@ -432,7 +460,8 @@ export default function JobCard({ job, guidance, isMatch, userProfile, isSaved =
           </div>
           <div>
             <span className="block text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Last Date</span>
-            <span className="font-extrabold text-rose-600 font-mono">
+            <span className={`font-extrabold font-mono flex items-center gap-1 leading-none ${isClosingSoon ? 'text-amber-600 animate-pulse' : 'text-rose-600'}`}>
+              {job.lastDate && isClosingSoon && <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />}
               {job.lastDate ? format(new Date(job.lastDate), 'dd-MM-yyyy') : 'TBA'}
             </span>
           </div>

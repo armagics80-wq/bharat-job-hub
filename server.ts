@@ -19,6 +19,7 @@ import {
   setDoc as clientSetDoc, 
   addDoc as clientAddDoc, 
   updateDoc as clientUpdateDoc, 
+  deleteDoc as clientDeleteDoc,
   query as clientQuery, 
   orderBy as clientOrderBy, 
   limit as clientLimit, 
@@ -204,6 +205,11 @@ class CompatDocumentReference {
   async update(data: any) {
     const docRef = clientDoc(this.clientDb, this.collectionPath, this.id);
     await clientUpdateDoc(docRef, data);
+  }
+
+  async delete() {
+    const docRef = clientDoc(this.clientDb, this.collectionPath, this.id);
+    await clientDeleteDoc(docRef);
   }
 }
 

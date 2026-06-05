@@ -61,5 +61,10 @@ service cloud.firestore {
     match /stats/{statId} {
       allow read, write: if true;
     }
+
+    // Test connection probe
+    match /test/{docId} {
+      allow read, write: if true;
+    }
   }
 }

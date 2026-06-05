@@ -994,12 +994,12 @@ export default function App() {
                     </button>
                   </div>
                 )}
-
-                {/* Live Real-time Visitor logs Counter */}
-                <VisitorCounter />
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Live Real-time Visitor logs Counter */}
+          <VisitorCounter />
 
           <Footer />
         </div>

@@ -429,6 +429,30 @@ export default function EligibilityMatches({
                 const department = getDepartmentById(job.departmentId);
                 const isSaved = savedJobIds.has(job.id);
 
+                // Precise and robust Closing Soon check
+                const lastDateObj = job.lastDate ? new Date(job.lastDate) : null;
+                let isClosingSoonElig = false;
+                let daysRemainingElig = -1;
+                let isExpiredElig = false;
+
+                if (lastDateObj) {
+                  const lastDateTime = new Date(lastDateObj);
+                  lastDateTime.setHours(23, 59, 59, 999);
+                  const today = new Date();
+                  isExpiredElig = today.getTime() > lastDateTime.getTime();
+
+                  const todayStart = new Date(today);
+                  todayStart.setHours(0, 0, 0, 0);
+                  const lastDateStart = new Date(lastDateObj);
+                  lastDateStart.setHours(0, 0, 0, 0);
+
+                  const diffTime = lastDateStart.getTime() - todayStart.getTime();
+                  daysRemainingElig = Math.round(diffTime / (1000 * 60 * 60 * 24));
+                  isClosingSoonElig = !isExpiredElig && daysRemainingElig >= 0 && daysRemainingElig <= 7;
+                } else {
+                  isExpiredElig = job.status === 'Expired';
+                }
+
                 return (
                   <div 
                     key={job.id} 
@@ -436,10 +460,17 @@ export default function EligibilityMatches({
                   >
                     {/* Top status bar */}
                     <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] font-black uppercase tracking-wider">
-                      <div className="flex items-center gap-1.5 text-emerald-600">
-                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse font-mono" />
-                        Live & Open
-                      </div>
+                      {isClosingSoonElig ? (
+                        <div className="flex items-center gap-1 text-amber-600 animate-pulse">
+                          <Clock className="w-3 h-3 text-amber-500" />
+                          {daysRemainingElig === 0 ? 'Closes Today' : daysRemainingElig === 1 ? 'Closes Tomorrow' : `Closing Soon (${daysRemainingElig}d)`}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 text-emerald-600">
+                          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse font-mono" />
+                          Live & Open
+                        </div>
+                      )}
                       <span className="text-slate-400">{job.region} Government</span>
                     </div>
 
@@ -472,7 +503,10 @@ export default function EligibilityMatches({
                         </div>
                         <div>
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Apply Deadline</span>
-                          <span className="font-extrabold text-rose-600">{format(new Date(job.lastDate), 'dd MMM yyyy')}</span>
+                          <span className={`font-extrabold flex items-center gap-1 ${isClosingSoonElig ? 'text-amber-600 animate-pulse' : 'text-rose-600'}`}>
+                            {isClosingSoonElig && <Clock className="w-2.5 h-2.5 text-amber-500 shrink-0" />}
+                            {format(new Date(job.lastDate), 'dd MMM yyyy')}
+                          </span>
                         </div>
                         <div>
                           <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Scheduled Exam</span>
