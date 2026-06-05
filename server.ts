@@ -392,6 +392,51 @@ async function startServer() {
   });
 
   // API Routes
+  let memoryVisitorCount = 441;
+
+  // GET the current visitor count
+  app.get('/api/visitors', async (req, res) => {
+    try {
+      const docRef = db.collection('stats').doc('visitors');
+      const doc = await docRef.get();
+      if (!doc || !doc.exists) {
+        await docRef.set({ count: 441 });
+        memoryVisitorCount = 441;
+        return res.json({ count: 441 });
+      }
+      const data = doc.data();
+      const count = typeof data?.count === 'number' ? data.count : 441;
+      memoryVisitorCount = count;
+      return res.json({ count });
+    } catch (err: any) {
+      console.warn('[Server] Error fetching visitor count from Firestore:', err.message);
+      return res.json({ count: memoryVisitorCount });
+    }
+  });
+
+  // POST to increment and retrieve updated visitor count
+  app.post('/api/visitors/increment', async (req, res) => {
+    try {
+      const docRef = db.collection('stats').doc('visitors');
+      const doc = await docRef.get();
+      let currentCount = 441;
+      if (!doc || !doc.exists) {
+        await docRef.set({ count: 442 });
+        currentCount = 442;
+      } else {
+        const data = doc.data();
+        currentCount = (typeof data?.count === 'number' ? data.count : 441) + 1;
+        await docRef.update({ count: currentCount });
+      }
+      memoryVisitorCount = currentCount;
+      return res.json({ count: currentCount });
+    } catch (err: any) {
+      console.warn('[Server] Error incrementing visitor count in Firestore:', err.message);
+      memoryVisitorCount += 1;
+      return res.json({ count: memoryVisitorCount });
+    }
+  });
+
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString(), firestoreSupported: isFirestoreAvailable });
   });

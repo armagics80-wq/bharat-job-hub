@@ -12,6 +12,7 @@ import ProfileForm from './components/ProfileForm';
 import SyncStatusDashboard from './components/SyncStatusDashboard';
 import EligibilityMatches from './components/EligibilityMatches';
 import ErrorBoundary from './components/ErrorBoundary';
+import { VisitorCounter } from './components/VisitorCounter';
 import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
 import { STATIC_JOBS } from './data/jobData';
@@ -993,6 +994,9 @@ export default function App() {
                     </button>
                   </div>
                 )}
+
+                {/* Live Real-time Visitor logs Counter */}
+                <VisitorCounter />
               </motion.div>
             )}
           </AnimatePresence>

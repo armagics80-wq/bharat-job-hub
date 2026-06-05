@@ -56,5 +56,10 @@ service cloud.firestore {
     match /activity/{activityId} {
       allow read, write: if true;
     }
+
+    // Stats collection
+    match /stats/{statId} {
+      allow read, write: if true;
+    }
   }
 }

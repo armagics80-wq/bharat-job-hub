@@ -80,6 +80,10 @@
     "/sync_errors/{errorId}": {
       "schema": "object",
       "description": "Error logs printed during sheets sync pipeline"
+    },
+    "/stats/{statId}": {
+      "schema": "object",
+      "description": "Global statistics including visitor counters"
     }
   }
 }
