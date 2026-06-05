@@ -56,7 +56,10 @@
         "isPWD": { "type": "boolean" },
         "skills": { "type": "array", "items": { "type": "string" } },
         "documents": { "type": "array", "items": { "type": "string" } },
-        "otherCertificates": { "type": "string" }
+        "otherCertificates": { "type": "string" },
+        "emailForDigest": { "type": "string" },
+        "digestEnabled": { "type": "boolean" },
+        "digestFrequency": { "type": "string", "enum": ["Daily", "Weekly", "Monthly"] }
       }
     }
   },

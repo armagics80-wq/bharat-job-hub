@@ -559,7 +559,10 @@ async function startServer() {
         documents,
         otherCertificates,
         subscribedRegions,
-        subscribedCategories
+        subscribedCategories,
+        emailForDigest,
+        digestEnabled,
+        digestFrequency
       } = req.body;
       
       const targetUrl = await getTargetUrl();
@@ -584,6 +587,9 @@ async function startServer() {
           otherCertificates: otherCertificates || '',
           subscribedRegions: subscribedRegions || '',
           subscribedCategories: subscribedCategories || '',
+          emailForDigest: emailForDigest || '',
+          digestEnabled: digestEnabled || 'No',
+          digestFrequency: digestFrequency || 'Weekly',
           timestamp: timestampIso,
           synced: false
         });
@@ -669,7 +675,19 @@ async function startServer() {
         
         SubscribedCategories: subscribedCategories || '',
         'Subscribed Categories': subscribedCategories || '',
-        subscribedcategories: subscribedCategories || ''
+        subscribedcategories: subscribedCategories || '',
+        
+        EmailForDigest: emailForDigest || '',
+        'Email For Digest': emailForDigest || '',
+        emailfordigest: emailForDigest || '',
+        
+        DigestEnabled: digestEnabled || 'No',
+        'Digest Enabled': digestEnabled || 'No',
+        digestenabled: digestEnabled || 'No',
+        
+        DigestFrequency: digestFrequency || 'Weekly',
+        'Digest Frequency': digestFrequency || 'Weekly',
+        digestfrequency: digestFrequency || 'Weekly'
       };
 
       if (!targetUrl) {

@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { UserProfile, QualificationType } from '../types';
-import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info, Download } from 'lucide-react';
+import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info, Download, Mail } from 'lucide-react';
 import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
 import { db } from '../lib/firebase';
@@ -35,7 +35,10 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
       subscriptions: {
         regions: [],
         categories: []
-      }
+      },
+      emailForDigest: '',
+      digestEnabled: false,
+      digestFrequency: 'Weekly'
     };
 
     if (!initialData) return defaultData;
@@ -167,7 +170,10 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           documents: formData.documents.join(', '),
           otherCertificates: formData.otherCertificates || '',
           subscribedRegions: (formData.subscriptions?.regions || []).join(', '),
-          subscribedCategories: (formData.subscriptions?.categories || []).join(', ')
+          subscribedCategories: (formData.subscriptions?.categories || []).join(', '),
+          emailForDigest: formData.emailForDigest || '',
+          digestEnabled: formData.digestEnabled ? 'Yes' : 'No',
+          digestFrequency: formData.digestFrequency || 'Weekly'
         };
 
         const response = await fetch(getApiUrl('/api/save-user'), {
@@ -233,6 +239,9 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
             qualifications: formData.qualifications,
             documents: formData.documents,
             otherCertificates: formData.otherCertificates || '',
+            emailForDigest: formData.emailForDigest || '',
+            digestEnabled: formData.digestEnabled || false,
+            digestFrequency: formData.digestFrequency || 'Weekly',
             timestamp: new Date().toISOString(),
             synced: false
           });
@@ -274,7 +283,10 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               Qualifications: formData.qualifications.map(q => {
                 try { return getQualificationById(q)?.label || q; } catch { return q; }
               }).join(', '),
-              OtherCertificates: formData.otherCertificates || ''
+              OtherCertificates: formData.otherCertificates || '',
+              EmailForDigest: formData.emailForDigest || '',
+              DigestEnabled: formData.digestEnabled ? 'Yes' : 'No',
+              DigestFrequency: formData.digestFrequency || 'Weekly'
             };
 
             const sheetResponse = await fetch(customUrl, {
@@ -887,6 +899,69 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
               })}
             </div>
             <p className="text-[9px] text-slate-400 mt-1 italic">You will receive notifications immediately when new jobs match these criteria.</p>
+          </div>
+
+          {/* Email Digest Settings */}
+          <div className="space-y-2 border-t border-slate-100 pt-3 mt-3">
+            <h4 className="text-[10px] font-black uppercase tracking-wider text-slate-500 flex items-center gap-1.5 pt-1">
+              <Mail className="w-3.5 h-3.5 text-indigo-500 shrink-0" />
+              Email Digest Subscription
+            </h4>
+            
+            <div className="p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl space-y-3 shadow-xs">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input 
+                  type="checkbox" 
+                  checked={formData.digestEnabled || false} 
+                  onChange={(e) => setFormData({ ...formData, digestEnabled: e.target.checked })}
+                  className="w-4 h-4 mt-0.5 rounded border-slate-300 text-indigo-600 accent-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-[11px] font-bold text-slate-800 block leading-tight">
+                    Receive periodic email digests for new vacancy announcements
+                  </span>
+                  <span className="text-[9px] text-slate-400 block leading-normal mt-0.5 font-medium">
+                    We will send a summary of verified jobs that match your subscribed regions and eligibility categories directly to your inbox.
+                  </span>
+                </div>
+              </label>
+
+              {formData.digestEnabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3.5 border-t border-slate-200/50 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                      Digest Email Address <span className="text-indigo-600 font-bold">*</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                      <input
+                        type="email"
+                        required={formData.digestEnabled}
+                        value={formData.emailForDigest || ''}
+                        onChange={(e) => setFormData({ ...formData, emailForDigest: e.target.value })}
+                        placeholder="Enter email address"
+                        className="w-full pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-xs"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+                      Digest Frequency
+                    </label>
+                    <select
+                      value={formData.digestFrequency || 'Weekly'}
+                      onChange={(e) => setFormData({ ...formData, digestFrequency: e.target.value as any })}
+                      className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-xs"
+                    >
+                      <option value="Daily">Daily Summary</option>
+                      <option value="Weekly">Weekly Digest</option>
+                      <option value="Monthly">Monthly Digest</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

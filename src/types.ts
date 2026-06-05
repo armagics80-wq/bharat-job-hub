@@ -114,6 +114,9 @@ export interface UserProfile {
     regions: string[];
     categories: string[];
   };
+  emailForDigest?: string;
+  digestEnabled?: boolean;
+  digestFrequency?: 'Daily' | 'Weekly' | 'Monthly';
 }
 
 export enum OperationType {

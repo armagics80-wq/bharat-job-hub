@@ -12,6 +12,7 @@ import ProfileForm from './components/ProfileForm';
 import SyncStatusDashboard from './components/SyncStatusDashboard';
 import EligibilityMatches from './components/EligibilityMatches';
 import ErrorBoundary from './components/ErrorBoundary';
+import NationalRegistryMonitor from './components/NationalRegistryMonitor';
 import { VisitorCounter } from './components/VisitorCounter';
 import { jobService, profileService } from './services/jobService';
 import { aiService } from './services/aiService';
@@ -37,7 +38,7 @@ export default function App() {
   const [filterDistrict, setFilterDistrict] = useState('All');
   const [filterCategory, setFilterCategory] = useState('All');
   const [aiMatches, setAiMatches] = useState<{id: string, guidance: string}[]>([]);
-  const [activeTab, setActiveTab] = useState<'all-jobs' | 'your-matches' | 'saved-jobs' | 'sync-status'>('all-jobs');
+  const [activeTab, setActiveTab] = useState<'all-jobs' | 'your-matches' | 'saved-jobs' | 'sync-status' | 'national-monitor'>('all-jobs');
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(() => {
     try {
       const stored = localStorage.getItem('saved_job_ids');
@@ -447,6 +448,15 @@ export default function App() {
                 <Server className="w-4 h-4 text-emerald-400 animate-pulse" />
                 Website Sync Status
               </button>
+              <button
+                onClick={() => setActiveTab('national-monitor')}
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                  activeTab === 'national-monitor' ? 'bg-indigo-800 text-white' : 'text-indigo-100 hover:bg-indigo-800'
+                }`}
+              >
+                <Activity className="w-4 h-4 text-orange-400 animate-pulse" />
+                National Portal Monitor
+              </button>
           </nav>
 
           <nav className="space-y-1">
@@ -630,6 +640,13 @@ export default function App() {
               Saved {savedJobIds.size > 0 && <span className="ml-1 text-indigo-500 text-[8px]">({savedJobIds.size})</span>}
               {activeTab === 'saved-jobs' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
             </button>
+            <button 
+              onClick={() => setActiveTab('national-monitor')}
+              className={`pb-3 text-[10px] font-bold uppercase tracking-wider transition-all relative shrink-0 ${activeTab === 'national-monitor' ? 'text-indigo-600' : 'text-slate-400'}`}
+            >
+              National Monitor
+              {activeTab === 'national-monitor' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600" />}
+            </button>
           </div>
 
           <AnimatePresence mode="wait">
@@ -746,6 +763,29 @@ export default function App() {
                       <option value="Defence">Defence Jobs</option>
                     </select>
                   </div>
+                </div>
+
+                {/* National Job Registry Monitor CTA Banner */}
+                <div className="bg-gradient-to-r from-orange-500/10 via-amber-500/5 to-indigo-500/10 border border-orange-200/60 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs">
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-orange-500 rounded flex items-center justify-center font-black text-white text-lg shrink-0 shadow-sm">🇮🇳</div>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-[9px] font-black uppercase text-orange-600 bg-orange-50 border border-orange-100 px-2 py-0.5 rounded">NEW SYSTEM ACTIVE</span>
+                        <span className="text-[9px] font-bold text-slate-500">• Unified Central Portal Tracking</span>
+                      </div>
+                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-tight">National Job Registry Monitor</h3>
+                      <p className="text-[10px] text-slate-500 leading-normal max-w-xl font-semibold">
+                        We monitor the Apex Indian National Portals (NCS, NRA, UPSC OTR, Skill India Digital) live. Verify database density, active registries, guidelines & connection health indices.
+                      </p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('national-monitor')}
+                    className="self-start sm:self-auto px-4 py-2 bg-indigo-650 hover:bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shadow-sm shrink-0 flex items-center gap-1 cursor-pointer"
+                  >
+                    Open Registry Monitor <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
                 </div>
 
                 {/* Dashboard Section */}
@@ -946,6 +986,16 @@ export default function App() {
                 className="space-y-6"
               >
                 <SyncStatusDashboard onNotifySync={(msg) => setSuccessMessage(msg)} />
+              </motion.div>
+            ) : activeTab === 'national-monitor' ? (
+              <motion.div 
+                key="national-monitor"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="space-y-6"
+              >
+                <NationalRegistryMonitor />
               </motion.div>
             ) : (
               <motion.div 
