@@ -3,7 +3,8 @@ import { UserProfile, QualificationType } from '../types';
 import { Save, GraduationCap, Calendar, User, FileText, Sparkles, BellRing, Search, Check, X, ShieldCheck, Briefcase, AlertCircle, AlertTriangle, Info, Download, Mail } from 'lucide-react';
 import { QUALIFICATIONS, getQualificationById } from '../data/qualifications';
 import { STATES_AND_DISTRICTS } from '../data/statesAndDistricts';
-import { db } from '../lib/firebase';
+import { db, getGoogleAccessToken } from '../lib/firebase';
+import { syncCandidateToGoogleSheet } from '../services/sheetsService';
 import { collection, addDoc, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { getApiUrl } from '../utils/apiUrl';
 
@@ -249,21 +250,59 @@ export default function ProfileForm({ initialData, onSave, isLoading }: ProfileF
           
           // Now fetch active sheet preferences to push directly if configured
           let customUrl = '';
+          let natSpreadsheetId = '';
           try {
             const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
             if (settingsDoc.exists()) {
               const s = settingsDoc.data();
               customUrl = s?.SHEETDB_URL || s?.GOOGLE_SCRIPT_URL || '';
+              natSpreadsheetId = s?.NAT_GOOGLE_SPREADSHEET_ID || '';
             }
           } catch (eNum) {
             console.warn('Could not read sheets_config from database, checking environment:', eNum);
           }
 
-          if (!customUrl) {
-            customUrl = (import.meta as any).env?.VITE_GOOGLE_APPS_SCRIPT_URL || '';
+          const googleToken = getGoogleAccessToken();
+          if (natSpreadsheetId && googleToken) {
+            try {
+              const candidateObj = {
+                name: formData.fullName || '',
+                phone: formData.phoneNumber || '',
+                age: formData.age ? Number(formData.age) : 18,
+                gender: formData.gender || '',
+                state: formData.state || '',
+                district: formData.district || '',
+                stateCategory: formData.stateCategory || 'STATE_GEN',
+                category: formData.nationalCategory || formData.category || 'UR',
+                isExServiceman: formData.isExServiceman ? 'Yes' : 'No',
+                isPWD: formData.isPWD ? 'Yes' : 'No',
+                qualifications: formData.qualifications.map(q => {
+                  try { return getQualificationById(q)?.label || q; } catch { return q; }
+                }),
+                documents: formData.documents,
+                otherCertificates: formData.otherCertificates || '',
+                emailForDigest: formData.emailForDigest || '',
+                digestEnabled: formData.digestEnabled || false,
+                digestFrequency: formData.digestFrequency || 'Weekly',
+                timestamp: new Date().toISOString()
+              };
+
+              await syncCandidateToGoogleSheet(natSpreadsheetId, candidateObj);
+              
+              // Mark as synced
+              await updateDoc(doc(db, 'registrations', docId), { synced: true });
+              isSyncedGlobally = true;
+              setSyncFeedback({
+                status: 'success',
+                message: 'Successfully Synchronized (Direct Google API)!',
+                details: 'Your eligibility criteria was pushed directly to the configured Google Sheet in real-time, secured by your Google Account credentials.'
+              });
+            } catch (sheetErr: any) {
+              console.warn('[Google api Sync Fail] Redirecting to legacy webhook options:', sheetErr);
+            }
           }
 
-          if (customUrl) {
+          if (!isSyncedGlobally && customUrl) {
             const timestampStr = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
             const rowPayload = {
               Timestamp: timestampStr,

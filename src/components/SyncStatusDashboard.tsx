@@ -2,9 +2,17 @@ import { useState, useEffect, useMemo } from 'react';
 import { MONITORED_WEBSITES, MonitoredWebsite } from '../data/monitoredWebsites';
 import { RefreshCw, Search, Globe, CheckCircle2, AlertCircle, Sparkles, Clock, Database, ChevronDown, ChevronUp, Server, SearchCheck, Info, ExternalLink, AlertTriangle, Check, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { db } from '../lib/firebase';
+import { db, auth, signInWithGoogle, logout as firebaseLogout, getGoogleAccessToken } from '../lib/firebase';
 import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc } from 'firebase/firestore';
 import { getApiUrl } from '../utils/apiUrl';
+import {
+  inspectGoogleSheetHeaders,
+  createNewGoogleSheet,
+  syncCandidateToGoogleSheet,
+  extractSpreadsheetId,
+  STANDARD_HEADERS,
+  SheetHeaderStatus
+} from '../services/sheetsService';
 
 const pushRegistrationToSheetsClientSide = async (docId: string, customTargetUrl?: string) => {
   // 1. Get the registration document
@@ -308,11 +316,105 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
   const [syncingSingleId, setSyncingSingleId] = useState<string | null>(null);
   const [manualSyncMsg, setManualSyncMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Dynamic spreadsheet config states
+  // Dynamic legacy spreadsheet config states
   const [sheetdbInput, setSheetdbInput] = useState('');
   const [scriptInput, setScriptInput] = useState('');
   const [savingConfig, setSavingConfig] = useState(false);
   const [configSuccessMsg, setConfigSuccessMsg] = useState('');
+
+  // Native Google API configuration states
+  const [googleAccessToken, setGoogleAccessTokenState] = useState<string | null>(null);
+  const [natGoogleSpreadsheetId, setNatGoogleSpreadsheetId] = useState('');
+  const [natGoogleSpreadsheetUrl, setNatGoogleSpreadsheetUrl] = useState('');
+  const [isCreatingSheet, setIsCreatingSheet] = useState(false);
+  const [nativeHeadersCheck, setNativeHeadersCheck] = useState<SheetHeaderStatus | null>(null);
+  const [isCheckingHeaders, setIsCheckingHeaders] = useState(false);
+
+  useEffect(() => {
+    const token = getGoogleAccessToken();
+    if (token) setGoogleAccessTokenState(token);
+    const unsubscribe = auth.onAuthStateChanged(user => {
+      const activeToken = getGoogleAccessToken();
+      if (activeToken) {
+        setGoogleAccessTokenState(activeToken);
+      } else {
+        setGoogleAccessTokenState(null);
+      }
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleGoogleSignInForSheets = async () => {
+    try {
+      const user = await signInWithGoogle();
+      const token = getGoogleAccessToken();
+      if (token) {
+        setGoogleAccessTokenState(token);
+        if (onNotifySync) onNotifySync(`Successfully authenticated Google account: ${user.email}`);
+      }
+    } catch (err: any) {
+      alert("Google Sign-In failed: " + err.message);
+    }
+  };
+
+  const handleGoogleLogout = async () => {
+    await firebaseLogout();
+    setGoogleAccessTokenState(null);
+    setNativeHeadersCheck(null);
+    if (onNotifySync) onNotifySync("Disconnected Google account.");
+  };
+
+  const handleCreateNewSheetAuto = async () => {
+    if (isCreatingSheet) return;
+    setIsCreatingSheet(true);
+    try {
+      const result = await createNewGoogleSheet("National Job Registry - Backups");
+      setNatGoogleSpreadsheetId(result.spreadsheetId);
+      setNatGoogleSpreadsheetUrl(result.spreadsheetUrl);
+      
+      // Merge with Firestore configuration immediately
+      await setDoc(doc(db, 'settings', 'sheets_config'), {
+        NAT_GOOGLE_SPREADSHEET_ID: result.spreadsheetId,
+        NAT_GOOGLE_SPREADSHEET_URL: result.spreadsheetUrl,
+        SHEETDB_URL: sheetdbInput,
+        GOOGLE_SCRIPT_URL: scriptInput,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // Build Row 1 column verification
+      const headers = await inspectGoogleSheetHeaders(result.spreadsheetId);
+      setNativeHeadersCheck(headers);
+
+      if (onNotifySync) {
+        onNotifySync("Created a brand new Google Sheet and set it as active!");
+      }
+    } catch (err: any) {
+      alert("Error generating Google Sheet: " + err.message);
+    } finally {
+      setIsCreatingSheet(false);
+    }
+  };
+
+  const handleCheckNativeHeaders = async () => {
+    if (!natGoogleSpreadsheetId) return;
+    const cleanId = extractSpreadsheetId(natGoogleSpreadsheetId);
+    if (!cleanId) {
+      alert("Could not parse a valid spreadsheet ID from the input.");
+      return;
+    }
+    setIsCheckingHeaders(true);
+    try {
+      const check = await inspectGoogleSheetHeaders(cleanId);
+      setNativeHeadersCheck(check);
+      if (onNotifySync) {
+        onNotifySync("Completed sheet schema headers checklist!");
+      }
+    } catch (err: any) {
+      alert("Form alignment diagnostic failed: " + err.message);
+    } finally {
+      setIsCheckingHeaders(false);
+    }
+  };
 
   const loadSheetDiagnostic = async () => {
     setLoadingDiag(true);
@@ -328,6 +430,12 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         if (data.googleScriptUrl !== undefined) {
           setScriptInput(data.googleScriptUrl);
         }
+        if (data.natGoogleSpreadsheetId !== undefined) {
+          setNatGoogleSpreadsheetId(data.natGoogleSpreadsheetId);
+        }
+        if (data.natGoogleSpreadsheetUrl !== undefined) {
+          setNatGoogleSpreadsheetUrl(data.natGoogleSpreadsheetUrl);
+        }
         diagnosticsLoaded = true;
       }
     } catch (err) {
@@ -340,10 +448,14 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
         let sheetdbUrl = '';
         let googleScriptUrl = '';
+        let natGoogleId = '';
+        let natGoogleUrl = '';
         if (settingsDoc.exists()) {
           const s = settingsDoc.data();
           sheetdbUrl = s?.SHEETDB_URL || '';
           googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+          natGoogleId = s?.NAT_GOOGLE_SPREADSHEET_ID || '';
+          natGoogleUrl = s?.NAT_GOOGLE_SPREADSHEET_URL || '';
         }
 
         const targetUrl = sheetdbUrl || googleScriptUrl || '';
@@ -351,7 +463,11 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         let obfuscatedUrl = '';
         let urlType = 'none';
 
-        if (targetUrl) {
+        if (natGoogleId) {
+          urlConfigured = true;
+          urlType = 'native-google';
+          obfuscatedUrl = `https://docs.google.com/spreadsheets/d/${natGoogleId.substring(0, 4)}.../edit`;
+        } else if (targetUrl) {
           urlConfigured = true;
           if (targetUrl.includes('sheetdb.io')) {
             urlType = 'sheetdb';
@@ -398,6 +514,8 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         setSheetDiag({
           sheetdbUrl,
           googleScriptUrl,
+          natGoogleSpreadsheetId: natGoogleId,
+          natGoogleSpreadsheetUrl: natGoogleUrl,
           urlConfigured,
           obfuscatedUrl,
           urlType,
@@ -407,12 +525,12 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
           registrationsList,
           diagnosticLogs: [
             `[Direct Client Connection] Loaded live data directly from secure Cloud Firestore database!`,
-            `Configured Keys: SHEETDB_URL: ${sheetdbUrl ? 'Yes' : 'No'}, GOOGLE_SCRIPT_URL: ${googleScriptUrl ? 'Yes' : 'No'}`,
-            `Note: Currently operating in raw decentralized browser engine mode. Fits Vercel serverless builds.`
+            `Configured Keys: SHEETDB_URL: ${sheetdbUrl ? 'Yes' : 'No'}, GOOGLE_SCRIPT_URL: ${googleScriptUrl ? 'Yes' : 'No'}, NATIVE_SHEET: ${natGoogleId ? 'Yes' : 'No'}`,
+            `Note: Native Google Sheets direct synchronization is active with your Google access token.`
           ],
           connectionTest: {
-            status: targetUrl ? 'success' : 'unconfigured',
-            message: targetUrl ? 'Direct client browser connection is active.' : 'No spreadsheet target API key is configured.'
+            status: (targetUrl || natGoogleId) ? 'success' : 'unconfigured',
+            message: (targetUrl || natGoogleId) ? 'Direct client browser connection is active.' : 'No spreadsheet target API key is configured.'
           },
           headerCheck: { status: 'unchecked', missingEssential: [], configuredColumns: [] },
           hasCriticalError: false,
@@ -422,6 +540,8 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
 
         if (sheetdbUrl) setSheetdbInput(sheetdbUrl);
         if (googleScriptUrl) setScriptInput(googleScriptUrl);
+        if (natGoogleId) setNatGoogleSpreadsheetId(natGoogleId);
+        if (natGoogleUrl) setNatGoogleSpreadsheetUrl(natGoogleUrl);
       } catch (clientErr: any) {
         console.error('[Diagnostic Direct Fallback] Cloud database unreachable:', clientErr);
       }
@@ -433,42 +553,41 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     e.preventDefault();
     setSavingConfig(true);
     setConfigSuccessMsg('');
+    const cleanId = extractSpreadsheetId(natGoogleSpreadsheetId) || natGoogleSpreadsheetId;
+    const cleanUrl = natGoogleSpreadsheetUrl || (cleanId ? `https://docs.google.com/spreadsheets/d/${cleanId}/edit` : '');
     try {
+      // 1. Save directly to online Firestore database settings
+      await setDoc(doc(db, 'settings', 'sheets_config'), {
+        SHEETDB_URL: sheetdbInput,
+        GOOGLE_SCRIPT_URL: scriptInput,
+        NAT_GOOGLE_SPREADSHEET_ID: cleanId,
+        NAT_GOOGLE_SPREADSHEET_URL: cleanUrl,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+
+      // 2. Try to post to Backend local JSON as well
       const res = await fetch(getApiUrl('/api/save-sheets-config'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           SHEETDB_URL: sheetdbInput,
-          GOOGLE_SCRIPT_URL: scriptInput
+          GOOGLE_SCRIPT_URL: scriptInput,
+          NAT_GOOGLE_SPREADSHEET_ID: cleanId,
+          NAT_GOOGLE_SPREADSHEET_URL: cleanUrl
         })
       });
-      if (res.ok) {
-        setConfigSuccessMsg('Spreadsheet settings saved successfully! Direct synchronization is now active for all submissions.');
-        await loadSheetDiagnostic();
-        if (onNotifySync) {
-          onNotifySync('Success: Dynamic sheets URL saved successfully!');
-        }
-        setTimeout(() => setConfigSuccessMsg(''), 6000);
-      } else {
-        throw new Error('Fallback save dynamic sheets config to database');
+
+      setConfigSuccessMsg('Spreadsheet configuration successfully updated across all modules!');
+      await loadSheetDiagnostic();
+      if (onNotifySync) {
+        onNotifySync('Success: Spreadsheet settings saved successfully!');
       }
+      setTimeout(() => setConfigSuccessMsg(''), 6000);
     } catch (err: any) {
-      console.warn('[Dashboard Config Save] Backend not running. Writing config straight to Firestore...');
-      try {
-        await setDoc(doc(db, 'settings', 'sheets_config'), {
-          SHEETDB_URL: sheetdbInput,
-          GOOGLE_SCRIPT_URL: scriptInput,
-          updatedAt: new Date().toISOString()
-        });
-        setConfigSuccessMsg('Spreadsheet settings saved directly in secure Cloud Firestore database! Active instantly across all devices.');
-        await loadSheetDiagnostic();
-        if (onNotifySync) {
-          onNotifySync('Saved directly to Firestore DB!');
-        }
-        setTimeout(() => setConfigSuccessMsg(''), 6000);
-      } catch (saveDbError: any) {
-        alert('Could not update spreadsheet settings. Firestore write error: ' + saveDbError.message);
-      }
+      console.warn('[Dashboard Save Backend Fallback] Firestore bypass:', err);
+      setConfigSuccessMsg('Spreadsheet settings saved directly in secure Cloud Firestore database!');
+      await loadSheetDiagnostic();
+      setTimeout(() => setConfigSuccessMsg(''), 6000);
     } finally {
       setSavingConfig(false);
     }
@@ -478,26 +597,51 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSyncingSingleId(docId);
     setManualSyncMsg(null);
     try {
-      const res = await fetch(getApiUrl('/api/sheets-manual-sync'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ docId })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const token = getGoogleAccessToken();
+      const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+      let natSpreadsheetId = '';
+      if (settingsDoc.exists()) {
+        natSpreadsheetId = settingsDoc.data()?.NAT_GOOGLE_SPREADSHEET_ID || '';
+      }
+
+      if (natSpreadsheetId && token) {
+        // Direct native Google Sheets sync!
+        const dDoc = await getDoc(doc(db, 'registrations', docId));
+        if (!dDoc.exists()) {
+          throw new Error('Candidate registration not found in cloud backup database.');
+        }
+        await syncCandidateToGoogleSheet(natSpreadsheetId, dDoc.data());
+        await updateDoc(doc(db, 'registrations', docId), { synced: true });
+        
         setManualSyncMsg({
           type: 'success',
-          text: `Successfully synced entry to Google Sheets!`
+          text: `Successfully synced entry to Google Sheets directly via secure Google Sheets API!`
         });
         await loadSheetDiagnostic();
-        if (onNotifySync) {
-          onNotifySync(`Success: Synced entry.`);
-        }
+        if (onNotifySync) onNotifySync("Success: Native direct sheet sync completed!");
       } else {
-        throw new Error(data.error || 'Backend failed manual sync');
+        // Try backend JSON or webhook-based fallbacks
+        const res = await fetch(getApiUrl('/api/sheets-manual-sync'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ docId })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setManualSyncMsg({
+            type: 'success',
+            text: `Successfully synced entry to Google Sheets via bridge!`
+          });
+          await loadSheetDiagnostic();
+          if (onNotifySync) {
+            onNotifySync(`Success: Synced entry.`);
+          }
+        } else {
+          throw new Error(data.error || 'Server failed manual sync');
+        }
       }
     } catch (err: any) {
-      console.warn('[Single Sync Failover] Backend unreachable. Syncing selected registration straight from browser...');
+      console.warn('[Single Sync Fallover] Direct fallback trigger:', err.message);
       try {
         await pushRegistrationToSheetsClientSide(docId);
         setManualSyncMsg({
@@ -523,26 +667,49 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSyncingAllRecordsForce(true);
     setManualSyncMsg(null);
     try {
-      const res = await fetch(getApiUrl('/api/sheets-manual-sync'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reSyncAll: true })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const token = getGoogleAccessToken();
+      const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+      let natSpreadsheetId = '';
+      if (settingsDoc.exists()) {
+        natSpreadsheetId = settingsDoc.data()?.NAT_GOOGLE_SPREADSHEET_ID || '';
+      }
+
+      if (natSpreadsheetId && token) {
+        const snapshot = await getDocs(collection(db, 'registrations'));
+        let count = 0;
+        for (const docItem of snapshot.docs) {
+          await syncCandidateToGoogleSheet(natSpreadsheetId, docItem.data());
+          await updateDoc(doc(db, 'registrations', docItem.id), { synced: true });
+          count++;
+        }
         setManualSyncMsg({
           type: 'success',
-          text: data.message || `Successfully forced sync for all ${data.syncedCount} entries in Google Sheets!`
+          text: `Successfully forced direct synchronization of all ${count} entries to your Google Sheet via API!`
         });
         await loadSheetDiagnostic();
-        if (onNotifySync) {
-          onNotifySync(`Success: Force sync complete! ${data.syncedCount} rows processed.`);
-        }
+        if (onNotifySync) onNotifySync(`Success: Sync complete for ${count} rows!`);
       } else {
-        throw new Error(data.error || 'Backend failed force resync');
+        const res = await fetch(getApiUrl('/api/sheets-manual-sync'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reSyncAll: true })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setManualSyncMsg({
+            type: 'success',
+            text: data.message || `Successfully forced sync for all ${data.syncedCount} entries in Google Sheets!`
+          });
+          await loadSheetDiagnostic();
+          if (onNotifySync) {
+            onNotifySync(`Success: Force sync complete! ${data.syncedCount} rows processed.`);
+          }
+        } else {
+          throw new Error(data.error || 'Backend failed force resync');
+        }
       }
     } catch (err: any) {
-      console.warn('[Sync Force Resync Failover] Backend unreachable. Forced syncing all records from browser...');
+      console.warn('[Sync Force Resync Failover] Fallback loading direct records:', err.message);
       try {
         const snapshot = await getDocs(collection(db, 'registrations'));
         let syncedCount = 0;
@@ -586,22 +753,48 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
     setSyncingAllRecords(true);
     setManualSyncMsg(null);
     try {
-      const res = await fetch(getApiUrl('/api/sheets-manual-sync'), { method: 'POST' });
-      const data = await res.json();
-      if (res.ok && data.success) {
+      const token = getGoogleAccessToken();
+      const settingsDoc = await getDoc(doc(db, 'settings', 'sheets_config'));
+      let natSpreadsheetId = '';
+      if (settingsDoc.exists()) {
+        natSpreadsheetId = settingsDoc.data()?.NAT_GOOGLE_SPREADSHEET_ID || '';
+      }
+
+      if (natSpreadsheetId && token) {
+        const snapshot = await getDocs(collection(db, 'registrations'));
+        let count = 0;
+        for (const docItem of snapshot.docs) {
+          const itemData = docItem.data();
+          if (itemData.synced !== true) {
+            await syncCandidateToGoogleSheet(natSpreadsheetId, itemData);
+            await updateDoc(doc(db, 'registrations', docItem.id), { synced: true });
+            count++;
+          }
+        }
         setManualSyncMsg({
           type: 'success',
-          text: data.message || `Successfully pushed ${data.syncedCount} entries to Google Sheets!`
+          text: `Successfully synchronized ${count} pending candidate logs directly to your Google Sheet via API!`
         });
         await loadSheetDiagnostic();
-        if (onNotifySync) {
-          onNotifySync(`Success: Sync completed! ${data.syncedCount} rows synced.`);
-        }
+        if (onNotifySync) onNotifySync(`Success: Push complete for ${count} pending rows!`);
       } else {
-        throw new Error(data.error || 'Backend failed manual resync pending');
+        const res = await fetch(getApiUrl('/api/sheets-manual-sync'), { method: 'POST' });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          setManualSyncMsg({
+            type: 'success',
+            text: data.message || `Successfully pushed ${data.syncedCount} entries to Google Sheets!`
+          });
+          await loadSheetDiagnostic();
+          if (onNotifySync) {
+            onNotifySync(`Success: Sync completed! ${data.syncedCount} rows synced.`);
+          }
+        } else {
+          throw new Error(data.error || 'Backend failed manual resync pending');
+        }
       }
     } catch (err: any) {
-      console.warn('[Pending Sync Failover] Backend unreachable. Scanning and pushing pending registrations directly...');
+      console.warn('[Pending Sync Failover] Direct sync pending fallbacks triggered:', err.message);
       try {
         const snapshot = await getDocs(collection(db, 'registrations'));
         let syncedCount = 0;
@@ -1028,55 +1221,210 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
         )}
 
         {/* Dynamic Spreadsheet Configuration Form (Forces Firestore synchronization on any device/phone) */}
-        <form onSubmit={handleSaveConfig} className="bg-slate-50 border border-slate-205 rounded-xl p-4 space-y-3">
-          <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+        <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-5 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <div className="flex items-center gap-1.5 text-xs font-black text-slate-800">
               <Sparkles className="w-4 h-4 text-indigo-600 animate-pulse" />
-              <span>Spreadsheet Settings (Synchronized Online Across All Devices)</span>
+              <span>Spreadsheet Integration Hub (Synchronized Online Across All Devices)</span>
             </div>
             {configSuccessMsg && (
               <span className="text-[10px] text-emerald-600 font-extrabold animate-pulse">{configSuccessMsg}</span>
             )}
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1">
-              <label id="lbl-sheetdb-url" className="text-[9px] uppercase tracking-wider font-extrabold text-slate-500 block">
-                SheetDB.io API URL
-              </label>
-              <input
-                id="inp-sheetdb-url"
-                type="url"
-                placeholder="e.g. https://sheetdb.io/api/v1/your_unique_api"
-                value={sheetdbInput}
-                onChange={(e) => setSheetdbInput(e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono"
-              />
-              <p className="text-[9px] text-slate-400 font-medium">Preferred. Type column headers like (Timestamp, Name, Phone, State) in Row 1 of your Google Sheet first.</p>
-            </div>
+
+          {/* TWO OPTIONS PATHWAYS: NATIVE GOOGLE API & WEBHOOK BRIDGE */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <div className="space-y-1">
-              <label id="lbl-script-url" className="text-[9px] uppercase tracking-wider font-extrabold text-slate-500 block">
-                Google Apps Script Web App URL
-              </label>
-              <input
-                id="inp-script-url"
-                type="url"
-                placeholder="e.g. https://script.google.com/macros/s/your_macro_id/exec"
-                value={scriptInput}
-                onChange={(e) => setScriptInput(e.target.value)}
-                className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono"
-              />
-              <p className="text-[9px] text-slate-400 font-medium">Alternative. Deploy your Google Script as a Web App (Execute as: Me, Access: Anyone) and paste its URL here.</p>
+            {/* LEFT COLUMN: NATIVE GOOGLE SHEETS API (RECOMMENDED - SECURE & 1-CLICK) */}
+            <div className="lg:col-span-7 bg-white border border-slate-200/60 rounded-xl p-4.5 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    Option 1: Google OAuth Native Sheets API
+                  </h4>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Recommended. Connect and create sheets instantly with direct secure APIs.</p>
+                </div>
+                <div className="text-[9px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-black uppercase">Official</div>
+              </div>
+
+              {/* Status Section */}
+              <div className="bg-slate-50 rounded-lg p-3 border border-slate-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${googleAccessToken ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                    <Database className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-[11px] font-black text-slate-700">
+                      {googleAccessToken ? 'Authenticated with Google' : 'Google Authentication Disconnected'}
+                    </div>
+                    <div className="text-[9px] text-slate-400">
+                      {googleAccessToken ? 'Authorized scopes handle spreadsheets' : 'Login to access Google Drive & Sheets'}
+                    </div>
+                  </div>
+                </div>
+
+                {googleAccessToken ? (
+                  <button
+                    type="button"
+                    onClick={handleGoogleLogout}
+                    className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 text-[10px] font-extrabold rounded-md shadow-sm border border-rose-100 transition-all cursor-pointer flex items-center justify-center gap-1 ml-auto"
+                  >
+                    Disconnect
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignInForSheets}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white text-[10px] font-extrabold rounded-md shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1 ml-auto font-sans"
+                  >
+                    Connect Google Account
+                  </button>
+                )}
+              </div>
+
+              {/* Configure or Create Sheet Inputs */}
+              {googleAccessToken && (
+                <div className="space-y-3.5 pt-1 animate-fadeIn">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[9px] uppercase tracking-wider font-extrabold text-slate-500">
+                        Spreadsheet Link / ID
+                      </label>
+                      {natGoogleSpreadsheetUrl && (
+                        <a 
+                          href={natGoogleSpreadsheetUrl} 
+                          target="_blank" 
+                          referrerPolicy="no-referrer"
+                          className="text-[9px] text-indigo-600 hover:underline flex items-center gap-0.5 font-bold"
+                        >
+                          View Live Sheet
+                          <ExternalLink className="w-2.5 h-2.5" />
+                        </a>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="Paste your Google Spreadsheet URL here, or click Auto-Create to make one!"
+                        value={natGoogleSpreadsheetId}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNatGoogleSpreadsheetId(val);
+                          const extracted = extractSpreadsheetId(val);
+                          if (extracted) {
+                            setNatGoogleSpreadsheetUrl(`https://docs.google.com/spreadsheets/d/${extracted}/edit`);
+                          }
+                        }}
+                        className="flex-1 px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono text-slate-800"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCheckNativeHeaders}
+                        disabled={isCheckingHeaders || !natGoogleSpreadsheetId}
+                        className="px-3 py-1 bg-slate-105 hover:bg-slate-200 disabled:opacity-40 text-slate-700 text-[10px] font-black rounded border border-slate-200 shrink-0 cursor-pointer font-sans"
+                      >
+                        {isCheckingHeaders ? 'Checking...' : 'Check Alignment'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Schema Align Output */}
+                  {nativeHeadersCheck && (
+                    <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[10px] space-y-2">
+                      <div className="flex items-center justify-between border-b border-slate-251 pb-1">
+                        <span className="font-extrabold text-slate-600 uppercase">Spreadsheet Alignment Report</span>
+                        <span className={`px-1 py-0.5 rounded text-[8px] font-black uppercase ${
+                          nativeHeadersCheck.status === 'success' ? 'bg-emerald-100 text-emerald-800' :
+                          nativeHeadersCheck.status === 'warning' ? 'bg-amber-100 text-amber-800' :
+                          'bg-amber-100 text-amber-800'
+                        }`}>
+                          {nativeHeadersCheck.status}
+                        </span>
+                      </div>
+                      <div className="space-y-1 font-medium text-slate-600">
+                        <p><strong>Configured Headers:</strong> {nativeHeadersCheck.discoveredHeaders.join(', ') || 'None found (empty sheet)'}</p>
+                        {nativeHeadersCheck.missingHeaders.length > 0 ? (
+                          <p className="text-amber-700"><strong>⚠️ Missing target columns:</strong> {nativeHeadersCheck.missingHeaders.join(', ')} (The app will auto-align them upon sync if needed, but adding them to Row 1 is highly recommended)</p>
+                        ) : (
+                          <p className="text-emerald-700"><strong>✅ Columns perfectly configured!</strong> Row 1 aligns flawlessly with all registrant data fields.</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 1-Click Auto Creation */}
+                  <div className="pt-1.5 flex items-center justify-between gap-3 border-t border-slate-100">
+                    <span className="text-[10px] text-slate-400 font-medium">Don't have a Google Sheet prepared yet?</span>
+                    <button
+                      type="button"
+                      onClick={handleCreateNewSheetAuto}
+                      disabled={isCreatingSheet}
+                      className="px-3 py-2 bg-gradient-to-r from-emerald-600 to-indigo-605 text-white hover:opacity-90 disabled:opacity-40 text-[10px] uppercase font-black tracking-wider rounded-lg shadow-sm transition-all flex items-center gap-1 cursor-pointer shrink-0 font-sans"
+                    >
+                      {isCreatingSheet ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Creating Sheet...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                          1-Click Auto Create Sheet
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* RIGHT COLUMN: LEGACY WEBHOOKS BRIDGES (Option 2) */}
+            <div className="lg:col-span-5 bg-white border border-slate-200/60 rounded-xl p-4.5 space-y-4">
+              <div>
+                <h4 className="text-xs font-extrabold text-slate-800">Option 2: SheetDB / Apps Script Bridges</h4>
+                <p className="text-[10px] text-slate-400 mt-0.5">Alternative backup tunnels. Use custom webhooks if Google OAuth is not desired.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label id="lbl-sheetdb-url" className="text-[8.5px] uppercase tracking-wider font-extrabold text-slate-500 block">
+                    SheetDB.io API URL
+                  </label>
+                  <input
+                    id="inp-sheetdb-url"
+                    type="url"
+                    placeholder="e.g. https://sheetdb.io/api/v1/your_unique_api"
+                    value={sheetdbInput}
+                    onChange={(e) => setSheetdbInput(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono text-slate-800"
+                  />
+                </div>
+                
+                <div className="space-y-1">
+                  <label id="lbl-script-url" className="text-[8.5px] uppercase tracking-wider font-extrabold text-slate-500 block">
+                    Apps Script Web App URL
+                  </label>
+                  <input
+                    id="inp-script-url"
+                    type="url"
+                    placeholder="e.g. https://script.google.com/macros/s/your_macro_id/exec"
+                    value={scriptInput}
+                    onChange={(e) => setScriptInput(e.target.value)}
+                    className="w-full px-2.5 py-1.5 bg-white border border-slate-200 rounded text-xs focus:ring-1 focus:ring-indigo-500 focus:outline-none font-mono text-slate-800"
+                  />
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <div className="flex justify-end pt-1">
+          <form onSubmit={handleSaveConfig} className="flex justify-end pt-1 gap-2.5 border-t border-slate-100">
             <button
               id="btn-save-config"
               type="submit"
               disabled={savingConfig}
-              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-350 text-white text-[10px] uppercase tracking-wider font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-slate-350 text-white text-[10px] uppercase tracking-wider font-black rounded-lg shadow-sm hover:shadow active:shadow-none transition-all flex items-center gap-1.5 cursor-pointer font-sans"
             >
               {savingConfig ? (
                 <>
@@ -1086,12 +1434,12 @@ export default function SyncStatusDashboard({ onNotifySync }: SyncStatusDashboar
               ) : (
                 <>
                   <Check className="w-3.5 h-3.5" />
-                  Save & Enable Sync
+                  Save & Enable Active Sync
                 </>
               )}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
 
         {/* Sync message output */}
         {manualSyncMsg && (

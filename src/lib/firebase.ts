@@ -15,16 +15,39 @@ const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app, (firebaseConfig as any).firestoreDatabaseId);
 export const auth = getAuth(app);
 
+// In-memory cache for Google API Access Token (for Sheets/Drive)
+let cachedAccessToken: string | null = null;
+
+export const getGoogleAccessToken = () => cachedAccessToken;
+export const setGoogleAccessToken = (token: string | null) => {
+  cachedAccessToken = token;
+};
+
 // Set persistence to local as it's most reliable for web apps
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
 
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: 'select_account' });
+// Add Google Sheets and Drive Scopes
+googleProvider.addScope('https://www.googleapis.com/auth/spreadsheets');
+googleProvider.addScope('https://www.googleapis.com/auth/drive.file');
+
+// Clear cache token on logout / state change
+auth.onAuthStateChanged((user) => {
+  if (!user) {
+    cachedAccessToken = null;
+  }
+});
 
 export const signInWithGoogle = async () => {
   try {
     // browserPopupRedirectResolver is often required for cross-origin iframes like AI Studio preview
     const result = await signInWithPopup(auth, googleProvider, browserPopupRedirectResolver);
+    const credential = GoogleAuthProvider.credentialFromResult(result);
+    if (credential?.accessToken) {
+      cachedAccessToken = credential.accessToken;
+      console.log("[Firebase Auth] Google Access Token successfully cached in-memory.");
+    }
     return result.user;
   } catch (error: any) {
     const ignoredErrors = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request'];
@@ -39,7 +62,10 @@ export const signInWithGoogle = async () => {
   }
 };
 
-export const logout = () => signOut(auth);
+export const logout = async () => {
+  await signOut(auth);
+  cachedAccessToken = null;
+};
 
 // Test connection
 async function testConnection() {

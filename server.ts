@@ -297,7 +297,7 @@ try {
       projectId: firebaseConfig.projectId
     });
   }
-  const dbId = firebaseConfig.firestoreDatabaseId;
+  const dbId = (firebaseConfig as any).firestoreDatabaseId;
   if (dbId) {
     db = getFirestore(admin.apps[0] || admin.app(), dbId);
     console.log(`[Firestore] Connected to custom database ID: ${dbId}`);
@@ -847,14 +847,16 @@ async function startServer() {
   // Save dynamic sheets config to Firestore (enables sync across all devices/members)
   app.post('/api/save-sheets-config', async (req, res) => {
     try {
-      const { SHEETDB_URL, GOOGLE_SCRIPT_URL } = req.body;
+      const { SHEETDB_URL, GOOGLE_SCRIPT_URL, NAT_GOOGLE_SPREADSHEET_ID, NAT_GOOGLE_SPREADSHEET_URL } = req.body;
       
       // 1. Save to online Firestore database settings
       await db.collection('settings').doc('sheets_config').set({
         SHEETDB_URL: (SHEETDB_URL || '').trim(),
         GOOGLE_SCRIPT_URL: (GOOGLE_SCRIPT_URL || '').trim(),
+        NAT_GOOGLE_SPREADSHEET_ID: (NAT_GOOGLE_SPREADSHEET_ID || '').trim(),
+        NAT_GOOGLE_SPREADSHEET_URL: (NAT_GOOGLE_SPREADSHEET_URL || '').trim(),
         updatedAt: new Date().toISOString()
-      });
+      }, { merge: true });
       console.log('[Sheets Config] Updated spreadsheet sync URLs in Firestore settings.');
 
       // 2. Write to persistent workspace file sheets_config.json so it is baked into shared builds
@@ -862,6 +864,8 @@ async function startServer() {
       fs.writeFileSync(localConfigPath, JSON.stringify({
         SHEETDB_URL: (SHEETDB_URL || '').trim(),
         GOOGLE_SCRIPT_URL: (GOOGLE_SCRIPT_URL || '').trim(),
+        NAT_GOOGLE_SPREADSHEET_ID: (NAT_GOOGLE_SPREADSHEET_ID || '').trim(),
+        NAT_GOOGLE_SPREADSHEET_URL: (NAT_GOOGLE_SPREADSHEET_URL || '').trim(),
         updatedAt: new Date().toISOString()
       }, null, 2), 'utf8');
       console.log('[Sheets Config] Baked configuration settings locally into sheets_config.json.');
@@ -879,6 +883,8 @@ async function startServer() {
       
       let sheetdbUrl = '';
       let googleScriptUrl = '';
+      let natGoogleSpreadsheetId = '';
+      let natGoogleSpreadsheetUrl = '';
       
       // Load prefilled configs from Firestore settings, environment variables, or local sheets_config.json
       try {
@@ -887,6 +893,8 @@ async function startServer() {
           const s = settingsDoc.data();
           sheetdbUrl = s?.SHEETDB_URL || '';
           googleScriptUrl = s?.GOOGLE_SCRIPT_URL || '';
+          natGoogleSpreadsheetId = s?.NAT_GOOGLE_SPREADSHEET_ID || '';
+          natGoogleSpreadsheetUrl = s?.NAT_GOOGLE_SPREADSHEET_URL || '';
         }
       } catch (settingsError: any) {
         console.warn('Could not read raw configuration from Firestore for response pre-fill:', settingsError.message);
@@ -897,13 +905,15 @@ async function startServer() {
         googleScriptUrl = process.env.GOOGLE_SCRIPT_URL || '';
       }
 
-      if (!sheetdbUrl && !googleScriptUrl) {
+      if (!sheetdbUrl && !googleScriptUrl && !natGoogleSpreadsheetId) {
         const localConfigPath = path.join(process.cwd(), 'sheets_config.json');
         if (fs.existsSync(localConfigPath)) {
           try {
             const configObj = JSON.parse(fs.readFileSync(localConfigPath, 'utf8'));
             sheetdbUrl = configObj?.SHEETDB_URL || '';
             googleScriptUrl = configObj?.GOOGLE_SCRIPT_URL || '';
+            natGoogleSpreadsheetId = configObj?.NAT_GOOGLE_SPREADSHEET_ID || '';
+            natGoogleSpreadsheetUrl = configObj?.NAT_GOOGLE_SPREADSHEET_URL || '';
           } catch (fsErr) {
             console.warn('[Diagnostics] Failed loading prefill url from sheets_config.json file');
           }
@@ -914,9 +924,12 @@ async function startServer() {
       let obfuscatedUrl = '';
       let urlType = 'none';
 
-      if (targetUrl) {
+      if (targetUrl || natGoogleSpreadsheetId) {
         urlConfigured = true;
-        if (targetUrl.includes('sheetdb.io')) {
+        if (natGoogleSpreadsheetId) {
+          urlType = 'native-google';
+          obfuscatedUrl = `https://docs.google.com/spreadsheets/d/${natGoogleSpreadsheetId.substring(0, 4)}.../edit`;
+        } else if (targetUrl.includes('sheetdb.io')) {
           urlType = 'sheetdb';
           obfuscatedUrl = targetUrl.replace(/\/api\/v1\/[a-zA-Z0-9]+/, '/api/v1/*****');
         } else if (targetUrl.includes('script.google.com')) {
@@ -1451,7 +1464,7 @@ async function startServer() {
     console.log('[Server] Testing live Cloud Firestore connectivity...');
     try {
       // Create a test collection call to verify if API is enabled / used
-      const dbId = firebaseConfig.firestoreDatabaseId;
+      const dbId = (firebaseConfig as any).firestoreDatabaseId;
       const testDb = dbId ? getFirestore(admin.apps[0] || admin.app(), dbId) : getFirestore(admin.apps[0] || admin.app());
       await testDb.collection('jobs').limit(1).get();
       db = testDb;
@@ -1463,7 +1476,7 @@ async function startServer() {
       
       try {
         const clientApp = clientInitializeApp(firebaseConfig);
-        const clientDb = clientGetFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
+        const clientDb = clientGetFirestore(clientApp, (firebaseConfig as any).firestoreDatabaseId);
         db = new CompatFirestore(clientDb);
         // Probe connectivity using Client SDK
         await db.collection('jobs').limit(1).get();
