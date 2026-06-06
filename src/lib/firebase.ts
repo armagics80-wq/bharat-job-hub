@@ -67,15 +67,15 @@ export const logout = async () => {
   cachedAccessToken = null;
 };
 
-// Test connection
-async function testConnection() {
+// Test connection (can be called manually if needed for diagnostics)
+export async function testConnection() {
   try {
     // Attempting to read a non-existent doc to check connectivity. 
     // This will likely fail with 'permission-denied' if offline is not the issue.
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error: any) {
     if (error.message?.includes('the client is offline')) {
-      console.error("Firebase connection test failed: The client appears to be offline. Please check your configuration.");
+      console.warn("Firebase connection test failed: The client appears to be offline or is still initializing.");
     } else if (error.code === 'permission-denied') {
       // Permission denied is actually a good sign - it means we reached the server!
       console.log("Firebase connection test: Server reached (as expected, access denied).");
@@ -84,4 +84,3 @@ async function testConnection() {
     }
   }
 }
-testConnection();
